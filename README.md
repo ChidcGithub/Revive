@@ -5,10 +5,10 @@
 [![TargetSDK](https://img.shields.io/badge/TargetSDK-36%20(Android%2016)-blue?style=flat-square)](https://developer.android.com/about/versions)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-purple?style=flat-square&logo=kotlin)](https://kotlinlang.org)
 
-[![Build](https://img.shields.io/github/actions/workflow/status/yourusername/revive/release.yml?branch=main&style=flat-square&label=Build)](https://github.com/yourusername/revive/actions)
-[![Release](https://img.shields.io/github/v/release/yourusername/revive?style=flat-square&label=Release)](https://github.com/yourusername/revive/releases)
-[![License](https://img.shields.io/github/license/yourusername/revive?style=flat-square)](LICENSE)
-[![Code Size](https://img.shields.io/github/languages/code-size/yourusername/revive?style=flat-square)](https://github.com/yourusername/revive)
+[![Build](https://img.shields.io/github/actions/workflow/status/ChidcGithub/Revive/release.yml?branch=main&style=flat-square&label=Build)](https://github.com/ChidcGithub/Revive/actions)
+[![Release](https://img.shields.io/github/v/release/ChidcGithub/Revive?style=flat-square&label=Release)](https://github.com/ChidcGithub/Revive/releases)
+[![License](https://img.shields.io/github/license/ChidcGithub/Revive?style=flat-square)](LICENSE)
+[![Code Size](https://img.shields.io/github/languages/code-size/ChidcGithub/Revive?style=flat-square)](https://github.com/ChidcGithub/Revive)
 
 A modern local music player for Android built with Jetpack Compose and Material 3.
 
@@ -105,7 +105,7 @@ app/src/main/java/com/music/revive/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/revive.git
+git clone https://github.com/ChidcGithub/Revive.git
 cd revive
 
 # Build debug APK
