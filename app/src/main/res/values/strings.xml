@@ -56,6 +56,16 @@
     <string name="go_to_artist">转至艺术家</string>
     <string name="share">分享</string>
     
+    <!-- Song Detail -->
+    <string name="song_info">歌曲信息</string>
+    <string name="duration">时长</string>
+    <string name="album">专辑</string>
+    <string name="artist">艺术家</string>
+    <string name="file_name">文件名</string>
+    <string name="file_path">文件路径</string>
+    <string name="file_size">文件大小</string>
+    <string name="date_added">添加日期</string>
+    
     <!-- Search -->
     <string name="search_songs">搜索歌曲</string>
     <string name="search_hint">搜索歌曲、专辑、艺术家</string>

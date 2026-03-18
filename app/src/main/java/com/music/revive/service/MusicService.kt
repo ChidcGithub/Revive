@@ -90,6 +90,7 @@ class MusicService : MediaSessionService() {
 }
 
 @OptIn(UnstableApi::class)
+@Singleton
 class MusicPlayer @Inject constructor(
     private val context: android.content.Context,
     private val notificationManager: MusicNotificationManager
@@ -120,35 +121,40 @@ class MusicPlayer @Inject constructor(
     private val _duration = MutableStateFlow(0L)
     val duration: StateFlow<Long> = _duration.asStateFlow()
 
-    val player: ExoPlayer by lazy {
-        ExoPlayer.Builder(context).build().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .build(),
-                true
-            )
-            setHandleAudioBecomingNoisy(true)
-            addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    _isPlaying.value = isPlaying
-                    updatePlayerState()
-                }
-
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED) {
-                        onSongEnded()
-                    }
-                    updatePlayerState()
-                }
-
-                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    updateCurrentSong()
-                    updatePlayerState()
-                }
-            })
+    private var _player: ExoPlayer? = null
+    val player: ExoPlayer
+        get() = _player ?: ExoPlayer.Builder(context).build().also { exoPlayer ->
+            _player = exoPlayer
+            setupPlayer(exoPlayer)
         }
+
+    private fun setupPlayer(exoPlayer: ExoPlayer) {
+        exoPlayer.setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                .build(),
+            true
+        )
+        exoPlayer.setHandleAudioBecomingNoisy(true)
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _isPlaying.value = isPlaying
+                updatePlayerState()
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    onSongEnded()
+                }
+                updatePlayerState()
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                updateCurrentSong()
+                updatePlayerState()
+            }
+        })
     }
 
     private var currentIndex = 0

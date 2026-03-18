@@ -37,6 +37,7 @@ import com.music.revive.presentation.screen.search.SearchScreen
 import com.music.revive.presentation.screen.search.SearchViewModel
 import com.music.revive.presentation.screen.settings.SettingsScreen
 import com.music.revive.presentation.screen.settings.SettingsViewModel
+import com.music.revive.presentation.screen.song.SongDetailScreen
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -46,10 +47,10 @@ import kotlin.reflect.KClass
 @Composable
 fun ReviveNavigation(
     navController: NavHostController = rememberNavController(),
-    musicPlayer: MusicPlayer
+    musicPlayer: MusicPlayer = hiltViewModel<PlayerViewModel>().musicPlayer
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
     val playerState by musicPlayer.playerState.collectAsState()
     val isPlaying by musicPlayer.isPlaying.collectAsState()
@@ -57,7 +58,15 @@ fun ReviveNavigation(
     val homeViewModel: HomeViewModel = hiltViewModel()
     val homeUiState by homeViewModel.uiState.collectAsState()
 
-    val bottomNavRoutes = listOf("Home", "Playlists", "Settings")
+    val bottomNavRoutes = listOf(
+        Home::class.qualifiedName ?: "Home",
+        Playlists::class.qualifiedName ?: "Playlists",
+        Settings::class.qualifiedName ?: "Settings"
+    )
+
+    val isBottomBarVisible = currentRoute.contains("Home") ||
+            currentRoute.contains("Playlists") ||
+            currentRoute.contains("Settings")
 
     Scaffold(
         bottomBar = {
@@ -72,12 +81,12 @@ fun ReviveNavigation(
                     )
                 }
 
-                if (currentRoute in bottomNavRoutes) {
+                if (isBottomBarVisible) {
                     NavigationBar {
                         NavigationBarItem(
-                            selected = currentRoute == "Home",
+                            selected = currentRoute.contains("Home"),
                             onClick = {
-                                if (currentRoute != "Home") {
+                                if (!currentRoute.contains("Home")) {
                                     navController.navigate(Home) {
                                         popUpTo(Home) { saveState = true }
                                         launchSingleTop = true
@@ -89,9 +98,9 @@ fun ReviveNavigation(
                             label = { Text(stringResource(R.string.home)) }
                         )
                         NavigationBarItem(
-                            selected = currentRoute == "Playlists",
+                            selected = currentRoute.contains("Playlists"),
                             onClick = {
-                                if (currentRoute != "Playlists") {
+                                if (!currentRoute.contains("Playlists")) {
                                     navController.navigate(Playlists) {
                                         popUpTo(Home) { saveState = true }
                                         launchSingleTop = true
@@ -103,9 +112,9 @@ fun ReviveNavigation(
                             label = { Text(stringResource(R.string.playlists)) }
                         )
                         NavigationBarItem(
-                            selected = currentRoute == "Settings",
+                            selected = currentRoute.contains("Settings"),
                             onClick = {
-                                if (currentRoute != "Settings") {
+                                if (!currentRoute.contains("Settings")) {
                                     navController.navigate(Settings) {
                                         popUpTo(Home) { saveState = true }
                                         launchSingleTop = true
@@ -163,6 +172,9 @@ fun ReviveNavigation(
                     },
                     onRefresh = {
                         homeViewModel.refresh()
+                    },
+                    onSongDetailClick = { songId ->
+                        navController.navigate(com.music.revive.presentation.navigation.SongDetail(songId))
                     }
                 )
             }
@@ -242,6 +254,22 @@ fun ReviveNavigation(
 
             composable<Recent> {
                 // Recent screen
+            }
+
+            composable<SongDetail> {
+                SongDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onPlaySong = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
+                    },
+                    onAlbumClick = { albumId ->
+                        navController.navigate(AlbumDetail(albumId))
+                    },
+                    onArtistClick = { artistId ->
+                        navController.navigate(ArtistDetail(artistId))
+                    }
+                )
             }
         }
     }

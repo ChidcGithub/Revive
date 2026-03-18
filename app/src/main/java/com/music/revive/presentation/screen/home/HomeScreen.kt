@@ -33,7 +33,8 @@ fun HomeScreen(
     onFavoriteClick: (Long) -> Unit,
     onCreatePlaylist: (String) -> Unit,
     onAddToPlaylist: (Long, Long) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onSongDetailClick: (Long) -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
@@ -151,6 +152,14 @@ fun HomeScreen(
                     expanded = expandedSongMenu == song.id,
                     onDismissRequest = { expandedSongMenu = null }
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.song_info)) },
+                        onClick = {
+                            onSongDetailClick(song.id)
+                            expandedSongMenu = null
+                        },
+                        leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) }
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.add_to_playlist)) },
                         onClick = {

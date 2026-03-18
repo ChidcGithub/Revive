@@ -1,7 +1,6 @@
 package com.music.revive
 
 import android.Manifest
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,39 +9,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.ListenableFuture
 import com.music.revive.presentation.navigation.ReviveNavigation
 import com.music.revive.presentation.theme.ReviveTheme
-import com.music.revive.service.MusicPlayer
 import com.music.revive.service.MusicService
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var musicPlayer: MusicPlayer
-
-    private var mediaControllerFuture: ListenableFuture<MediaController>? = null
     private var hasPermissions by mutableStateOf(false)
 
     private val permissionLauncher = registerForActivityResult(
@@ -55,7 +36,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request permissions
         checkAndRequestPermissions()
 
         setContent {
@@ -65,7 +45,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     if (hasPermissions) {
-                        ReviveNavigation(musicPlayer = musicPlayer)
+                        ReviveNavigation()
                     } else {
                         PermissionRequestScreen(
                             onRequestPermissions = { checkAndRequestPermissions() }
@@ -79,7 +59,6 @@ class MainActivity : ComponentActivity() {
     private fun checkAndRequestPermissions() {
         val permissions = mutableListOf<String>()
 
-        // Storage permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -100,14 +79,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Start music service
         val serviceIntent = Intent(this, MusicService::class.java)
         startService(serviceIntent)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaControllerFuture?.cancel(true)
     }
 }
 

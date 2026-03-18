@@ -37,3 +37,6 @@ object Favorites
 
 @Serializable
 object Recent
+
+@Serializable
+data class SongDetail(val songId: Long)

@@ -24,7 +24,6 @@ object ServiceModule {
     }
 
     @Provides
-    @Singleton
     fun provideMusicPlayer(
         @ApplicationContext context: Context,
         notificationManager: MusicNotificationManager
