@@ -2,40 +2,38 @@ package com.music.revive.presentation.navigation
 
 import kotlinx.serialization.Serializable
 
-sealed class Screen {
-    @Serializable
-    object Home : Screen()
+@Serializable
+object Home
 
-    @Serializable
-    object Playlists : Screen()
+@Serializable
+object Playlists
 
-    @Serializable
-    object Settings : Screen()
+@Serializable
+object Settings
 
-    @Serializable
-    object Search : Screen()
+@Serializable
+object Search
 
-    @Serializable
-    object Player : Screen()
+@Serializable
+object Player
 
-    @Serializable
-    object Queue : Screen()
+@Serializable
+object Queue
 
-    @Serializable
-    data class AlbumDetail(val albumId: Long) : Screen()
+@Serializable
+data class AlbumDetail(val albumId: Long)
 
-    @Serializable
-    data class ArtistDetail(val artistId: Long) : Screen()
+@Serializable
+data class ArtistDetail(val artistId: Long)
 
-    @Serializable
-    data class FolderDetail(val folderPath: String) : Screen()
+@Serializable
+data class FolderDetail(val folderPath: String)
 
-    @Serializable
-    data class PlaylistDetail(val playlistId: Long) : Screen()
+@Serializable
+data class PlaylistDetail(val playlistId: Long)
 
-    @Serializable
-    object Favorites : Screen()
+@Serializable
+object Favorites
 
-    @Serializable
-    object Recent : Screen()
-}
+@Serializable
+object Recent

@@ -9,13 +9,23 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.music.revive.R
+import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.SongItemWithFavorite
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +74,7 @@ fun SearchScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
@@ -74,9 +84,9 @@ fun SearchScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
@@ -96,7 +106,7 @@ fun SearchScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = stringResource(R.string.no_results_found, searchQuery),
@@ -131,19 +141,20 @@ data class SearchUiState(
     val favoriteSongIds: Set<Long> = emptySet()
 )
 
-class SearchViewModel @javax.inject.Inject constructor(
-    private val repository: com.music.revive.data.repository.MusicRepository
-) : androidx.lifecycle.ViewModel() {
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val repository: MusicRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
-    val uiState: kotlinx.coroutines.flow.StateFlow<SearchUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     init {
         loadFavorites()
     }
 
     private fun loadFavorites() {
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             repository.getFavoriteSongIds().collect { ids ->
                 _uiState.value = _uiState.value.copy(favoriteSongIds = ids.toSet())
             }
@@ -156,7 +167,7 @@ class SearchViewModel @javax.inject.Inject constructor(
             isSearching = true
         )
 
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             if (query.isBlank()) {
                 _uiState.value = _uiState.value.copy(
                     searchResults = emptyList(),
@@ -172,6 +183,3 @@ class SearchViewModel @javax.inject.Inject constructor(
         }
     }
 }
-
-private val MutableStateFlow = kotlinx.coroutines.flow.MutableStateFlow
-private fun <T> MutableStateFlow<T>.asStateFlow() = kotlinx.coroutines.flow.StateFlow(this)

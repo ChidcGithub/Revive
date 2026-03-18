@@ -15,25 +15,35 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import coil.compose.AsyncImage
 import com.music.revive.R
+import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Album
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.SongItem
+import com.music.revive.presentation.navigation.AlbumDetail
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumDetailScreen(
-    album: Album,
     onNavigateBack: () -> Unit,
     onSongClick: (Song, List<Song>) -> Unit,
-    onAddToPlaylist: (Long) -> Unit,
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(album.id) {
-        viewModel.loadAlbumSongs(album.id)
+    LaunchedEffect(Unit) {
+        viewModel.loadAlbumSongs()
     }
 
     Scaffold(
@@ -61,7 +71,6 @@ fun AlbumDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Album header
             item {
                 Column(
                     modifier = Modifier
@@ -76,7 +85,7 @@ fun AlbumDetailScreen(
                         tonalElevation = 4.dp
                     ) {
                         AsyncImage(
-                            model = album.albumArtUri,
+                            model = uiState.albumArtUri,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -84,18 +93,18 @@ fun AlbumDetailScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = album.name,
+                        text = uiState.albumName,
                         style = MaterialTheme.typography.headlineSmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = album.artist,
+                        text = uiState.artistName,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${album.numberOfSongs} ${stringResource(R.string.songs)}",
+                        text = "${uiState.songs.size} ${stringResource(R.string.songs)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -117,12 +126,11 @@ fun AlbumDetailScreen(
                 }
             }
 
-            // Songs
             items(uiState.songs) { song ->
                 SongItem(
                     song = song,
                     onPlayClick = { onSongClick(song, uiState.songs) },
-                    onMenuClick = { /* Show menu */ }
+                    onMenuClick = { }
                 )
             }
         }
@@ -130,33 +138,40 @@ fun AlbumDetailScreen(
 }
 
 data class AlbumDetailUiState(
+    val albumId: Long = 0,
+    val albumName: String = "",
+    val artistName: String = "",
+    val albumArtUri: String? = null,
     val songs: List<Song> = emptyList(),
     val isLoading: Boolean = false
 )
 
-class AlbumDetailViewModel @javax.inject.Inject constructor(
-    private val repository: com.music.revive.data.repository.MusicRepository
-) : androidx.lifecycle.ViewModel() {
+@HiltViewModel
+class AlbumDetailViewModel @Inject constructor(
+    private val repository: MusicRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AlbumDetailUiState())
-    val uiState: kotlinx.coroutines.flow.StateFlow<AlbumDetailUiState> = _uiState.asStateFlow()
+    private val albumDetail: AlbumDetail = savedStateHandle.toRoute<AlbumDetail>()
 
-    fun loadAlbumSongs(albumId: Long) {
-        kotlinx.coroutines.GlobalScope.launch {
+    private val _uiState = MutableStateFlow(AlbumDetailUiState(albumId = albumDetail.albumId))
+    val uiState: StateFlow<AlbumDetailUiState> = _uiState.asStateFlow()
+
+    fun loadAlbumSongs() {
+        viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val songs = repository.getSongsByAlbum(albumId)
-            _uiState.value = _uiState.value.copy(songs = songs, isLoading = false)
+            val songs = repository.getSongsByAlbum(albumDetail.albumId)
+            _uiState.value = _uiState.value.copy(
+                songs = songs,
+                isLoading = false,
+                albumName = songs.firstOrNull()?.album ?: "Unknown Album",
+                artistName = songs.firstOrNull()?.artist ?: "Unknown Artist",
+                albumArtUri = songs.firstOrNull()?.albumArtUri
+            )
         }
     }
 
-    fun playAll() {
-        // Play all songs in album
-    }
+    fun playAll() {}
 
-    fun shuffleAll() {
-        // Shuffle and play all songs
-    }
+    fun shuffleAll() {}
 }
-
-private val MutableStateFlow = kotlinx.coroutines.flow.MutableStateFlow
-private fun <T> MutableStateFlow<T>.asStateFlow() = kotlinx.coroutines.flow.StateFlow(this)

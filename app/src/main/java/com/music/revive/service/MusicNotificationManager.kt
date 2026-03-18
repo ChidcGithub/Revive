@@ -11,7 +11,6 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.core.app.NotificationCompat
-import androidx.media.app.NotificationCompat.MediaStyle
 import com.music.revive.MainActivity
 import com.music.revive.R
 import com.music.revive.domain.model.Song
@@ -61,8 +60,6 @@ class MusicNotificationManager @Inject constructor(
     }
 
     fun createNotification(song: Song?, isPlaying: Boolean): Notification {
-        val mediaStyle = MediaStyle()
-
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -80,13 +77,10 @@ class MusicNotificationManager @Inject constructor(
             .setDeleteIntent(createStopIntent())
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(isPlaying)
-            .setStyle(
-                mediaStyle
-                    .setShowActionsInCompactView(0, 1, 2)
-            )
             .addAction(createPreviousAction())
             .addAction(if (isPlaying) createPauseAction() else createPlayAction())
             .addAction(createNextAction())
+            .setStyle(NotificationCompat.BigTextStyle())
             .build()
     }
 

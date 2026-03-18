@@ -1,5 +1,6 @@
 package com.music.revive.presentation.screen.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -10,8 +11,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.music.revive.R
 import com.music.revive.BuildConfig
+import com.music.revive.data.repository.MusicRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +43,6 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Appearance section
             item {
                 Text(
                     text = stringResource(R.string.appearance),
@@ -69,7 +78,6 @@ fun SettingsScreen(
                 )
             }
 
-            // Audio section
             item {
                 Text(
                     text = stringResource(R.string.audio),
@@ -95,7 +103,6 @@ fun SettingsScreen(
                 )
             }
 
-            // Data section
             item {
                 Text(
                     text = stringResource(R.string.data),
@@ -115,7 +122,6 @@ fun SettingsScreen(
                 )
             }
 
-            // About section
             item {
                 Text(
                     text = stringResource(R.string.about),
@@ -141,7 +147,7 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(Icons.Default.Code, contentDescription = null)
                     },
-                    modifier = Modifier.clickable { /* Open licenses */ }
+                    modifier = Modifier.clickable { }
                 )
             }
         }
@@ -150,25 +156,36 @@ fun SettingsScreen(
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text(stringResource(R.string.choose_theme)) }
-        ) {
-            Column {
-                ThemeOption.values().forEach { theme ->
-                    DropdownMenuItem(
-                        text = { Text(theme.displayName) },
-                        onClick = {
-                            viewModel.setTheme(theme)
-                            showThemeDialog = false
-                        },
-                        leadingIcon = {
+            title = { Text(stringResource(R.string.choose_theme)) },
+            text = {
+                Column {
+                    ThemeOption.entries.forEach { theme ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setTheme(theme)
+                                    showThemeDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             if (uiState.theme == theme) {
                                 Icon(Icons.Default.Check, contentDescription = null)
+                            } else {
+                                Spacer(Modifier.width(24.dp))
                             }
+                            Text(theme.displayName)
                         }
-                    )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text("OK")
                 }
             }
-        }
+        )
     }
 }
 
@@ -185,12 +202,13 @@ data class SettingsUiState(
     val handleAudioFocus: Boolean = true
 )
 
-class SettingsViewModel @javax.inject.Inject constructor(
-    private val repository: com.music.revive.data.repository.MusicRepository
-) : androidx.lifecycle.ViewModel() {
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val repository: MusicRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
-    val uiState: kotlinx.coroutines.flow.StateFlow<SettingsUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     fun setTheme(theme: ThemeOption) {
         _uiState.value = _uiState.value.copy(
@@ -208,11 +226,8 @@ class SettingsViewModel @javax.inject.Inject constructor(
     }
 
     fun clearRecentHistory() {
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             repository.clearRecentSongs()
         }
     }
 }
-
-private val MutableStateFlow = kotlinx.coroutines.flow.MutableStateFlow
-private fun <T> MutableStateFlow<T>.asStateFlow() = kotlinx.coroutines.flow.StateFlow(this)

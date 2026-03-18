@@ -11,7 +11,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
@@ -37,6 +36,7 @@ class MusicService : MediaSessionService() {
     @Inject
     lateinit var musicPlayer: MusicPlayer
 
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
 
@@ -46,13 +46,8 @@ class MusicService : MediaSessionService() {
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo
                 ): MediaSession.ConnectionResult {
-                    val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
-                        .buildUpon()
-                        .addSessionCommand(SessionCommand(ACTION_SHUFFLE, Bundle.EMPTY))
-                        .addSessionCommand(SessionCommand(ACTION_REPEAT, Bundle.EMPTY))
-                        .build()
                     return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                        .setAvailableSessionCommands(sessionCommands)
+                        .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS)
                         .build()
                 }
 
@@ -61,7 +56,7 @@ class MusicService : MediaSessionService() {
                     controller: MediaSession.ControllerInfo,
                     customCommand: SessionCommand,
                     args: Bundle
-                ): MediaSession.ConnectionResult {
+                ): androidx.media3.session.MediaSession.ConnectionResult {
                     when (customCommand.customAction) {
                         ACTION_SHUFFLE -> musicPlayer.toggleShuffle()
                         ACTION_REPEAT -> musicPlayer.cycleRepeatMode()
@@ -71,7 +66,6 @@ class MusicService : MediaSessionService() {
             })
             .build()
 
-        musicPlayer.notificationProvider = { createNotification() }
         musicPlayer.start()
     }
 
@@ -87,17 +81,13 @@ class MusicService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private fun createNotification(): Notification {
-        return musicPlayer.createNotification()
-    }
-
     companion object {
         const val ACTION_SHUFFLE = "com.music.revive.action.SHUFFLE"
         const val ACTION_REPEAT = "com.music.revive.action.REPEAT"
     }
 }
 
-@UnstableApi
+@OptIn(UnstableApi::class)
 class MusicPlayer @Inject constructor(
     private val context: android.content.Context,
     private val notificationManager: MusicNotificationManager
@@ -127,8 +117,6 @@ class MusicPlayer @Inject constructor(
 
     private val _duration = MutableStateFlow(0L)
     val duration: StateFlow<Long> = _duration.asStateFlow()
-
-    var notificationProvider: (() -> Notification)? = null
 
     val player: ExoPlayer by lazy {
         ExoPlayer.Builder(context).build().apply {
@@ -163,9 +151,7 @@ class MusicPlayer @Inject constructor(
 
     private var currentIndex = 0
 
-    fun start() {
-        // Initialize player
-    }
+    fun start() {}
 
     fun playSong(song: Song, songList: List<Song> = emptyList()) {
         val songs = if (songList.isEmpty()) listOf(song) else songList
@@ -277,21 +263,6 @@ class MusicPlayer @Inject constructor(
         }
     }
 
-    fun reorderQueue(fromIndex: Int, toIndex: Int) {
-        val currentQueue = _queue.value.toMutableList()
-        if (fromIndex in currentQueue.indices && toIndex in currentQueue.indices) {
-            val song = currentQueue.removeAt(fromIndex)
-            currentQueue.add(toIndex, song)
-            _queue.value = currentQueue
-
-            when {
-                fromIndex == currentIndex -> currentIndex = toIndex
-                fromIndex < currentIndex && toIndex >= currentIndex -> currentIndex--
-                fromIndex > currentIndex && toIndex <= currentIndex -> currentIndex++
-            }
-        }
-    }
-
     private fun onSongEnded() {
         when (_repeatMode.value) {
             RepeatMode.ONE -> {
@@ -328,10 +299,6 @@ class MusicPlayer @Inject constructor(
             queue = _queue.value,
             queueIndex = currentIndex
         )
-    }
-
-    fun createNotification(): Notification {
-        return notificationManager.createNotification(_currentSong.value, _isPlaying.value)
     }
 
     fun release() {

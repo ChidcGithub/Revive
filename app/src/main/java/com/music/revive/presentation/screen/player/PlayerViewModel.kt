@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,11 +22,16 @@ class PlayerViewModel @Inject constructor(
 
     val playerState: StateFlow<PlayerState> = musicPlayer.playerState
 
-    val isFavorite: StateFlow<Boolean> = musicPlayer.currentSong.map { song ->
-        song?.let { repository.isFavorite(it.id) } ?: false
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
+    private val _isFavorite = MutableStateFlow(false)
+    val isFavorite: StateFlow<Boolean> = _isFavorite.asStateFlow()
 
-    private val _currentSong = musicPlayer.currentSong
+    init {
+        viewModelScope.launch {
+            musicPlayer.currentSong.collect { song ->
+                _isFavorite.value = song?.let { repository.isFavorite(it.id) } ?: false
+            }
+        }
+    }
 
     fun playPause() {
         musicPlayer.playPause()
@@ -55,12 +59,13 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleFavorite() {
         viewModelScope.launch {
-            _currentSong.value?.let { song ->
-                if (isFavorite.value) {
+            musicPlayer.currentSong.value?.let { song ->
+                if (_isFavorite.value) {
                     repository.removeFromFavorites(song.id)
                 } else {
                     repository.addToFavorites(song.id)
                 }
+                _isFavorite.value = !_isFavorite.value
             }
         }
     }

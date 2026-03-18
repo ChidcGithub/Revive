@@ -1,9 +1,16 @@
 package com.music.revive.presentation.components
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.music.revive.R
+import com.music.revive.domain.model.Playlist
 
 @Composable
 fun CreatePlaylistDialog(
@@ -103,47 +110,54 @@ fun DeletePlaylistDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddToPlaylistDialog(
-    playlists: List<com.music.revive.domain.model.Playlist>,
+    playlists: List<Playlist>,
     onDismiss: () -> Unit,
     onPlaylistSelected: (Long) -> Unit,
     onCreateNew: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_to_playlist)) }
-    ) {
-        Column {
-            if (playlists.isEmpty()) {
-                TextButton(onClick = onCreateNew) {
-                    Text(stringResource(R.string.create_new_playlist))
-                }
-            } else {
-                playlists.forEach { playlist ->
+        title = { Text(stringResource(R.string.add_to_playlist)) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (playlists.isEmpty()) {
+                    TextButton(onClick = onCreateNew) {
+                        Text(stringResource(R.string.create_new_playlist))
+                    }
+                } else {
+                    playlists.forEach { playlist ->
+                        DropdownMenuItem(
+                            text = { Text(playlist.name) },
+                            onClick = { onPlaylistSelected(playlist.id) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.PlaylistPlay,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                    }
+                    HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text(playlist.name) },
-                        onClick = { onPlaylistSelected(playlist.id) },
+                        text = { Text(stringResource(R.string.create_new_playlist)) },
+                        onClick = onCreateNew,
                         leadingIcon = {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.PlaylistPlay,
+                                imageVector = Icons.Default.Add,
                                 contentDescription = null
                             )
                         }
                     )
                 }
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.create_new_playlist)) },
-                    onClick = onCreateNew,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Add,
-                            contentDescription = null
-                        )
-                    }
-                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
             }
         }
-    }
+    )
 }

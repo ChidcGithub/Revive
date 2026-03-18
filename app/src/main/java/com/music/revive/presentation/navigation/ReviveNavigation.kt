@@ -1,7 +1,7 @@
 package com.music.revive.presentation.navigation
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,12 +11,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackAsState
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.music.revive.R
 import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Album
@@ -40,6 +40,7 @@ import com.music.revive.presentation.screen.settings.SettingsViewModel
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlin.reflect.KClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +48,7 @@ fun ReviveNavigation(
     navController: NavHostController = rememberNavController(),
     musicPlayer: MusicPlayer
 ) {
-    val navBackStackEntry by navController.currentBackStackAsState()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     val playerState by musicPlayer.playerState.collectAsState()
@@ -56,65 +57,65 @@ fun ReviveNavigation(
     val homeViewModel: HomeViewModel = hiltViewModel()
     val homeUiState by homeViewModel.uiState.collectAsState()
 
-    // Define bottom navigation items
-    val bottomNavItems = listOf(
-        BottomNavItem(
-            route = Screen.Home::class.qualifiedName ?: "home",
-            icon = Icons.Default.Home,
-            labelRes = R.string.home
-        ),
-        BottomNavItem(
-            route = Screen.Playlists::class.qualifiedName ?: "playlists",
-            icon = Icons.Default.PlaylistPlay,
-            labelRes = R.string.playlists
-        ),
-        BottomNavItem(
-            route = Screen.Settings::class.qualifiedName ?: "settings",
-            icon = Icons.Default.Settings,
-            labelRes = R.string.settings
-        )
-    )
+    val bottomNavRoutes = listOf("Home", "Playlists", "Settings")
 
     Scaffold(
         bottomBar = {
             Column {
-                // Bottom player bar
                 if (playerState.currentSong != null) {
                     BottomPlayerBar(
                         playerState = playerState,
                         onPlayPauseClick = { musicPlayer.playPause() },
                         onNextClick = { musicPlayer.playNext() },
                         onPreviousClick = { musicPlayer.playPrevious() },
-                        onBarClick = { navController.navigate(Screen.Player) }
+                        onBarClick = { navController.navigate(Player) }
                     )
                 }
 
-                // Bottom navigation
-                if (currentRoute in bottomNavItems.map { it.route }) {
+                if (currentRoute in bottomNavRoutes) {
                     NavigationBar {
-                        bottomNavItems.forEach { item ->
-                            NavigationBarItem(
-                                selected = currentRoute == item.route,
-                                onClick = {
-                                    if (currentRoute != item.route) {
-                                        navController.navigate(item.route) {
-                                            popUpTo(Screen.Home::class.qualifiedName ?: "home") {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
+                        NavigationBarItem(
+                            selected = currentRoute == "Home",
+                            onClick = {
+                                if (currentRoute != "Home") {
+                                    navController.navigate(Home) {
+                                        popUpTo(Home) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = item.icon,
-                                        contentDescription = stringResource(item.labelRes)
-                                    )
-                                },
-                                label = { Text(stringResource(item.labelRes)) }
-                            )
-                        }
+                                }
+                            },
+                            icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                            label = { Text(stringResource(R.string.home)) }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == "Playlists",
+                            onClick = {
+                                if (currentRoute != "Playlists") {
+                                    navController.navigate(Playlists) {
+                                        popUpTo(Home) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.Default.PlaylistPlay, contentDescription = null) },
+                            label = { Text(stringResource(R.string.playlists)) }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute == "Settings",
+                            onClick = {
+                                if (currentRoute != "Settings") {
+                                    navController.navigate(Settings) {
+                                        popUpTo(Home) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                            label = { Text(stringResource(R.string.settings)) }
+                        )
                     }
                 }
             }
@@ -122,35 +123,34 @@ fun ReviveNavigation(
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home::class.qualifiedName ?: "home",
+            startDestination = Home,
             modifier = Modifier.padding(paddingValues),
             enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
             exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) },
             popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) },
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
         ) {
-            // Home screen
-            composable(route = Screen.Home::class.qualifiedName ?: "home") {
+            composable<Home> {
                 HomeScreen(
                     uiState = homeUiState,
                     onSongClick = { song, songList ->
                         musicPlayer.playSong(song, songList)
-                        navController.navigate(Screen.Player)
+                        navController.navigate(Player)
                     },
                     onAlbumClick = { album ->
-                        // Navigate to album detail
+                        navController.navigate(AlbumDetail(album.id))
                     },
                     onArtistClick = { artist ->
-                        // Navigate to artist detail
+                        navController.navigate(ArtistDetail(artist.id))
                     },
                     onFolderClick = { folderPath ->
-                        // Navigate to folder detail
+                        navController.navigate(FolderDetail(folderPath))
                     },
                     onPlaylistClick = { playlistId ->
-                        // Navigate to playlist detail
+                        navController.navigate(PlaylistDetail(playlistId))
                     },
                     onSearchClick = {
-                        navController.navigate(Screen.Search::class.qualifiedName ?: "search")
+                        navController.navigate(Search)
                     },
                     onFavoriteClick = { songId ->
                         homeViewModel.toggleFavorite(songId)
@@ -167,63 +167,82 @@ fun ReviveNavigation(
                 )
             }
 
-            // Playlists screen
-            composable(route = Screen.Playlists::class.qualifiedName ?: "playlists") {
-                val playlistViewModel: PlaylistViewModel = hiltViewModel()
+            composable<Playlists> {
                 PlaylistScreen(
                     onPlaylistClick = { playlistId ->
-                        // Navigate to playlist detail
+                        navController.navigate(PlaylistDetail(playlistId))
                     },
                     onSongClick = { song, songList ->
                         musicPlayer.playSong(song, songList)
-                        navController.navigate(Screen.Player)
+                        navController.navigate(Player)
                     },
-                    onFavoriteClick = { songId ->
-                        // Toggle favorite
-                    }
+                    onFavoriteClick = { songId -> }
                 )
             }
 
-            // Settings screen
-            composable(route = Screen.Settings::class.qualifiedName ?: "settings") {
-                val settingsViewModel: SettingsViewModel = hiltViewModel()
+            composable<Settings> {
                 SettingsScreen()
             }
 
-            // Search screen
-            composable(route = Screen.Search::class.qualifiedName ?: "search") {
-                val searchViewModel: SearchViewModel = hiltViewModel()
+            composable<Search> {
                 SearchScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onSongClick = { song, songList ->
                         musicPlayer.playSong(song, songList)
-                        navController.navigate(Screen.Player)
+                        navController.navigate(Player)
                     },
-                    onFavoriteClick = { songId ->
-                        // Toggle favorite
+                    onFavoriteClick = { songId -> }
+                )
+            }
+
+            composable<Player> {
+                PlayerScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onQueueClick = { navController.navigate(Queue) }
+                )
+            }
+
+            composable<Queue> {
+                // Queue screen
+            }
+
+            composable<AlbumDetail> {
+                val viewModel: AlbumDetailViewModel = hiltViewModel()
+                AlbumDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSongClick = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
                     }
                 )
             }
 
-            // Player screen
-            composable(route = Screen.Player::class.qualifiedName ?: "player") {
-                val playerViewModel: PlayerViewModel = hiltViewModel()
-                PlayerScreen(
+            composable<ArtistDetail> {
+                val viewModel: ArtistDetailViewModel = hiltViewModel()
+                ArtistDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onQueueClick = { navController.navigate(Screen.Queue::class.qualifiedName ?: "queue") }
+                    onSongClick = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
+                    }
                 )
             }
 
-            // Queue screen
-            composable(route = Screen.Queue::class.qualifiedName ?: "queue") {
-                // Queue screen implementation
+            composable<FolderDetail> {
+                // Folder detail screen
+            }
+
+            composable<PlaylistDetail> {
+                // Playlist detail screen
+            }
+
+            composable<Favorites> {
+                // Favorites screen
+            }
+
+            composable<Recent> {
+                // Recent screen
             }
         }
     }
 }
-
-data class BottomNavItem(
-    val route: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val labelRes: Int
-)

@@ -1,5 +1,6 @@
 package com.music.revive.presentation.screen.playlist
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,10 +13,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.music.revive.R
+import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Playlist
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.*
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +84,6 @@ fun PlaylistScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Favorites playlist
                 item {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.favorites)) },
@@ -97,11 +106,10 @@ fun PlaylistScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.clickable { /* Navigate to favorites */ }
+                        modifier = Modifier.clickable { }
                     )
                 }
 
-                // Recent played
                 item {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.recently_played)) },
@@ -124,13 +132,14 @@ fun PlaylistScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.clickable { /* Navigate to recent */ }
+                        modifier = Modifier.clickable { }
                     )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                }
 
-                // User playlists
                 items(uiState.playlists) { playlist ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -199,24 +208,25 @@ data class PlaylistUiState(
     val recentCount: Int = 0
 )
 
-class PlaylistViewModel @javax.inject.Inject constructor(
-    private val repository: com.music.revive.data.repository.MusicRepository
-) : androidx.lifecycle.ViewModel() {
+@HiltViewModel
+class PlaylistViewModel @Inject constructor(
+    private val repository: MusicRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlaylistUiState())
-    val uiState: kotlinx.coroutines.flow.StateFlow<PlaylistUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<PlaylistUiState> = _uiState.asStateFlow()
 
     init {
         loadPlaylists()
     }
 
     private fun loadPlaylists() {
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             repository.getAllPlaylists().collect { playlists ->
                 _uiState.value = _uiState.value.copy(playlists = playlists)
             }
         }
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             repository.getFavoriteSongIds().collect { favorites ->
                 _uiState.value = _uiState.value.copy(favoriteCount = favorites.size)
             }
@@ -224,19 +234,14 @@ class PlaylistViewModel @javax.inject.Inject constructor(
     }
 
     fun createPlaylist(name: String) {
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             repository.createPlaylist(name)
         }
     }
 
     fun deletePlaylist(playlistId: Long) {
-        kotlinx.coroutines.GlobalScope.launch {
+        viewModelScope.launch {
             repository.deletePlaylist(playlistId)
         }
     }
 }
-
-private val MutableStateFlow = kotlinx.coroutines.flow.MutableStateFlow
-private fun <T> MutableStateFlow<T>.asStateFlow() = kotlinx.coroutines.flow.StateFlow(this)
-private val androidx.compose.foundation.layout.Arrangement.spacedBy
-    get() = androidx.compose.foundation.layout.Arrangement
