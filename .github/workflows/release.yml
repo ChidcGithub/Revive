@@ -199,6 +199,86 @@ jobs:
           path: ./bundle
         continue-on-error: true
 
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          VERSION="${{ needs.build.outputs.version_name }}"
+          FULL_VERSION="${{ needs.build.outputs.full_version }}"
+          BUILD_NUM="${{ needs.build.outputs.build_number }}"
+          GIT_SHA="${{ needs.build.outputs.git_sha }}"
+          
+          # Start building changelog
+          cat > /tmp/changelog.md << EOF
+          ## Revive ${FULL_VERSION}
+          
+          | Property | Value |
+          |----------|-------|
+          | Version | \`${VERSION}\` |
+          | Type | Release |
+          | Build | \`${BUILD_NUM}\` |
+          | Commit | \`${GIT_SHA}\` |
+          
+          ---
+          
+          EOF
+          
+          if [ -n "$PREV_TAG" ]; then
+            # Get commits since last tag
+            COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges 2>/dev/null || echo "")
+            
+            if [ -n "$COMMITS" ]; then
+              # Categorize commits
+              FEATURES=$(echo "$COMMITS" | grep -iE "feat|feature|add" || true)
+              FIXES=$(echo "$COMMITS" | grep -iE "fix|bug|hotfix" || true)
+              IMPROVEMENTS=$(echo "$COMMITS" | grep -iE "improve|update|refactor|optimize|perf" || true)
+              OTHER=$(echo "$COMMITS" | grep -ivE "feat|feature|add|fix|bug|hotfix|improve|update|refactor|optimize|perf" || true)
+              
+              if [ -n "$FEATURES" ]; then
+                echo "### New Features" >> /tmp/changelog.md
+                echo "$FEATURES" >> /tmp/changelog.md
+                echo "" >> /tmp/changelog.md
+              fi
+              if [ -n "$FIXES" ]; then
+                echo "### Bug Fixes" >> /tmp/changelog.md
+                echo "$FIXES" >> /tmp/changelog.md
+                echo "" >> /tmp/changelog.md
+              fi
+              if [ -n "$IMPROVEMENTS" ]; then
+                echo "### Improvements" >> /tmp/changelog.md
+                echo "$IMPROVEMENTS" >> /tmp/changelog.md
+                echo "" >> /tmp/changelog.md
+              fi
+              if [ -n "$OTHER" ]; then
+                echo "### Other Changes" >> /tmp/changelog.md
+                echo "$OTHER" >> /tmp/changelog.md
+                echo "" >> /tmp/changelog.md
+              fi
+            else
+              echo "No changes since last release." >> /tmp/changelog.md
+              echo "" >> /tmp/changelog.md
+            fi
+          else
+            echo "### Initial Release" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+            echo "First release of Revive music player." >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+          
+          # Add download section
+          cat >> /tmp/changelog.md << EOF
+          
+          ---
+          
+          ### Downloads
+          | File | Description |
+          |------|-------------|
+          | APK | Install directly on Android device |
+          | AAB | For Google Play Store distribution |
+          EOF
+          
+          echo "changelog_file=/tmp/changelog.md" >> $GITHUB_OUTPUT
+
       - name: Create Git Tag
         run: |
           git config user.name "github-actions[bot]"
@@ -213,19 +293,7 @@ jobs:
         with:
           tag_name: v${{ needs.build.outputs.version_name }}
           name: Revive ${{ needs.build.outputs.full_version }}
-          body: |
-            ## Revive ${{ needs.build.outputs.full_version }}
-            
-            | Property | Value |
-            |----------|-------|
-            | Version | `${{ needs.build.outputs.version_name }}` |
-            | Type | Release |
-            | Build | `${{ needs.build.outputs.build_number }}` |
-            | Commit | `${{ needs.build.outputs.git_sha }}` |
-            
-            ### Downloads
-            - **APK**: Download and install directly on your Android device
-            - **AAB**: For Google Play Store distribution
+          body_path: /tmp/changelog.md
           files: |
             ./artifacts/*.apk
             ./bundle/*.aab
