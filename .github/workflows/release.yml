@@ -180,7 +180,7 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_name != '' && needs.build.outputs.build_type == 'r'
+    if: github.event_name == 'push' && needs.build.outputs.build_type == 'r'
 
     steps:
       - name: Checkout code
