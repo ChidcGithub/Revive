@@ -56,12 +56,14 @@ class MusicService : MediaSessionService() {
                     controller: MediaSession.ControllerInfo,
                     customCommand: SessionCommand,
                     args: Bundle
-                ): androidx.media3.session.MediaSession.ConnectionResult {
+                ): com.google.common.util.concurrent.ListenableFuture<androidx.media3.session.SessionResult> {
                     when (customCommand.customAction) {
                         ACTION_SHUFFLE -> musicPlayer.toggleShuffle()
                         ACTION_REPEAT -> musicPlayer.cycleRepeatMode()
                     }
-                    return MediaSession.ConnectionResult.AcceptedResultBuilder(session).build()
+                    return androidx.media3.session.SessionResult(androidx.media3.session.SessionResult.RESULT_SUCCESS).let {
+                        com.google.common.util.concurrent.Futures.immediateFuture(it)
+                    }
                 }
             })
             .build()

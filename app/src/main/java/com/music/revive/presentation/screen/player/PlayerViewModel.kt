@@ -28,7 +28,13 @@ class PlayerViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             musicPlayer.currentSong.collect { song ->
-                _isFavorite.value = song?.let { repository.isFavorite(it.id) } ?: false
+                song?.let { currentSong ->
+                    repository.isFavorite(currentSong.id).collect { isFav ->
+                        _isFavorite.value = isFav
+                    }
+                } ?: run {
+                    _isFavorite.value = false
+                }
             }
         }
     }
