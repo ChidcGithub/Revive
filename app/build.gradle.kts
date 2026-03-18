@@ -7,7 +7,8 @@ plugins {
 }
 
 // Version configuration
-val appVersionName: String = System.getenv("APP_VERSION_NAME") ?: "1.0.0"
+val appVersionName: String = System.getenv("APP_VERSION_NAME") ?: "0.1.1"
+val versionCodename: String = "Plain"
 val buildNumber: String = System.getenv("GITHUB_RUN_NUMBER") ?: "local"
 val gitSha: String = System.getenv("GIT_SHA") ?: "local"
 val buildType: String = System.getenv("BUILD_TYPE") ?: "r" // "r" for release, "b" for beta
