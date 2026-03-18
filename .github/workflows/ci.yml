@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ main, beta, develop ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version info
+        id: version
+        run: |
+          GIT_SHA=$(git rev-parse --short HEAD)
+          BUILD_NUMBER="${{ github.run_number }}"
+          
+          # Determine build type based on target branch for PR, or develop for push
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.base_ref }}" = "main" ]; then
+              BUILD_TYPE="r"
+            else
+              BUILD_TYPE="b"
+            fi
+          else
+            BUILD_TYPE="b"
+          fi
+          
+          VERSION_NAME="0.0.0"
+          FULL_VERSION="$VERSION_NAME.$BUILD_TYPE$BUILD_NUMBER-$GIT_SHA"
+          
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "git_sha=$GIT_SHA" >> $GITHUB_OUTPUT
+          echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Lint
+        run: ./gradlew lintDebug
+
+      - name: Build Debug APK
+        env:
+          APP_VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          GITHUB_RUN_NUMBER: ${{ steps.version.outputs.build_number }}
+          GIT_SHA: ${{ steps.version.outputs.git_sha }}
+          BUILD_TYPE: ${{ steps.version.outputs.build_type }}
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: revive-${{ steps.version.outputs.full_version }}
+          path: app/build/outputs/apk/debug/*.apk

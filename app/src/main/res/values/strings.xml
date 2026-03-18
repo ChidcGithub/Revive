@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Revive</string>
+    
+    <!-- Navigation -->
+    <string name="home">首页</string>
+    <string name="playlists">播放列表</string>
+    <string name="settings">设置</string>
+    <string name="search">搜索</string>
+    
+    <!-- Common -->
+    <string name="songs">首歌曲</string>
+    <string name="albums">张专辑</string>
+    <string name="artists">位艺术家</string>
+    <string name="folders">文件夹</string>
+    <string name="all_songs">全部歌曲</string>
+    <string name="see_all">查看全部</string>
+    <string name="back">返回</string>
+    <string name="cancel">取消</string>
+    <string name="save">保存</string>
+    <string name="delete">删除</string>
+    <string name="create">创建</string>
+    <string name="rename">重命名</string>
+    <string name="more_options">更多选项</string>
+    <string name="play_all">播放全部</string>
+    <string name="shuffle">随机播放</string>
+    <string name="unknown_title">未知标题</string>
+    <string name="unknown_artist">未知艺术家</string>
+    
+    <!-- Player -->
+    <string name="play">播放</string>
+    <string name="pause">暂停</string>
+    <string name="next">下一首</string>
+    <string name="previous">上一首</string>
+    <string name="repeat">循环模式</string>
+    <string name="queue">播放队列</string>
+    
+    <!-- Playlist -->
+    <string name="create_playlist">创建播放列表</string>
+    <string name="playlist_name">播放列表名称</string>
+    <string name="rename_playlist">重命名播放列表</string>
+    <string name="delete_playlist">删除播放列表</string>
+    <string name="delete_playlist_confirmation">确定要删除播放列表 "%1$s" 吗？</string>
+    <string name="no_playlists">暂无播放列表</string>
+    <string name="create_first_playlist">创建第一个播放列表</string>
+    <string name="favorites">我的收藏</string>
+    <string name="recently_played">最近播放</string>
+    <string name="add_to_playlist">添加到播放列表</string>
+    <string name="add_to_queue">添加到队列</string>
+    <string name="create_new_playlist">创建新播放列表</string>
+    
+    <!-- Song menu -->
+    <string name="add_to_favorites">添加到收藏</string>
+    <string name="remove_from_favorites">从收藏中移除</string>
+    <string name="go_to_album">转到专辑</string>
+    <string name="go_to_artist">转至艺术家</string>
+    <string name="share">分享</string>
+    
+    <!-- Search -->
+    <string name="search_songs">搜索歌曲</string>
+    <string name="search_hint">搜索歌曲、专辑、艺术家</string>
+    <string name="no_results_found">未找到与 "%1$s" 相关的结果</string>
+    <string name="clear">清除</string>
+    
+    <!-- Settings -->
+    <string name="appearance">外观</string>
+    <string name="theme">主题</string>
+    <string name="choose_theme">选择主题</string>
+    <string name="use_dynamic_colors">使用动态颜色</string>
+    <string name="audio">音频</string>
+    <string name="audio_focus">音频焦点</string>
+    <string name="audio_focus_description">当其他应用播放音频时自动暂停</string>
+    <string name="data">数据</string>
+    <string name="clear_recent_history">清除最近播放记录</string>
+    <string name="about">关于</string>
+    <string name="version">版本</string>
+    <string name="open_source_licenses">开源许可证</string>
+    
+    <!-- Notification -->
+    <string name="notification_channel_name">音乐播放</string>
+    <string name="notification_channel_description">音乐播放控制通知</string>
+    
+    <!-- Permissions -->
+    <string name="permission_required">需要权限</string>
+    <string name="storage_permission_description">需要存储权限才能访问您的音乐文件</string>
+    <string name="grant_permission">授予权限</string>
+    
+    <!-- Empty states -->
+    <string name="no_songs">暂无歌曲</string>
+    <string name="no_songs_description">设备上未找到音乐文件</string>
+    <string name="refresh">刷新</string>
+</resources>
