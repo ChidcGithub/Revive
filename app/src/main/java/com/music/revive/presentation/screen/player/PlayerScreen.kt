@@ -1,36 +1,58 @@
 package com.music.revive.presentation.screen.player
 
+import android.graphics.Bitmap
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LinearGradientShader
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.palette.graphics.Palette
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.music.revive.R
 import com.music.revive.domain.model.PlayerState
 import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
-import com.music.revive.presentation.theme.PlayerGradientEnd
-import com.music.revive.presentation.theme.PlayerGradientStart
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +65,42 @@ fun PlayerScreen(
     val isFavorite by viewModel.isFavorite.collectAsState()
 
     val song = playerState.currentSong ?: return
+
+    // Dominant color extraction from album art
+    var dominantColor by remember { mutableStateOf<Color?>(null) }
+    val context = LocalContext.current
+
+    LaunchedEffect(song.albumArtUri) {
+        song.albumArtUri?.let { uri ->
+            try {
+                val request = ImageRequest.Builder(context)
+                    .data(uri)
+                    .allowHardware(false)
+                    .build()
+                val painter = rememberAsyncImagePainter(request)
+                painter.imageLoader?.execute(request)?.drawable?.toBitmap()?.let { bitmap ->
+                    val palette = Palette.from(bitmap).generate()
+                    val swatch = palette.dominantSwatch ?: palette.vibrantSwatch
+                    dominantColor = swatch?.rgb?.let { Color(it) }
+                }
+            } catch (e: Exception) {
+                dominantColor = null
+            }
+        }
+    }
+
+    // Animated gradient background based on album art color
+    val animatedColor by animateColorAsState(
+        targetValue = dominantColor ?: MaterialTheme.colorScheme.primaryContainer,
+        animationSpec = tween(600),
+        label = "dominantColor"
+    )
+
+    val scrollState = rememberTransition(playerState.isPlaying, label = "playing")
+    val albumScale by scrollState.animateFloat(
+        transitionSpec = { tween(400, easing = LinearEasing) },
+        label = "scale"
+    ) { isPlaying -> if (isPlaying) 1f else 0.95f }
 
     var currentSliderValue by remember { mutableFloatStateOf(0f) }
     var isUserDragging by remember { mutableStateOf(false) }
@@ -68,8 +126,9 @@ fun PlayerScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.surface,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        animatedColor.copy(alpha = 0.3f),
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.background
                     )
                 )
             )
@@ -88,20 +147,27 @@ fun PlayerScreen(
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.back)
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.back),
+                        modifier = Modifier.size(28.dp)
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = stringResource(R.string.playing),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = onQueueClick) {
                     Icon(
-                        imageVector = Icons.Default.QueueMusic,
+                        imageVector = Icons.Rounded.QueueMusic,
                         contentDescription = stringResource(R.string.queue)
                     )
                 }
             }
 
-            // Album art
+            // Album art with animation
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,12 +175,33 @@ fun PlayerScreen(
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
+                // Glow effect
+                if (playerState.isPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(0.75f)
+                            .aspectRatio(1f)
+                            .blur(40.dp)
+                            .background(
+                                animatedColor.copy(alpha = 0.4f),
+                                CircleShape
+                            )
+                    )
+                }
+
                 Surface(
                     modifier = Modifier
                         .fillMaxSize(0.8f)
-                        .clip(RoundedCornerShape(16.dp)),
-                    tonalElevation = 8.dp,
-                    shadowElevation = 16.dp
+                        .aspectRatio(1f)
+                        .graphicsLayer {
+                            scaleX = albumScale
+                            scaleY = albumScale
+                            shadowElevation = 24.dp.toPx()
+                            shape = RoundedCornerShape(24.dp)
+                            clip = true
+                        },
+                    tonalElevation = 0.dp,
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     AsyncImage(
                         model = song.albumArtUri,
@@ -130,9 +217,9 @@ fun PlayerScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MusicNote,
+                                imageVector = Icons.Rounded.MusicNote,
                                 contentDescription = null,
-                                modifier = Modifier.size(128.dp),
+                                modifier = Modifier.size(96.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
@@ -140,23 +227,24 @@ fun PlayerScreen(
                 }
             }
 
-            // Song info
+            // Song info with marquee
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(),
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = song.artist,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -165,7 +253,7 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Progress slider
+            // Modern progress slider
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,12 +271,31 @@ fun PlayerScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     thumb = {
-                        SliderDefaults.Thumb(
-                            interactionSource = remember { MutableInteractionSource() },
-                            colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.primary
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary,
+                                    CircleShape
+                                )
                         )
+                    },
+                    track = { sliderState ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(currentSliderValue)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
                     }
                 )
                 Row(
@@ -197,29 +304,37 @@ fun PlayerScreen(
                 ) {
                     Text(
                         text = playerState.formattedPosition,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = song.formattedDuration,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Controls
+            // Main controls
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp),
+                    .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Shuffle
-                IconButton(onClick = { viewModel.toggleShuffle() }) {
+                FilledTonalIconButton(
+                    onClick = { viewModel.toggleShuffle() },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = if (playerState.isShuffleEnabled)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Shuffle,
+                        imageVector = Icons.Rounded.Shuffle,
                         contentDescription = stringResource(R.string.shuffle),
                         tint = if (playerState.isShuffleEnabled)
                             MaterialTheme.colorScheme.primary
@@ -231,13 +346,13 @@ fun PlayerScreen(
                 // Previous
                 IconButton(onClick = { viewModel.playPrevious() }) {
                     Icon(
-                        imageVector = Icons.Default.SkipPrevious,
+                        imageVector = Icons.Rounded.SkipPrevious,
                         contentDescription = stringResource(R.string.previous),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
-                // Play/Pause
+                // Play/Pause - Large FAB style
                 FilledIconButton(
                     onClick = { viewModel.playPause() },
                     modifier = Modifier.size(72.dp),
@@ -246,7 +361,7 @@ fun PlayerScreen(
                     )
                 ) {
                     Icon(
-                        imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        imageVector = if (playerState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (playerState.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                         modifier = Modifier.size(36.dp)
                     )
@@ -255,18 +370,26 @@ fun PlayerScreen(
                 // Next
                 IconButton(onClick = { viewModel.playNext() }) {
                     Icon(
-                        imageVector = Icons.Default.SkipNext,
+                        imageVector = Icons.Rounded.SkipNext,
                         contentDescription = stringResource(R.string.next),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
                 // Repeat
-                IconButton(onClick = { viewModel.cycleRepeatMode() }) {
+                FilledTonalIconButton(
+                    onClick = { viewModel.cycleRepeatMode() },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = when (playerState.repeatMode) {
+                            RepeatMode.OFF -> MaterialTheme.colorScheme.surfaceVariant
+                            else -> MaterialTheme.colorScheme.primaryContainer
+                        }
+                    )
+                ) {
                     Icon(
                         imageVector = when (playerState.repeatMode) {
-                            RepeatMode.ONE -> Icons.Default.RepeatOne
-                            else -> Icons.Default.Repeat
+                            RepeatMode.ONE -> Icons.Rounded.RepeatOne
+                            else -> Icons.Rounded.Repeat
                         },
                         contentDescription = stringResource(R.string.repeat),
                         tint = when (playerState.repeatMode) {
@@ -281,36 +404,42 @@ fun PlayerScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
+                    .padding(horizontal = 24.dp)
                     .navigationBarsPadding(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                // Favorite
                 IconButton(onClick = { viewModel.toggleFavorite() }) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
+                        imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         contentDescription = if (isFavorite) stringResource(R.string.remove_from_favorites) else stringResource(R.string.add_to_favorites),
                         tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                // Add to playlist
                 IconButton(onClick = { }) {
                     Icon(
-                        imageVector = Icons.Default.PlaylistAdd,
+                        imageVector = Icons.Rounded.PlaylistAdd,
                         contentDescription = stringResource(R.string.add_to_playlist)
                     )
                 }
+                // Share
                 IconButton(onClick = { }) {
                     Icon(
-                        imageVector = Icons.Default.Share,
+                        imageVector = Icons.Rounded.Share,
                         contentDescription = stringResource(R.string.share)
                     )
                 }
+                // More options
                 IconButton(onClick = { }) {
                     Icon(
-                        imageVector = Icons.Default.MoreVert,
+                        imageVector = Icons.Rounded.MoreVert,
                         contentDescription = stringResource(R.string.more_options)
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

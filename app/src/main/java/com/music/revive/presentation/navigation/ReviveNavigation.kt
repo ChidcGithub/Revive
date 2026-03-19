@@ -5,10 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -72,9 +75,15 @@ fun ReviveNavigation(
             currentRoute.contains("Settings")
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             Column {
-                if (playerState.currentSong != null) {
+                // Bottom Player Bar
+                AnimatedVisibility(
+                    visible = playerState.currentSong != null,
+                    enter = fadeIn() + slideInVertically { it },
+                    exit = fadeOut() + slideOutVertically { it }
+                ) {
                     BottomPlayerBar(
                         playerState = playerState,
                         onPlayPauseClick = { musicPlayer.playPause() },
@@ -84,8 +93,16 @@ fun ReviveNavigation(
                     )
                 }
 
-                if (isBottomBarVisible) {
-                    NavigationBar {
+                // Navigation Bar
+                AnimatedVisibility(
+                    visible = isBottomBarVisible,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        tonalElevation = 0.dp
+                    ) {
                         NavigationBarItem(
                             selected = currentRoute.contains("Home"),
                             onClick = {
@@ -97,8 +114,18 @@ fun ReviveNavigation(
                                     }
                                 }
                             },
-                            icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                            label = { Text(stringResource(R.string.home)) }
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute.contains("Home")) Icons.Rounded.Home else Icons.Outlined.Home,
+                                    contentDescription = null
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(R.string.home),
+                                    fontWeight = if (currentRoute.contains("Home")) FontWeight.Medium else FontWeight.Normal
+                                )
+                            }
                         )
                         NavigationBarItem(
                             selected = currentRoute.contains("Playlists"),
@@ -111,8 +138,18 @@ fun ReviveNavigation(
                                     }
                                 }
                             },
-                            icon = { Icon(Icons.Default.PlaylistPlay, contentDescription = null) },
-                            label = { Text(stringResource(R.string.playlists)) }
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute.contains("Playlists")) Icons.Rounded.PlaylistPlay else Icons.Outlined.PlaylistPlay,
+                                    contentDescription = null
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(R.string.playlists),
+                                    fontWeight = if (currentRoute.contains("Playlists")) FontWeight.Medium else FontWeight.Normal
+                                )
+                            }
                         )
                         NavigationBarItem(
                             selected = currentRoute.contains("Settings"),
@@ -125,8 +162,18 @@ fun ReviveNavigation(
                                     }
                                 }
                             },
-                            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                            label = { Text(stringResource(R.string.settings)) }
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute.contains("Settings")) Icons.Rounded.Settings else Icons.Outlined.Settings,
+                                    contentDescription = null
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(R.string.settings),
+                                    fontWeight = if (currentRoute.contains("Settings")) FontWeight.Medium else FontWeight.Normal
+                                )
+                            }
                         )
                     }
                 }
@@ -137,10 +184,10 @@ fun ReviveNavigation(
             navController = navController,
             startDestination = Home,
             modifier = Modifier.padding(paddingValues),
-            enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
-            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) },
-            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) },
-            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) }
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
         ) {
             composable<Home> {
                 HomeScreen(

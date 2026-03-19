@@ -2,38 +2,113 @@ package com.music.revive.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary colors - Vibrant Purple/Blue gradient
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Material 3 You - Primary Tonal Palette
+val md_theme_light_primary = Color(0xFF6750A4)
+val md_theme_light_onPrimary = Color(0xFFFFFFFF)
+val md_theme_light_primaryContainer = Color(0xFFEADDFF)
+val md_theme_light_onPrimaryContainer = Color(0xFF21005D)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val md_theme_dark_primary = Color(0xFFD0BCFF)
+val md_theme_dark_onPrimary = Color(0xFF381E72)
+val md_theme_dark_primaryContainer = Color(0xFF4F378B)
+val md_theme_dark_onPrimaryContainer = Color(0xFFEADDFF)
 
-// Dark Theme Colors
-val DarkPrimary = Color(0xFFBB86FC)
-val DarkPrimaryVariant = Color(0xFF3700B3)
-val DarkSecondary = Color(0xFF03DAC6)
-val DarkBackground = Color(0xFF121212)
-val DarkSurface = Color(0xFF1E1E1E)
-val DarkError = Color(0xFFCF6679)
+// Secondary Tonal Palette
+val md_theme_light_secondary = Color(0xFF625B71)
+val md_theme_light_onSecondary = Color(0xFFFFFFFF)
+val md_theme_light_secondaryContainer = Color(0xFFE8DEF8)
+val md_theme_light_onSecondaryContainer = Color(0xFF1D192B)
 
-// Light Theme Colors
-val LightPrimary = Color(0xFF6200EE)
-val LightPrimaryVariant = Color(0xFF3700B3)
-val LightSecondary = Color(0xFF03DAC6)
-val LightBackground = Color(0xFFFFFBFE)
-val LightSurface = Color(0xFFFFFBFE)
-val LightError = Color(0xFFB00020)
+val md_theme_dark_secondary = Color(0xFFCCC2DC)
+val md_theme_dark_onSecondary = Color(0xFF332D41)
+val md_theme_dark_secondaryContainer = Color(0xFF4A4458)
+val md_theme_dark_onSecondaryContainer = Color(0xFFE8DEF8)
 
-// Accent Colors
-val Accent1 = Color(0xFF7C4DFF)
-val Accent2 = Color(0xFF00BCD4)
-val Accent3 = Color(0xFFFF4081)
+// Tertiary Tonal Palette
+val md_theme_light_tertiary = Color(0xFF7D5260)
+val md_theme_light_onTertiary = Color(0xFFFFFFFF)
+val md_theme_light_tertiaryContainer = Color(0xFFFFD8E4)
+val md_theme_light_onTertiaryContainer = Color(0xFF31111D)
 
-// Music Player specific
-val PlayerGradientStart = Color(0xFF1A1A2E)
-val PlayerGradientEnd = Color(0xFF16213E)
-val ProgressActive = Color(0xFFBB86FC)
-val ProgressBackground = Color(0x33BB86FC)
+val md_theme_dark_tertiary = Color(0xFFEFB8C8)
+val md_theme_dark_onTertiary = Color(0xFF492532)
+val md_theme_dark_tertiaryContainer = Color(0xFF633B48)
+val md_theme_dark_onTertiaryContainer = Color(0xFFFFD8E4)
+
+// Error Tonal Palette
+val md_theme_light_error = Color(0xFFB3261E)
+val md_theme_light_errorContainer = Color(0xFFF9DEDC)
+val md_theme_light_onError = Color(0xFFFFFFFF)
+val md_theme_light_onErrorContainer = Color(0xFF410E0B)
+
+val md_theme_dark_error = Color(0xFFF2B8B5)
+val md_theme_dark_errorContainer = Color(0xFF8C1D18)
+val md_theme_dark_onError = Color(0xFF601410)
+val md_theme_dark_onErrorContainer = Color(0xFFF9DEDC)
+
+// Background & Surface
+val md_theme_light_background = Color(0xFFFFFBFE)
+val md_theme_light_onBackground = Color(0xFF1C1B1F)
+val md_theme_light_surface = Color(0xFFFFFBFE)
+val md_theme_light_onSurface = Color(0xFF1C1B1F)
+val md_theme_light_surfaceVariant = Color(0xFFE7E0EC)
+val md_theme_light_onSurfaceVariant = Color(0xFF49454F)
+val md_theme_light_outline = Color(0xFF79747E)
+val md_theme_light_outlineVariant = Color(0xFFCAC4D0)
+
+val md_theme_dark_background = Color(0xFF1C1B1F)
+val md_theme_dark_onBackground = Color(0xFFE6E1E5)
+val md_theme_dark_surface = Color(0xFF1C1B1F)
+val md_theme_dark_onSurface = Color(0xFFE6E1E5)
+val md_theme_dark_surfaceVariant = Color(0xFF49454F)
+val md_theme_dark_onSurfaceVariant = Color(0xFFCAC4D0)
+val md_theme_dark_outline = Color(0xFF938F99)
+val md_theme_dark_outlineVariant = Color(0xFF49454F)
+
+// Inverse Colors
+val md_theme_light_inverseSurface = Color(0xFF313033)
+val md_theme_light_inverseOnSurface = Color(0xFFF4EFF4)
+val md_theme_light_inversePrimary = Color(0xFFD0BCFF)
+
+val md_theme_dark_inverseSurface = Color(0xFFE6E1E5)
+val md_theme_dark_inverseOnSurface = Color(0xFF313033)
+val md_theme_dark_inversePrimary = Color(0xFF6750A4)
+
+// Surface Tints
+val md_theme_light_surfaceTint = Color(0xFF6750A4)
+val md_theme_light_scrim = Color(0xFF000000)
+
+val md_theme_dark_surfaceTint = Color(0xFFD0BCFF)
+val md_theme_dark_scrim = Color(0xFF000000)
+
+// Music Player Custom Colors
+val PlayerGradientStartLight = Color(0xFFF3EDF7)
+val PlayerGradientEndLight = Color(0xFFE8DEF8)
+
+val PlayerGradientStartDark = Color(0xFF1C1B1F)
+val PlayerGradientEndDark = Color(0xFF2B2930)
+
+// Accent colors for special elements
+val NowPlayingWaveformActive = Color(0xFFD0BCFF)
+val NowPlayingWaveformInactive = Color(0x4DD0BCFF)
+
+// Legacy colors for backwards compatibility
+val Purple80 = md_theme_dark_primary
+val PurpleGrey80 = md_theme_dark_secondaryContainer
+val Pink80 = md_theme_dark_tertiary
+
+val Purple40 = md_theme_light_primary
+val PurpleGrey40 = md_theme_light_secondaryContainer
+val Pink40 = md_theme_light_tertiary
+
+val DarkPrimary = md_theme_dark_primary
+val DarkSecondary = md_theme_dark_secondary
+val DarkBackground = md_theme_dark_background
+val DarkSurface = md_theme_dark_surface
+val DarkError = md_theme_dark_error
+
+val LightPrimary = md_theme_light_primary
+val LightSecondary = md_theme_light_secondary
+val LightBackground = md_theme_light_background
+val LightSurface = md_theme_light_surface
+val LightError = md_theme_light_error
