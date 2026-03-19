@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,7 +17,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.music.revive.R
-import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Album
 import com.music.revive.domain.model.Artist
 import com.music.revive.domain.model.Song
@@ -41,14 +39,19 @@ import com.music.revive.presentation.screen.song.SongDetailScreen
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlin.reflect.KClass
+
+@HiltViewModel
+class SharedMusicViewModel @Inject constructor(
+    val musicPlayer: MusicPlayer
+) : androidx.lifecycle.ViewModel()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviveNavigation(
     navController: NavHostController = rememberNavController(),
-    musicPlayer: MusicPlayer = hiltViewModel<PlayerViewModel>().musicPlayer
+    viewModel: SharedMusicViewModel = hiltViewModel()
 ) {
+    val musicPlayer = viewModel.musicPlayer
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
 
