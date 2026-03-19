@@ -28,6 +28,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 @AndroidEntryPoint
 class MusicService : MediaSessionService() {
 
@@ -93,7 +95,7 @@ class MusicService : MediaSessionService() {
 @OptIn(UnstableApi::class)
 @Singleton
 class MusicPlayer @Inject constructor(
-    private val context: android.content.Context,
+    @ApplicationContext private val context: android.content.Context,
     private val notificationManager: MusicNotificationManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
