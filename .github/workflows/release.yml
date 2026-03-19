@@ -180,7 +180,7 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && needs.build.outputs.build_type == 'r'
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -207,6 +207,14 @@ jobs:
           FULL_VERSION="${{ needs.build.outputs.full_version }}"
           BUILD_NUM="${{ needs.build.outputs.build_number }}"
           GIT_SHA="${{ needs.build.outputs.git_sha }}"
+          BUILD_TYPE="${{ needs.build.outputs.build_type }}"
+          
+          # Determine release type string
+          if [ "$BUILD_TYPE" = "r" ]; then
+            RELEASE_TYPE="Release"
+          else
+            RELEASE_TYPE="Beta"
+          fi
           
           # Start building changelog
           cat > /tmp/changelog.md << EOF
@@ -215,7 +223,7 @@ jobs:
           | Property | Value |
           |----------|-------|
           | Version | \`${VERSION}\` |
-          | Type | Release |
+          | Type | ${RELEASE_TYPE} |
           | Build | \`${BUILD_NUM}\` |
           | Commit | \`${GIT_SHA}\` |
           
@@ -283,21 +291,32 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ needs.build.outputs.version_name }}" -m "Release ${{ needs.build.outputs.full_version }}"
-          git push origin "v${{ needs.build.outputs.version_name }}"
+          
+          # Add beta suffix for beta builds
+          BUILD_TYPE="${{ needs.build.outputs.build_type }}"
+          VERSION="${{ needs.build.outputs.version_name }}"
+          
+          if [ "$BUILD_TYPE" = "b" ]; then
+            TAG_NAME="v${VERSION}-beta"
+          else
+            TAG_NAME="v${VERSION}"
+          fi
+          
+          git tag -a "$TAG_NAME" -m "Release ${{ needs.build.outputs.full_version }}"
+          git push origin "$TAG_NAME"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ needs.build.outputs.version_name }}
+          tag_name: v${{ needs.build.outputs.version_name }}${{ needs.build.outputs.build_type == 'b' && '-beta' || '' }}
           name: Revive ${{ needs.build.outputs.full_version }}
           body_path: /tmp/changelog.md
           files: |
             ./artifacts/*.apk
             ./bundle/*.aab
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.build.outputs.build_type == 'b' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
