@@ -1,58 +1,33 @@
 package com.music.revive.presentation.screen.player
 
-import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.LinearGradientShader
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
-import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.palette.graphics.Palette
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
 import com.music.revive.R
-import com.music.revive.domain.model.PlayerState
 import com.music.revive.domain.model.RepeatMode
-import com.music.revive.domain.model.Song
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,41 +41,19 @@ fun PlayerScreen(
 
     val song = playerState.currentSong ?: return
 
-    // Dominant color extraction from album art
-    var dominantColor by remember { mutableStateOf<Color?>(null) }
-    val context = LocalContext.current
-
-    LaunchedEffect(song.albumArtUri) {
-        song.albumArtUri?.let { uri ->
-            try {
-                val request = ImageRequest.Builder(context)
-                    .data(uri)
-                    .allowHardware(false)
-                    .build()
-                val painter = rememberAsyncImagePainter(request)
-                painter.imageLoader?.execute(request)?.drawable?.toBitmap()?.let { bitmap ->
-                    val palette = Palette.from(bitmap).generate()
-                    val swatch = palette.dominantSwatch ?: palette.vibrantSwatch
-                    dominantColor = swatch?.rgb?.let { Color(it) }
-                }
-            } catch (e: Exception) {
-                dominantColor = null
-            }
-        }
-    }
-
-    // Animated gradient background based on album art color
+    // Animated background color
     val animatedColor by animateColorAsState(
-        targetValue = dominantColor ?: MaterialTheme.colorScheme.primaryContainer,
+        targetValue = MaterialTheme.colorScheme.primaryContainer,
         animationSpec = tween(600),
         label = "dominantColor"
     )
 
-    val scrollState = rememberTransition(playerState.isPlaying, label = "playing")
-    val albumScale by scrollState.animateFloat(
-        transitionSpec = { tween(400, easing = LinearEasing) },
+    // Album scale animation based on playing state
+    val albumScale by animateFloatAsState(
+        targetValue = if (playerState.isPlaying) 1f else 0.95f,
+        animationSpec = tween(400, easing = LinearEasing),
         label = "scale"
-    ) { isPlaying -> if (isPlaying) 1f else 0.95f }
+    )
 
     var currentSliderValue by remember { mutableFloatStateOf(0f) }
     var isUserDragging by remember { mutableStateOf(false) }
@@ -119,6 +72,8 @@ fun PlayerScreen(
             viewModel.updatePosition()
         }
     }
+
+    val density = LocalDensity.current
 
     Box(
         modifier = Modifier
@@ -181,7 +136,6 @@ fun PlayerScreen(
                         modifier = Modifier
                             .fillMaxSize(0.75f)
                             .aspectRatio(1f)
-                            .blur(40.dp)
                             .background(
                                 animatedColor.copy(alpha = 0.4f),
                                 CircleShape
@@ -193,15 +147,10 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxSize(0.8f)
                         .aspectRatio(1f)
-                        .graphicsLayer {
-                            scaleX = albumScale
-                            scaleY = albumScale
-                            shadowElevation = 24.dp.toPx()
-                            shape = RoundedCornerShape(24.dp)
-                            clip = true
-                        },
+                        .scale(albumScale),
                     tonalElevation = 0.dp,
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(24.dp),
+                    shadowElevation = 24.dp
                 ) {
                     AsyncImage(
                         model = song.albumArtUri,

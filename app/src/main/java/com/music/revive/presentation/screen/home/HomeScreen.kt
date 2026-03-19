@@ -482,7 +482,7 @@ private fun RecentSongChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    FilledAssistChip(
+    AssistChip(
         onClick = onClick,
         label = {
             Text(
