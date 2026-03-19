@@ -15,11 +15,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.music.revive.R
@@ -77,16 +85,31 @@ fun BottomPlayerBar(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Progress indicator - thin line at top
-            LinearProgressIndicator(
-                progress = { animatedProgress },
+            // Animated progress bar with custom drawing
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
-                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.Transparent,
-                strokeCap = StrokeCap.Round
+                    .drawBehind {
+                        // Background track
+                        drawRect(
+                            color = androidx.compose.ui.graphics.Color.Transparent
+                        )
+                        // Progress with rounded cap
+                        if (animatedProgress > 0) {
+                            drawRoundRect(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary
+                                    )
+                                ),
+                                topLeft = Offset.Zero,
+                                size = Size(size.width * animatedProgress, size.height),
+                                cornerRadius = CornerRadius(size.height / 2, size.height / 2)
+                            )
+                        }
+                    }
             )
 
             Row(
@@ -96,9 +119,20 @@ fun BottomPlayerBar(
                     .navigationBarsPadding(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Album art with subtle elevation
+                // Album art with subtle elevation and playing animation
+                val albumScale by animateFloatAsState(
+                    targetValue = if (playerState.isPlaying) 1f else 0.95f,
+                    animationSpec = tween(200),
+                    label = "albumScale"
+                )
+                
                 Surface(
-                    modifier = Modifier.size(52.dp),
+                    modifier = Modifier
+                        .size(52.dp)
+                        .graphicsLayer {
+                            scaleX = albumScale
+                            scaleY = albumScale
+                        },
                     shape = RoundedCornerShape(12.dp),
                     tonalElevation = 2.dp
                 ) {
@@ -153,7 +187,7 @@ fun BottomPlayerBar(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Compact controls
+                // Compact controls with wave animation when playing
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)

@@ -1,5 +1,6 @@
 package com.music.revive.presentation.screen.player
 
+import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -18,16 +19,24 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.palette.graphics.Palette
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.music.revive.R
 import com.music.revive.domain.model.RepeatMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,9 +50,22 @@ fun PlayerScreen(
 
     val song = playerState.currentSong ?: return
 
-    // Animated background color
+    // Dominant color extraction from album art
+    var dominantColor by remember { mutableStateOf<Color?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(song.albumArtUri) {
+        song.albumArtUri?.let { uri ->
+            scope.launch {
+                dominantColor = extractDominantColor(context, uri)
+            }
+        }
+    }
+
+    // Animated gradient background based on album art color
     val animatedColor by animateColorAsState(
-        targetValue = MaterialTheme.colorScheme.primaryContainer,
+        targetValue = dominantColor ?: MaterialTheme.colorScheme.primaryContainer,
         animationSpec = tween(600),
         label = "dominantColor"
     )
@@ -53,6 +75,13 @@ fun PlayerScreen(
         targetValue = if (playerState.isPlaying) 1f else 0.95f,
         animationSpec = tween(400, easing = LinearEasing),
         label = "scale"
+    )
+
+    // Album shadow animation
+    val albumShadow by animateDpAsState(
+        targetValue = if (playerState.isPlaying) 32.dp else 16.dp,
+        animationSpec = tween(400, easing = LinearEasing),
+        label = "shadow"
     )
 
     var currentSliderValue by remember { mutableFloatStateOf(0f) }
@@ -72,8 +101,6 @@ fun PlayerScreen(
             viewModel.updatePosition()
         }
     }
-
-    val density = LocalDensity.current
 
     Box(
         modifier = Modifier
@@ -130,12 +157,16 @@ fun PlayerScreen(
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Glow effect
-                if (playerState.isPlaying) {
+                // Glow effect behind album art
+                if (playerState.isPlaying && dominantColor != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize(0.75f)
                             .aspectRatio(1f)
+                            .graphicsLayer {
+                                scaleX = albumScale
+                                scaleY = albumScale
+                            }
                             .background(
                                 animatedColor.copy(alpha = 0.4f),
                                 CircleShape
@@ -147,10 +178,15 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxSize(0.8f)
                         .aspectRatio(1f)
-                        .scale(albumScale),
+                        .graphicsLayer {
+                            scaleX = albumScale
+                            scaleY = albumScale
+                            shadowElevation = albumShadow.toPx()
+                            clip = true
+                            shape = RoundedCornerShape(24.dp)
+                        },
                     tonalElevation = 0.dp,
-                    shape = RoundedCornerShape(24.dp),
-                    shadowElevation = 24.dp
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     AsyncImage(
                         model = song.albumArtUri,
@@ -389,6 +425,38 @@ fun PlayerScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+/**
+ * Extract dominant color from image URI using Palette
+ */
+private suspend fun extractDominantColor(context: android.content.Context, uri: String): Color? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val imageLoader = ImageLoader(context)
+            val request = ImageRequest.Builder(context)
+                .data(uri)
+                .allowHardware(false)
+                .build()
+            
+            val result = imageLoader.execute(request)
+            val drawable = result.drawable ?: return@withContext null
+            val bitmap = drawable.toBitmap()
+            
+            val palette = Palette.from(bitmap)
+                .maximumColorCount(16)
+                .generate()
+            
+            val swatch = palette.dominantSwatch 
+                ?: palette.vibrantSwatch 
+                ?: palette.lightVibrantSwatch 
+                ?: palette.darkVibrantSwatch
+            
+            swatch?.rgb?.let { Color(it) }
+        } catch (e: Exception) {
+            null
         }
     }
 }

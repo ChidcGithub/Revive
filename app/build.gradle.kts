@@ -133,6 +133,9 @@ dependencies {
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
+    
+    // Palette for color extraction
+    implementation("androidx.palette:palette-ktx:1.0.0")
 
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")

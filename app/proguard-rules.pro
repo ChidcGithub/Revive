@@ -49,6 +49,9 @@
 -keep interface coil.** { *; }
 -keep class * extends coil.ImageLoader { *; }
 
+# Palette
+-keep class androidx.palette.** { *; }
+
 # Keep all Compose related classes
 -keep class androidx.compose.** { *; }
 -dontwarn androidx.compose.**
