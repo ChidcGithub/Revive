@@ -2,8 +2,12 @@ package com.music.revive.presentation.screen.player
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -90,6 +94,57 @@ fun PlayerScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // Entry animation states
+    var isVisible by remember { mutableStateOf(false) }
+    
+    // Custom easing for entry animations
+    val smoothEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+    
+    // Staggered entry animations
+    val albumAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(400, easing = smoothEasing),
+        label = "albumAlpha"
+    )
+    
+    val albumScale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.8f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "albumScale"
+    )
+    
+    val infoAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(400, 100, easing = smoothEasing),
+        label = "infoAlpha"
+    )
+    
+    val infoOffset by animateDpAsState(
+        targetValue = if (isVisible) 0.dp else 20.dp,
+        animationSpec = tween(400, 100, easing = smoothEasing),
+        label = "infoOffset"
+    )
+    
+    val controlsAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(400, 200, easing = smoothEasing),
+        label = "controlsAlpha"
+    )
+    
+    val bottomAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(400, 300, easing = smoothEasing),
+        label = "bottomAlpha"
+    )
+
+    // Trigger entry animation
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     LaunchedEffect(song.albumArtUri) {
         song.albumArtUri?.let { uri ->
             scope.launch {
@@ -106,10 +161,10 @@ fun PlayerScreen(
     )
 
     // Album scale animation based on playing state
-    val albumScale by animateFloatAsState(
+    val playingScale by animateFloatAsState(
         targetValue = if (playerState.isPlaying) 1f else 0.95f,
         animationSpec = tween(400, easing = LinearEasing),
-        label = "scale"
+        label = "playingScale"
     )
 
     // Album shadow animation
@@ -204,8 +259,9 @@ fun PlayerScreen(
                             .fillMaxSize(0.75f)
                             .aspectRatio(1f)
                             .graphicsLayer {
-                                scaleX = albumScale
-                                scaleY = albumScale
+                                scaleX = albumScale * playingScale
+                                scaleY = albumScale * playingScale
+                                alpha = albumAlpha * 0.4f
                             }
                             .background(
                                 animatedColor.copy(alpha = 0.4f),
@@ -219,11 +275,12 @@ fun PlayerScreen(
                         .fillMaxSize(0.8f)
                         .aspectRatio(1f)
                         .graphicsLayer {
-                            scaleX = albumScale
-                            scaleY = albumScale
+                            scaleX = albumScale * playingScale
+                            scaleY = albumScale * playingScale
                             shadowElevation = albumShadow.toPx()
                             clip = true
                             shape = RoundedCornerShape(24.dp)
+                            alpha = albumAlpha
                         },
                     tonalElevation = 0.dp,
                     shape = RoundedCornerShape(24.dp)
@@ -256,7 +313,11 @@ fun PlayerScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 24.dp)
+                    .graphicsLayer {
+                        alpha = infoAlpha
+                        translationY = infoOffset.toPx()
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -304,6 +365,7 @@ fun PlayerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
+                    .graphicsLayer { alpha = controlsAlpha }
             ) {
                 Slider(
                     value = currentSliderValue,
@@ -451,7 +513,8 @@ fun PlayerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .navigationBarsPadding(),
+                    .navigationBarsPadding()
+                    .graphicsLayer { alpha = bottomAlpha },
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 // Favorite
@@ -728,6 +791,27 @@ private fun QueueItem(
     onClick: () -> Unit,
     onRemove: () -> Unit
 ) {
+    // Staggered entry animation
+    var isVisible by remember { mutableStateOf(false) }
+    
+    val smoothEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+    
+    val itemAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(250, position * 20, easing = smoothEasing),
+        label = "itemAlpha"
+    )
+    
+    val itemOffset by animateDpAsState(
+        targetValue = if (isVisible) 0.dp else 12.dp,
+        animationSpec = tween(250, position * 20, easing = smoothEasing),
+        label = "itemOffset"
+    )
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     ListItem(
         headlineContent = {
             Text(
@@ -775,7 +859,12 @@ private fun QueueItem(
                 )
             }
         },
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .graphicsLayer {
+                alpha = itemAlpha
+                translationY = itemOffset.toPx()
+            }
     )
 }
 

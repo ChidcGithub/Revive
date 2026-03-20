@@ -346,10 +346,37 @@ private fun AlbumCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Entry animation
+    var isVisible by remember { mutableStateOf(false) }
+    
+    val cardScale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.9f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "cardScale"
+    )
+    
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(300, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)),
+        label = "cardAlpha"
+    )
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     Column(
         modifier = modifier
             .width(140.dp)
             .clickable(onClick = onClick)
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+                alpha = cardAlpha
+            }
     ) {
         Surface(
             modifier = Modifier
@@ -513,6 +540,27 @@ private fun ModernSongItem(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Staggered entry animation
+    var isVisible by remember { mutableStateOf(false) }
+    
+    val smoothEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+    
+    val itemAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(300, index * 30, easing = smoothEasing),
+        label = "itemAlpha"
+    )
+    
+    val itemOffset by animateDpAsState(
+        targetValue = if (isVisible) 0.dp else 16.dp,
+        animationSpec = tween(300, index * 30, easing = smoothEasing),
+        label = "itemOffset"
+    )
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
     ListItem(
         headlineContent = {
             Text(
@@ -602,5 +650,9 @@ private fun ModernSongItem(
         modifier = modifier
             .clickable(onClick = onPlayClick)
             .padding(horizontal = 8.dp)
+            .graphicsLayer {
+                alpha = itemAlpha
+                translationY = itemOffset.toPx()
+            }
     )
 }

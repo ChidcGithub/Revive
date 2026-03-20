@@ -1,6 +1,7 @@
 package com.music.revive.presentation.navigation
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -45,6 +46,137 @@ import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
+// Custom easing curves for smoother animations
+private val SmoothEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+private val DecelerateEasing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+private val AccelerateEasing = CubicBezierEasing(0.4f, 0.0f, 1.0f, 1.0f)
+private val EmphasizedEasing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+
+// Spring animation specs
+private val DefaultSpringSpec = spring<Float>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessLow
+)
+
+private val BouncySpringSpec = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessMedium
+)
+
+// Transition animations for different screen types
+
+// Standard horizontal slide transition (for most screens)
+private fun standardEnterTransition(): EnterTransition {
+    return slideInHorizontally(
+        initialOffsetX = { it },
+        animationSpec = tween(350, easing = DecelerateEasing)
+    ) + fadeIn(
+        animationSpec = tween(200, easing = SmoothEasing)
+    )
+}
+
+private fun standardExitTransition(): ExitTransition {
+    return slideOutHorizontally(
+        targetOffsetX = { -it / 3 },
+        animationSpec = tween(350, easing = AccelerateEasing)
+    ) + fadeOut(
+        animationSpec = tween(200, easing = SmoothEasing)
+    )
+}
+
+private fun standardPopEnterTransition(): EnterTransition {
+    return slideInHorizontally(
+        initialOffsetX = { -it / 3 },
+        animationSpec = tween(350, easing = DecelerateEasing)
+    ) + fadeIn(
+        animationSpec = tween(200, easing = SmoothEasing)
+    )
+}
+
+private fun standardPopExitTransition(): ExitTransition {
+    return slideOutHorizontally(
+        targetOffsetX = { it },
+        animationSpec = tween(350, easing = AccelerateEasing)
+    ) + fadeOut(
+        animationSpec = tween(200, easing = SmoothEasing)
+    )
+}
+
+// Player screen uses slide up from bottom
+private fun playerEnterTransition(): EnterTransition {
+    return slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    ) + fadeIn(
+        animationSpec = tween(300, easing = SmoothEasing)
+    )
+}
+
+private fun playerExitTransition(): ExitTransition {
+    return slideOutVertically(
+        targetOffsetY = { it },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    ) + fadeOut(
+        animationSpec = tween(200, easing = SmoothEasing)
+    )
+}
+
+// Queue screen slides up
+private fun queueEnterTransition(): EnterTransition {
+    return slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    ) + fadeIn(
+        animationSpec = tween(250, easing = SmoothEasing)
+    )
+}
+
+private fun queueExitTransition(): ExitTransition {
+    return slideOutVertically(
+        targetOffsetY = { it },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    ) + fadeOut(
+        animationSpec = tween(150, easing = SmoothEasing)
+    )
+}
+
+// Modal/bottom sheet style transitions for detail screens
+private fun detailEnterTransition(): EnterTransition {
+    return slideInHorizontally(
+        initialOffsetX = { it / 2 },
+        animationSpec = tween(400, easing = EmphasizedEasing)
+    ) + fadeIn(
+        animationSpec = tween(300, easing = SmoothEasing)
+    ) + scaleIn(
+        initialScale = 0.95f,
+        animationSpec = tween(400, easing = EmphasizedEasing)
+    )
+}
+
+private fun detailExitTransition(): ExitTransition {
+    return slideOutHorizontally(
+        targetOffsetX = { it / 2 },
+        animationSpec = tween(350, easing = AccelerateEasing)
+    ) + fadeOut(
+        animationSpec = tween(200, easing = SmoothEasing)
+    ) + scaleOut(
+        targetScale = 0.95f,
+        animationSpec = tween(350, easing = AccelerateEasing)
+    )
+}
+
 @HiltViewModel
 class SharedMusicViewModel @Inject constructor(
     val musicPlayer: MusicPlayer
@@ -80,11 +212,24 @@ fun ReviveNavigation(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             Column {
-                // Bottom Player Bar
+                // Bottom Player Bar with smooth entry animation
                 AnimatedVisibility(
                     visible = playerState.currentSong != null,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it }
+                    enter = fadeIn(
+                        animationSpec = tween(300, easing = SmoothEasing)
+                    ) + slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ),
+                    exit = fadeOut(
+                        animationSpec = tween(200, easing = SmoothEasing)
+                    ) + slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(250, easing = AccelerateEasing)
+                    )
                 ) {
                     BottomPlayerBar(
                         playerState = playerState,
@@ -186,10 +331,10 @@ fun ReviveNavigation(
             navController = navController,
             startDestination = Home,
             modifier = Modifier.padding(paddingValues),
-            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() },
-            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
-            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+            enterTransition = { standardEnterTransition() },
+            exitTransition = { standardExitTransition() },
+            popEnterTransition = { standardPopEnterTransition() },
+            popExitTransition = { standardPopExitTransition() }
         ) {
             composable<Home> {
                 HomeScreen(
@@ -259,7 +404,12 @@ fun ReviveNavigation(
                 )
             }
 
-            composable<Player> {
+            composable<Player>(
+                enterTransition = { playerEnterTransition() },
+                exitTransition = { playerExitTransition() },
+                popEnterTransition = { playerEnterTransition() },
+                popExitTransition = { playerExitTransition() }
+            ) {
                 PlayerScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onQueueClick = { navController.navigate(Queue) },
@@ -275,13 +425,23 @@ fun ReviveNavigation(
                 )
             }
 
-            composable<Queue> {
+            composable<Queue>(
+                enterTransition = { queueEnterTransition() },
+                exitTransition = { queueExitTransition() },
+                popEnterTransition = { queueEnterTransition() },
+                popExitTransition = { queueExitTransition() }
+            ) {
                 QueueScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable<AlbumDetail> {
+            composable<AlbumDetail>(
+                enterTransition = { detailEnterTransition() },
+                exitTransition = { standardExitTransition() },
+                popEnterTransition = { standardPopEnterTransition() },
+                popExitTransition = { detailExitTransition() }
+            ) {
                 val viewModel: AlbumDetailViewModel = hiltViewModel()
                 AlbumDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -292,7 +452,12 @@ fun ReviveNavigation(
                 )
             }
 
-            composable<ArtistDetail> {
+            composable<ArtistDetail>(
+                enterTransition = { detailEnterTransition() },
+                exitTransition = { standardExitTransition() },
+                popEnterTransition = { standardPopEnterTransition() },
+                popExitTransition = { detailExitTransition() }
+            ) {
                 val viewModel: ArtistDetailViewModel = hiltViewModel()
                 ArtistDetailScreen(
                     onNavigateBack = { navController.popBackStack() },

@@ -1,6 +1,11 @@
 package com.music.revive.presentation.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -32,6 +37,10 @@ import com.music.revive.domain.model.PlayerState
 import com.music.revive.domain.model.Song
 import kotlinx.coroutines.delay
 
+// Custom easing for smoother animations
+private val SmoothEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+
 @Composable
 fun BottomPlayerBar(
     playerState: PlayerState,
@@ -48,7 +57,10 @@ fun BottomPlayerBar(
     var currentProgress by remember { mutableFloatStateOf(playerState.progress) }
     val animatedProgress by animateFloatAsState(
         targetValue = currentProgress,
-        animationSpec = tween(50, easing = LinearEasing),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
         label = "progress"
     )
 
@@ -70,10 +82,13 @@ fun BottomPlayerBar(
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
-    // Album art scale animation
+    // Album art scale animation with spring
     val albumScale by animateFloatAsState(
-        targetValue = if (playerState.isPlaying) 1f else 0.95f,
-        animationSpec = tween(200),
+        targetValue = if (playerState.isPlaying) 1f else 0.92f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "albumScale"
     )
 
