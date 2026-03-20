@@ -451,44 +451,6 @@ private fun ArtistCard(
 }
 
 @Composable
-private fun FolderListItem(
-    folder: Folder,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    ListItem(
-        headlineContent = {
-            Text(
-                text = folder.name,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            Text(
-                text = "${folder.numberOfSongs} ${stringResource(R.string.songs)}",
-                style = MaterialTheme.typography.bodySmall
-            )
-        },
-        leadingContent = {
-            Icon(
-                imageVector = Icons.Rounded.Folder,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        trailingContent = {
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        modifier = modifier.clickable(onClick = onClick)
-    )
-}
-
-@Composable
 private fun RecentSongChip(
     songTitle: String,
     onClick: () -> Unit,
