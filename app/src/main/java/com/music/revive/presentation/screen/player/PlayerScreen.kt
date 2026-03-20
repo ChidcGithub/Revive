@@ -1046,6 +1046,11 @@ fun AmbientBackground(
                     
                     // Draw blurred color blobs with radial gradient
                     // Blob 1 - Dominant color (top-left area)
+                    val center1 = androidx.compose.ui.geometry.Offset(
+                        width * offsetX1,
+                        height * offsetY1
+                    )
+                    val radius1 = width * 0.5f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -1053,15 +1058,19 @@ fun AmbientBackground(
                                 colors.dominant.copy(alpha = 0.15f),
                                 Color.Transparent
                             ),
-                            center = androidx.compose.ui.geometry.Offset(
-                                width * offsetX1,
-                                height * offsetY1
-                            ),
-                            radius = width * 0.5f
-                        )
+                            center = center1,
+                            radius = radius1
+                        ),
+                        center = center1,
+                        radius = radius1
                     )
                     
                     // Blob 2 - Vibrant color (top-right area)
+                    val center2 = androidx.compose.ui.geometry.Offset(
+                        width * offsetX2,
+                        height * offsetY2
+                    )
+                    val radius2 = width * 0.45f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -1069,15 +1078,19 @@ fun AmbientBackground(
                                 colors.vibrant.copy(alpha = 0.1f),
                                 Color.Transparent
                             ),
-                            center = androidx.compose.ui.geometry.Offset(
-                                width * offsetX2,
-                                height * offsetY2
-                            ),
-                            radius = width * 0.45f
-                        )
+                            center = center2,
+                            radius = radius2
+                        ),
+                        center = center2,
+                        radius = radius2
                     )
                     
                     // Blob 3 - Light Vibrant (bottom-left area)
+                    val center3 = androidx.compose.ui.geometry.Offset(
+                        width * offsetX3,
+                        height * offsetY3
+                    )
+                    val radius3 = width * 0.4f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -1085,15 +1098,19 @@ fun AmbientBackground(
                                 colors.lightVibrant.copy(alpha = 0.08f),
                                 Color.Transparent
                             ),
-                            center = androidx.compose.ui.geometry.Offset(
-                                width * offsetX3,
-                                height * offsetY3
-                            ),
-                            radius = width * 0.4f
-                        )
+                            center = center3,
+                            radius = radius3
+                        ),
+                        center = center3,
+                        radius = radius3
                     )
                     
                     // Blob 4 - Muted (bottom-right area)
+                    val center4 = androidx.compose.ui.geometry.Offset(
+                        width * offsetX4,
+                        height * offsetY4
+                    )
+                    val radius4 = width * 0.35f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -1101,12 +1118,11 @@ fun AmbientBackground(
                                 colors.muted.copy(alpha = 0.1f),
                                 Color.Transparent
                             ),
-                            center = androidx.compose.ui.geometry.Offset(
-                                width * offsetX4,
-                                height * offsetY4
-                            ),
-                            radius = width * 0.35f
-                        )
+                            center = center4,
+                            radius = radius4
+                        ),
+                        center = center4,
+                        radius = radius4
                     )
                 }
             }
