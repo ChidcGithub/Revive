@@ -100,4 +100,12 @@
     <string name="no_songs">暂无歌曲</string>
     <string name="no_songs_description">设备上未找到音乐文件</string>
     <string name="refresh">刷新</string>
+    
+    <!-- Player additional -->
+    <string name="added_to_playlist">已添加到播放列表</string>
+    <string name="playlist_created">播放列表已创建</string>
+    <string name="sleep_timer">睡眠定时器</string>
+    <string name="equalizer">均衡器</string>
+    <string name="queue_empty">播放队列为空</string>
+    <string name="remove">移除</string>
 </resources>

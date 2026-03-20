@@ -33,6 +33,7 @@ import com.music.revive.presentation.screen.home.HomeScreen
 import com.music.revive.presentation.screen.home.HomeViewModel
 import com.music.revive.presentation.screen.player.PlayerScreen
 import com.music.revive.presentation.screen.player.PlayerViewModel
+import com.music.revive.presentation.screen.player.QueueScreen
 import com.music.revive.presentation.screen.playlist.PlaylistScreen
 import com.music.revive.presentation.screen.playlist.PlaylistViewModel
 import com.music.revive.presentation.screen.search.SearchScreen
@@ -261,12 +262,23 @@ fun ReviveNavigation(
             composable<Player> {
                 PlayerScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onQueueClick = { navController.navigate(Queue) }
+                    onQueueClick = { navController.navigate(Queue) },
+                    onSongDetailClick = { songId ->
+                        navController.navigate(SongDetail(songId))
+                    },
+                    onAlbumClick = { albumId ->
+                        albumId?.let { navController.navigate(AlbumDetail(it)) }
+                    },
+                    onArtistClick = { artistId ->
+                        artistId?.let { navController.navigate(ArtistDetail(it)) }
+                    }
                 )
             }
 
             composable<Queue> {
-                // Queue screen
+                QueueScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable<AlbumDetail> {

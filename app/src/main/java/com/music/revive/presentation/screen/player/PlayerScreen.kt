@@ -1,12 +1,17 @@
 package com.music.revive.presentation.screen.player
 
-import android.graphics.Bitmap
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,22 +32,52 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.music.revive.R
+import com.music.revive.data.repository.MusicRepository
+import com.music.revive.domain.model.Playlist
 import com.music.revive.domain.model.RepeatMode
+import com.music.revive.domain.model.Song
+import com.music.revive.presentation.components.AddToPlaylistDialog
+import com.music.revive.presentation.components.CreatePlaylistDialog
+import com.music.revive.service.MusicPlayer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+
+@HiltViewModel
+class QueueViewModel @Inject constructor(
+    private val repository: MusicRepository,
+    val musicPlayer: MusicPlayer
+) : ViewModel() {
+    val queue: StateFlow<List<Song>> = musicPlayer.queue
+    val currentIndex: StateFlow<Int> = musicPlayer.playerState
+        .map { it.queueIndex }
+        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     onNavigateBack: () -> Unit,
     onQueueClick: () -> Unit,
+    onSongDetailClick: (Long) -> Unit = {},
+    onAlbumClick: (Long?) -> Unit = {},
+    onArtistClick: (Long?) -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val playerState by viewModel.playerState.collectAsState()
@@ -86,6 +121,11 @@ fun PlayerScreen(
 
     var currentSliderValue by remember { mutableFloatStateOf(0f) }
     var isUserDragging by remember { mutableStateOf(false) }
+
+    // Dialog states
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var showMoreOptionsSheet by remember { mutableStateOf(false) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
     // Update slider value based on player position
     LaunchedEffect(playerState.position, playerState.duration) {
@@ -227,13 +267,34 @@ fun PlayerScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = song.artist,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable { onArtistClick(song.artistId) }
+                    )
+                    if (song.album.isNotBlank()) {
+                        Text(
+                            text = " • ",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = song.album,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable { onAlbumClick(song.albumId) }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -402,21 +463,30 @@ fun PlayerScreen(
                     )
                 }
                 // Add to playlist
-                IconButton(onClick = { }) {
+                IconButton(onClick = { showAddToPlaylistDialog = true }) {
                     Icon(
                         imageVector = Icons.Rounded.PlaylistAdd,
                         contentDescription = stringResource(R.string.add_to_playlist)
                     )
                 }
                 // Share
-                IconButton(onClick = { }) {
+                IconButton(onClick = {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "audio/*"
+                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(song.path))
+                        putExtra(Intent.EXTRA_SUBJECT, song.title)
+                        putExtra(Intent.EXTRA_TEXT, "${song.title} - ${song.artist}")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share)))
+                }) {
                     Icon(
                         imageVector = Icons.Rounded.Share,
                         contentDescription = stringResource(R.string.share)
                     )
                 }
                 // More options
-                IconButton(onClick = { }) {
+                IconButton(onClick = { showMoreOptionsSheet = true }) {
                     Icon(
                         imageVector = Icons.Rounded.MoreVert,
                         contentDescription = stringResource(R.string.more_options)
@@ -425,6 +495,313 @@ fun PlayerScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
+    // Add to playlist dialog
+    if (showAddToPlaylistDialog) {
+        val playlistViewModel: PlayerPlaylistViewModel = hiltViewModel()
+        val playlists by playlistViewModel.playlists.collectAsState()
+        
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onDismiss = { showAddToPlaylistDialog = false },
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                showAddToPlaylistDialog = false
+                Toast.makeText(context, context.getString(R.string.added_to_playlist), Toast.LENGTH_SHORT).show()
+            },
+            onCreateNew = {
+                showAddToPlaylistDialog = false
+                showCreatePlaylistDialog = true
+            }
+        )
+    }
+
+    // Create playlist dialog
+    if (showCreatePlaylistDialog) {
+        val playlistViewModel: PlayerPlaylistViewModel = hiltViewModel()
+        CreatePlaylistDialog(
+            onDismiss = { showCreatePlaylistDialog = false },
+            onConfirm = { name ->
+                playlistViewModel.createPlaylistAndAddSong(name, song.id)
+                showCreatePlaylistDialog = false
+                Toast.makeText(context, context.getString(R.string.playlist_created), Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // More options bottom sheet
+    if (showMoreOptionsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showMoreOptionsSheet = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                // Song info header
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = song.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            text = song.artist,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingContent = {
+                        Surface(
+                            modifier = Modifier.size(48.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            AsyncImage(
+                                model = song.albumArtUri,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Options
+                if (song.albumId != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.go_to_album)) },
+                        leadingContent = {
+                            Icon(Icons.Rounded.Album, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable {
+                            showMoreOptionsSheet = false
+                            onAlbumClick(song.albumId)
+                        }
+                    )
+                }
+
+                if (song.artistId != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.go_to_artist)) },
+                        leadingContent = {
+                            Icon(Icons.Rounded.Person, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable {
+                            showMoreOptionsSheet = false
+                            onArtistClick(song.artistId)
+                        }
+                    )
+                }
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.song_info)) },
+                    leadingContent = {
+                        Icon(Icons.Rounded.Info, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable {
+                        showMoreOptionsSheet = false
+                        onSongDetailClick(song.id)
+                    }
+                )
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.sleep_timer)) },
+                    leadingContent = {
+                        Icon(Icons.Rounded.Timer, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable {
+                        showMoreOptionsSheet = false
+                        Toast.makeText(context, "Sleep timer coming soon", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.equalizer)) },
+                    leadingContent = {
+                        Icon(Icons.Rounded.Equalizer, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable {
+                        showMoreOptionsSheet = false
+                        Toast.makeText(context, "Equalizer coming soon", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+/**
+ * Queue screen composable
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QueueScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: QueueViewModel = hiltViewModel()
+) {
+    val queue by viewModel.queue.collectAsState()
+    val playerState by viewModel.musicPlayer.playerState.collectAsState()
+    val currentIndex = playerState.queueIndex
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(queue) {
+        if (currentIndex >= 0 && currentIndex < queue.size) {
+            listState.animateScrollToItem(currentIndex)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.queue)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        if (queue.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Rounded.QueueMusic,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.queue_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                state = listState
+            ) {
+                itemsIndexed(queue) { index, song ->
+                    QueueItem(
+                        song = song,
+                        isPlaying = index == currentIndex,
+                        position = index + 1,
+                        onClick = {
+                            viewModel.musicPlayer.playSong(song, queue)
+                        },
+                        onRemove = {
+                            viewModel.musicPlayer.removeFromQueue(index)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QueueItem(
+    song: Song,
+    isPlaying: Boolean,
+    position: Int,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = song.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+        },
+        supportingContent = {
+            Text(
+                text = song.artist,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        leadingContent = {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isPlaying) {
+                        Icon(
+                            imageVector = Icons.Rounded.PlayArrow,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Text(
+                            text = position.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        trailingContent = {
+            IconButton(onClick = onRemove) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.remove)
+                )
+            }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+@HiltViewModel
+class PlayerPlaylistViewModel @Inject constructor(
+    private val repository: MusicRepository
+) : ViewModel() {
+    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
+    val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.getAllPlaylists().collect { _playlists.value = it }
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: Long, songId: Long) {
+        viewModelScope.launch {
+            repository.addSongToPlaylist(playlistId, songId)
+        }
+    }
+
+    fun createPlaylistAndAddSong(name: String, songId: Long) {
+        viewModelScope.launch {
+            val playlistId = repository.createPlaylist(name)
+            repository.addSongToPlaylist(playlistId, songId)
         }
     }
 }
@@ -440,20 +817,20 @@ private suspend fun extractDominantColor(context: android.content.Context, uri: 
                 .data(uri)
                 .allowHardware(false)
                 .build()
-            
+
             val result = imageLoader.execute(request)
             val drawable = result.drawable ?: return@withContext null
             val bitmap = drawable.toBitmap()
-            
+
             val palette = Palette.from(bitmap)
                 .maximumColorCount(16)
                 .generate()
-            
-            val swatch = palette.dominantSwatch 
-                ?: palette.vibrantSwatch 
-                ?: palette.lightVibrantSwatch 
+
+            val swatch = palette.dominantSwatch
+                ?: palette.vibrantSwatch
+                ?: palette.lightVibrantSwatch
                 ?: palette.darkVibrantSwatch
-            
+
             swatch?.rgb?.let { Color(it) }
         } catch (e: Exception) {
             null
