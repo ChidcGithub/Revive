@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -91,8 +92,8 @@ fun PlayerScreen(
 
     val song = playerState.currentSong ?: return
 
-    // Dominant color extraction from album art
-    var dominantColor by remember { mutableStateOf<Color?>(null) }
+    // Palette colors extraction from album art
+    var paletteColors by remember { mutableStateOf<PaletteColors?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -150,17 +151,10 @@ fun PlayerScreen(
     LaunchedEffect(song.albumArtUri) {
         song.albumArtUri?.let { uri ->
             scope.launch {
-                dominantColor = extractDominantColor(context, uri)
+                paletteColors = extractPaletteColors(context, uri)
             }
         }
     }
-
-    // Animated gradient background based on album art color
-    val animatedColor by animateColorAsState(
-        targetValue = dominantColor ?: MaterialTheme.colorScheme.primaryContainer,
-        animationSpec = tween(600),
-        label = "dominantColor"
-    )
 
     // Album scale animation based on playing state
     val playingScale by animateFloatAsState(
@@ -200,18 +194,17 @@ fun PlayerScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        animatedColor.copy(alpha = 0.3f),
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
+        modifier = Modifier.fillMaxSize()
     ) {
+        // Ambient background with floating color blobs
+        AmbientBackground(
+            colors = paletteColors,
+            modifier = Modifier.fillMaxSize()
+        )
+        
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -255,7 +248,7 @@ fun PlayerScreen(
                 contentAlignment = Alignment.Center
             ) {
                 // Glow effect behind album art
-                if (playerState.isPlaying && dominantColor != null) {
+                if (playerState.isPlaying && paletteColors != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize(0.75f)
@@ -266,7 +259,7 @@ fun PlayerScreen(
                                 alpha = albumAlpha * 0.4f
                             }
                             .background(
-                                animatedColor.copy(alpha = 0.4f),
+                                paletteColors.dominant.copy(alpha = 0.4f),
                                 CircleShape
                             )
                     )
@@ -901,9 +894,20 @@ class PlayerPlaylistViewModel @Inject constructor(
 }
 
 /**
- * Extract dominant color from image URI using Palette
+ * Data class to hold extracted palette colors
  */
-private suspend fun extractDominantColor(context: android.content.Context, uri: String): Color? {
+data class PaletteColors(
+    val dominant: Color,
+    val vibrant: Color,
+    val lightVibrant: Color,
+    val darkVibrant: Color,
+    val muted: Color
+)
+
+/**
+ * Extract multiple colors from image URI using Palette
+ */
+private suspend fun extractPaletteColors(context: android.content.Context, uri: String): PaletteColors? {
     return withContext(Dispatchers.IO) {
         try {
             val imageLoader = ImageLoader(context)
@@ -917,17 +921,194 @@ private suspend fun extractDominantColor(context: android.content.Context, uri: 
             val bitmap = drawable.toBitmap()
 
             val palette = Palette.from(bitmap)
-                .maximumColorCount(16)
+                .maximumColorCount(24)
                 .generate()
 
-            val swatch = palette.dominantSwatch
-                ?: palette.vibrantSwatch
-                ?: palette.lightVibrantSwatch
-                ?: palette.darkVibrantSwatch
-
-            swatch?.rgb?.let { Color(it) }
+            // Get default colors from theme
+            val defaultColor = android.graphics.Color.GRAY
+            
+            PaletteColors(
+                dominant = Color(palette.dominantSwatch?.rgb ?: palette.getDominantColor(defaultColor)),
+                vibrant = Color(palette.vibrantSwatch?.rgb ?: palette.getVibrantColor(defaultColor)),
+                lightVibrant = Color(palette.lightVibrantSwatch?.rgb ?: palette.getLightVibrantColor(defaultColor)),
+                darkVibrant = Color(palette.darkVibrantSwatch?.rgb ?: palette.getDarkVibrantColor(defaultColor)),
+                muted = Color(palette.mutedSwatch?.rgb ?: palette.getMutedColor(defaultColor))
+            )
         } catch (e: Exception) {
             null
         }
     }
+}
+
+/**
+ * Ambient background with blurred floating color blobs
+ */
+@Composable
+fun AmbientBackground(
+    colors: PaletteColors?,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "ambient")
+    
+    // Animate floating positions
+    val offsetX1 by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetX1"
+    )
+    
+    val offsetY1 by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetY1"
+    )
+    
+    val offsetX2 by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetX2"
+    )
+    
+    val offsetY2 by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(9000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetY2"
+    )
+    
+    val offsetX3 by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(11000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetX3"
+    )
+    
+    val offsetY3 by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetY3"
+    )
+    
+    val offsetX4 by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(9500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetX4"
+    )
+    
+    val offsetY4 by infiniteTransition.animateFloat(
+        initialValue = 0.75f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetY4"
+    )
+
+    val backgroundColor = MaterialTheme.colorScheme.background
+    
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .drawBehind {
+                // Draw base background
+                drawRect(backgroundColor)
+                
+                if (colors != null) {
+                    val width = size.width
+                    val height = size.height
+                    
+                    // Draw blurred color blobs with radial gradient
+                    // Blob 1 - Dominant color (top-left area)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                colors.dominant.copy(alpha = 0.35f),
+                                colors.dominant.copy(alpha = 0.15f),
+                                Color.Transparent
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(
+                                width * offsetX1,
+                                height * offsetY1
+                            ),
+                            radius = width * 0.5f
+                        )
+                    )
+                    
+                    // Blob 2 - Vibrant color (top-right area)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                colors.vibrant.copy(alpha = 0.3f),
+                                colors.vibrant.copy(alpha = 0.1f),
+                                Color.Transparent
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(
+                                width * offsetX2,
+                                height * offsetY2
+                            ),
+                            radius = width * 0.45f
+                        )
+                    )
+                    
+                    // Blob 3 - Light Vibrant (bottom-left area)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                colors.lightVibrant.copy(alpha = 0.25f),
+                                colors.lightVibrant.copy(alpha = 0.08f),
+                                Color.Transparent
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(
+                                width * offsetX3,
+                                height * offsetY3
+                            ),
+                            radius = width * 0.4f
+                        )
+                    )
+                    
+                    // Blob 4 - Muted (bottom-right area)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                colors.muted.copy(alpha = 0.3f),
+                                colors.muted.copy(alpha = 0.1f),
+                                Color.Transparent
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(
+                                width * offsetX4,
+                                height * offsetY4
+                            ),
+                            radius = width * 0.35f
+                        )
+                    )
+                }
+            }
+    )
 }
