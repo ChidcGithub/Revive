@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -245,7 +246,8 @@ fun PlayerScreen(
                 contentAlignment = Alignment.Center
             ) {
                 // Glow effect behind album art
-                if (playerState.isPlaying && paletteColors != null) {
+                val currentPaletteColors = paletteColors
+                if (playerState.isPlaying && currentPaletteColors != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize(0.75f)
@@ -256,7 +258,7 @@ fun PlayerScreen(
                                 alpha = albumAlpha * 0.4f
                             }
                             .background(
-                                paletteColors.dominant.copy(alpha = 0.4f),
+                                currentPaletteColors.dominant.copy(alpha = 0.4f),
                                 CircleShape
                             )
                     )
