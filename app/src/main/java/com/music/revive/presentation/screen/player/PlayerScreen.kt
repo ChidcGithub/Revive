@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -955,7 +954,7 @@ fun AmbientBackground(
         targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
             animation = tween(8000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetX1"
     )
@@ -965,7 +964,7 @@ fun AmbientBackground(
         targetValue = 0.2f,
         animationSpec = infiniteRepeatable(
             animation = tween(10000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetY1"
     )
@@ -975,7 +974,7 @@ fun AmbientBackground(
         targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
             animation = tween(12000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetX2"
     )
@@ -985,7 +984,7 @@ fun AmbientBackground(
         targetValue = 0.4f,
         animationSpec = infiniteRepeatable(
             animation = tween(9000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetY2"
     )
@@ -995,7 +994,7 @@ fun AmbientBackground(
         targetValue = 0.2f,
         animationSpec = infiniteRepeatable(
             animation = tween(11000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetX3"
     )
@@ -1005,7 +1004,7 @@ fun AmbientBackground(
         targetValue = 0.6f,
         animationSpec = infiniteRepeatable(
             animation = tween(7000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetY3"
     )
@@ -1015,7 +1014,7 @@ fun AmbientBackground(
         targetValue = 0.7f,
         animationSpec = infiniteRepeatable(
             animation = tween(9500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetX4"
     )
@@ -1025,7 +1024,7 @@ fun AmbientBackground(
         targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
             animation = tween(10500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetY4"
     )
