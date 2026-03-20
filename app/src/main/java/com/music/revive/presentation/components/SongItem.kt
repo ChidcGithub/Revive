@@ -1,5 +1,6 @@
 package com.music.revive.presentation.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,12 +15,53 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.music.revive.R
 import com.music.revive.domain.model.Song
+
+/**
+ * Reusable composable for displaying album art with app icon fallback
+ */
+@Composable
+fun DefaultAlbumArt(
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    Image(
+        painter = painterResource(id = R.mipmap.ic_launcher),
+        contentDescription = null,
+        modifier = modifier,
+        contentScale = contentScale
+    )
+}
+
+/**
+ * Album art with AsyncImage and app icon fallback
+ */
+@Composable
+fun AlbumArtWithFallback(
+    albumArtUri: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    if (albumArtUri != null) {
+        AsyncImage(
+            model = albumArtUri,
+            contentDescription = null,
+            modifier = modifier,
+            contentScale = contentScale
+        )
+    } else {
+        DefaultAlbumArt(
+            modifier = modifier,
+            contentScale = contentScale
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,27 +99,10 @@ fun SongItem(
                     .size(56.dp)
                     .clip(RoundedCornerShape(12.dp))
             ) {
-                AsyncImage(
-                    model = song.albumArtUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                AlbumArtWithFallback(
+                    albumArtUri = song.albumArtUri,
+                    modifier = Modifier.fillMaxSize()
                 )
-                if (song.albumArtUri == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
                 if (isPlaying) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -163,27 +188,10 @@ fun SongItemWithFavorite(
                     .size(48.dp)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                AsyncImage(
-                    model = song.albumArtUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                AlbumArtWithFallback(
+                    albumArtUri = song.albumArtUri,
+                    modifier = Modifier.fillMaxSize()
                 )
-                if (song.albumArtUri == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
         },
         trailingContent = {
