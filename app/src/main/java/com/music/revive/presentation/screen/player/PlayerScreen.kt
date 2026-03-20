@@ -205,9 +205,6 @@ fun PlayerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
                 .statusBarsPadding()
         ) {
             // Top bar
