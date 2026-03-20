@@ -31,7 +31,10 @@ class MediaStoreDataSource @Inject constructor(
         Media.ARTIST_ID,
         Media.DURATION,
         Media.DATA,
-        Media.DATE_ADDED
+        Media.DATE_ADDED,
+        Media.BITRATE,
+        Media.SAMPLE_RATE,
+        Media.SIZE
     )
 
     suspend fun getAllSongs(): List<Song> = withContext(Dispatchers.IO) {
@@ -237,6 +240,17 @@ class MediaStoreDataSource @Inject constructor(
         val id = getLong(getColumnIndexOrThrow(Media._ID))
         val albumId = getColumnIndex(Media.ALBUM_ID).takeIf { it >= 0 }?.let { getLong(it) }
         val artistId = getColumnIndex(Media.ARTIST_ID).takeIf { it >= 0 }?.let { getLong(it) }
+        
+        // Audio quality info
+        val bitrate = getColumnIndex(Media.BITRATE).takeIf { it >= 0 }?.let { 
+            getInt(it) / 1000  // Convert from bps to kbps
+        } ?: 0
+        val sampleRate = getColumnIndex(Media.SAMPLE_RATE).takeIf { it >= 0 }?.let { 
+            getInt(it) 
+        } ?: 0
+        val fileSize = getColumnIndex(Media.SIZE).takeIf { it >= 0 }?.let { 
+            getLong(it) 
+        } ?: 0L
 
         return Song(
             id = id,
@@ -248,7 +262,10 @@ class MediaStoreDataSource @Inject constructor(
             duration = getLong(getColumnIndexOrThrow(Media.DURATION)),
             path = getString(getColumnIndexOrThrow(Media.DATA)),
             dateAdded = getLong(getColumnIndexOrThrow(Media.DATE_ADDED)) * 1000,
-            albumArtUri = albumId?.let { getAlbumArtUri(it).toString() }
+            albumArtUri = albumId?.let { getAlbumArtUri(it).toString() },
+            bitrate = bitrate,
+            sampleRate = sampleRate,
+            fileSize = fileSize
         )
     }
 

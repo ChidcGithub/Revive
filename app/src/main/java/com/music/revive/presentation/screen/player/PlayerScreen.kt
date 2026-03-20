@@ -345,6 +345,14 @@ fun PlayerScreen(
                         )
                     }
                 }
+                
+                // Audio quality badge
+                if (song.audioQuality != com.music.revive.domain.model.AudioQuality.UNKNOWN) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    com.music.revive.presentation.screen.song.AudioQualityBadge(
+                        quality = song.audioQuality
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

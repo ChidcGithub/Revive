@@ -66,6 +66,9 @@
     <string name="file_path">文件路径</string>
     <string name="file_size">文件大小</string>
     <string name="date_added">添加日期</string>
+    <string name="audio_quality">音质</string>
+    <string name="bitrate">比特率</string>
+    <string name="sample_rate">采样率</string>
     
     <!-- Search -->
     <string name="search_songs">搜索歌曲</string>

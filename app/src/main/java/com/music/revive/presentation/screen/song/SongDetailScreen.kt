@@ -27,6 +27,7 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.music.revive.R
 import com.music.revive.data.repository.MusicRepository
+import com.music.revive.domain.model.AudioQuality
 import com.music.revive.domain.model.Song
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,43 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+
+/**
+ * Audio quality badge component with M3 styling
+ */
+@Composable
+fun AudioQualityBadge(
+    quality: AudioQuality,
+    modifier: Modifier = Modifier
+) {
+    val (backgroundColor, contentColor) = when (quality) {
+        AudioQuality.LOSSLESS -> 
+            MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        AudioQuality.HIGH -> 
+            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        AudioQuality.MEDIUM -> 
+            MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        AudioQuality.STANDARD -> 
+            MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        AudioQuality.LOW -> 
+            MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        AudioQuality.UNKNOWN -> 
+            MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(4.dp),
+        color = backgroundColor
+    ) {
+        Text(
+            text = quality.shortLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
 
 data class SongDetailUiState(
     val song: Song? = null,
@@ -268,11 +306,46 @@ fun SongDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Audio Quality Badge
+                    if (song.audioQuality != AudioQuality.UNKNOWN) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.audio_quality),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            AudioQualityBadge(quality = song.audioQuality)
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
+
                     DetailRow(
                         label = stringResource(R.string.duration),
                         value = song.formattedDuration
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // Bitrate
+                    if (song.bitrate > 0) {
+                        DetailRow(
+                            label = stringResource(R.string.bitrate),
+                            value = "${song.bitrate} kbps"
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
+
+                    // Sample Rate
+                    if (song.sampleRate > 0) {
+                        DetailRow(
+                            label = stringResource(R.string.sample_rate),
+                            value = song.formattedSampleRate
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
 
                     DetailRow(
                         label = stringResource(R.string.album),
