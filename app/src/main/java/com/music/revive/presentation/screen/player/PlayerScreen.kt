@@ -237,6 +237,8 @@ fun PlayerScreen(
             }
 
             // Album art with animation
+            val albumShape = MaterialTheme.shapes.large
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -272,11 +274,11 @@ fun PlayerScreen(
                             scaleY = albumScale * playingScale
                             shadowElevation = albumShadow.toPx()
                             clip = true
-                            shape = MaterialTheme.shapes.large
+                            shape = albumShape
                             alpha = albumAlpha
                         },
                     tonalElevation = 0.dp,
-                    shape = MaterialTheme.shapes.large
+                    shape = albumShape
                 ) {
                     if (song.albumArtUri != null) {
                         AsyncImage(
