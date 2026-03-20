@@ -84,12 +84,16 @@
     <string name="audio">音频</string>
     <string name="audio_focus">音频焦点</string>
     <string name="audio_focus_description">当其他应用播放音频时自动暂停</string>
+    <!-- Library section -->
     <string name="library">媒体库</string>
     <string name="scan_music_library">扫描音乐库</string>
     <string name="scan_music_library_description">重新扫描设备上的音乐文件</string>
     <string name="scanning_started">正在扫描音乐库...</string>
-    <string name="show_folders">显示文件夹</string>
-    <string name="show_folders_description">在播放列表页面显示文件夹分类</string>
+    <string name="manage_folders">管理文件夹</string>
+    <string name="manage_folders_description">选择要包含或排除的文件夹</string>
+    <string name="folder_manager_hint">关闭的文件夹中的歌曲将不会在音乐库中显示</string>
+    <string name="no_folders_found">未找到包含音乐的文件夹</string>
+    <string name="done">完成</string>
     <string name="data">数据</string>
     <string name="clear_recent_history">清除最近播放记录</string>
     <string name="clear_recent_history_confirmation">确定要清除所有最近播放记录吗？</string>

@@ -1,6 +1,7 @@
 package com.music.revive.data.repository
 
 import com.music.revive.data.datasource.MediaStoreDataSource
+import com.music.revive.data.local.FolderPreferences
 import com.music.revive.data.local.dao.FavoriteDao
 import com.music.revive.data.local.dao.PlaylistDao
 import com.music.revive.data.local.dao.RecentSongDao
@@ -14,6 +15,7 @@ import com.music.revive.domain.model.Playlist
 import com.music.revive.domain.model.RecentSong
 import com.music.revive.domain.model.Song
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,21 +25,48 @@ class MusicRepository @Inject constructor(
     private val mediaStoreDataSource: MediaStoreDataSource,
     private val playlistDao: PlaylistDao,
     private val favoriteDao: FavoriteDao,
-    private val recentSongDao: RecentSongDao
+    private val recentSongDao: RecentSongDao,
+    private val folderPreferences: FolderPreferences
 ) {
     // Songs
-    suspend fun getAllSongs(): List<Song> = mediaStoreDataSource.getAllSongs()
+    suspend fun getAllSongs(): List<Song> {
+        val allSongs = mediaStoreDataSource.getAllSongs()
+        val excludedFolders = folderPreferences.excludedFolders.first()
+        return filterExcludedFolders(allSongs, excludedFolders)
+    }
 
-    suspend fun getSongsByAlbum(albumId: Long): List<Song> =
-        mediaStoreDataSource.getSongsByAlbum(albumId)
+    suspend fun getSongsByAlbum(albumId: Long): List<Song> {
+        val songs = mediaStoreDataSource.getSongsByAlbum(albumId)
+        val excludedFolders = folderPreferences.excludedFolders.first()
+        return filterExcludedFolders(songs, excludedFolders)
+    }
 
-    suspend fun getSongsByArtist(artistId: Long): List<Song> =
-        mediaStoreDataSource.getSongsByArtist(artistId)
+    suspend fun getSongsByArtist(artistId: Long): List<Song> {
+        val songs = mediaStoreDataSource.getSongsByArtist(artistId)
+        val excludedFolders = folderPreferences.excludedFolders.first()
+        return filterExcludedFolders(songs, excludedFolders)
+    }
 
     suspend fun getSongsByFolder(folderPath: String): List<Song> =
         mediaStoreDataSource.getSongsByFolder(folderPath)
 
-    suspend fun searchSongs(query: String): List<Song> = mediaStoreDataSource.searchSongs(query)
+    suspend fun searchSongs(query: String): List<Song> {
+        val songs = mediaStoreDataSource.searchSongs(query)
+        val excludedFolders = folderPreferences.excludedFolders.first()
+        return filterExcludedFolders(songs, excludedFolders)
+    }
+
+    /**
+     * Filter out songs that are in excluded folders
+     */
+    private fun filterExcludedFolders(songs: List<Song>, excludedFolders: Set<String>): List<Song> {
+        if (excludedFolders.isEmpty()) return songs
+        return songs.filter { song ->
+            excludedFolders.none { excludedPath ->
+                song.path.startsWith(excludedPath)
+            }
+        }
+    }
 
     // Albums
     suspend fun getAlbums(): List<Album> = mediaStoreDataSource.getAlbums()
@@ -116,5 +145,20 @@ class MusicRepository @Inject constructor(
 
     suspend fun clearRecentSongs() {
         recentSongDao.clearAllRecentSongs()
+    }
+
+    // Folder Preferences
+    fun getExcludedFolders(): Flow<Set<String>> = folderPreferences.excludedFolders
+
+    suspend fun excludeFolder(folderPath: String) {
+        folderPreferences.excludeFolder(folderPath)
+    }
+
+    suspend fun includeFolder(folderPath: String) {
+        folderPreferences.includeFolder(folderPath)
+    }
+
+    suspend fun setExcludedFolders(folders: Set<String>) {
+        folderPreferences.setExcludedFolders(folders)
     }
 }
