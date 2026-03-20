@@ -49,8 +49,8 @@ class MusicRepository @Inject constructor(
     suspend fun getFolders(): List<Folder> = mediaStoreDataSource.getFolders()
 
     // Playlists
-    fun getAllPlaylists(): Flow<List<Playlist>> = playlistDao.getAllPlaylists().map { entities ->
-        entities.map { Playlist(it.id, it.name, it.createdAt) }
+    fun getAllPlaylists(): Flow<List<Playlist>> = playlistDao.getAllPlaylistsWithSongCount().map { entities ->
+        entities.map { Playlist(it.id, it.name, it.createdAt, it.songCount) }
     }
 
     suspend fun createPlaylist(name: String): Long {
@@ -71,7 +71,7 @@ class MusicRepository @Inject constructor(
         playlistDao.getSongIdsForPlaylist(playlistId)
 
     suspend fun addSongToPlaylist(playlistId: Long, songId: Long) {
-        val count = playlistDao.getSongCount(playlistId).let { 0 }
+        val count = playlistDao.getSongCountSync(playlistId)
         playlistDao.insertPlaylistSong(
             com.music.revive.data.local.entity.PlaylistSongEntity(
                 playlistId = playlistId,
@@ -92,6 +92,8 @@ class MusicRepository @Inject constructor(
     // Favorites
     fun getFavoriteSongIds(): Flow<List<Long>> = favoriteDao.getAllFavoriteSongIds()
 
+    fun getFavoriteCount(): Flow<Int> = favoriteDao.getFavoriteCount()
+
     fun isFavorite(songId: Long): Flow<Boolean> = favoriteDao.isFavorite(songId)
 
     suspend fun addToFavorites(songId: Long) {
@@ -105,6 +107,8 @@ class MusicRepository @Inject constructor(
     // Recent Songs
     fun getRecentSongIds(limit: Int = 50): Flow<List<RecentSongEntity>> =
         recentSongDao.getRecentSongs(limit)
+
+    fun getRecentSongCount(): Flow<Int> = recentSongDao.getRecentSongCount()
 
     suspend fun addToRecent(songId: Long) {
         recentSongDao.addToRecent(songId, System.currentTimeMillis())

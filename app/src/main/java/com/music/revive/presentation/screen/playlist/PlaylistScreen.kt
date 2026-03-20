@@ -18,7 +18,6 @@ import androidx.lifecycle.viewModelScope
 import com.music.revive.R
 import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Playlist
-import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,13 +30,14 @@ import javax.inject.Inject
 @Composable
 fun PlaylistScreen(
     onPlaylistClick: (Long) -> Unit,
-    onSongClick: (Song, List<Song>) -> Unit,
-    onFavoriteClick: (Long) -> Unit,
+    onFavoritesClick: () -> Unit,
+    onRecentClick: () -> Unit,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
     var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+    var playlistToRename by remember { mutableStateOf<Playlist?>(null) }
     var expandedPlaylistMenu by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
@@ -52,7 +52,7 @@ fun PlaylistScreen(
             }
         }
     ) { paddingValues ->
-        if (uiState.playlists.isEmpty()) {
+        if (uiState.playlists.isEmpty() && uiState.favoriteCount == 0 && uiState.recentCount == 0) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -106,7 +106,7 @@ fun PlaylistScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.clickable { }
+                        modifier = Modifier.clickable { onFavoritesClick() }
                     )
                 }
 
@@ -132,46 +132,51 @@ fun PlaylistScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.clickable { }
+                        modifier = Modifier.clickable { onRecentClick() }
                     )
                 }
 
-                item {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                }
+                if (uiState.playlists.isNotEmpty()) {
+                    item {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
 
-                items(uiState.playlists) { playlist ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        PlaylistItem(
-                            playlist = playlist,
-                            onClick = { onPlaylistClick(playlist.id) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        Box {
-                            IconButton(onClick = { expandedPlaylistMenu = playlist.id }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
-                            }
+                    items(uiState.playlists) { playlist ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            PlaylistItem(
+                                playlist = playlist,
+                                onClick = { onPlaylistClick(playlist.id) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            Box {
+                                IconButton(onClick = { expandedPlaylistMenu = playlist.id }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
+                                }
 
-                            DropdownMenu(
-                                expanded = expandedPlaylistMenu == playlist.id,
-                                onDismissRequest = { expandedPlaylistMenu = null }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.rename)) },
-                                    onClick = { expandedPlaylistMenu = null },
-                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.delete)) },
-                                    onClick = {
-                                        playlistToDelete = playlist
-                                        expandedPlaylistMenu = null
-                                    },
-                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
-                                )
+                                DropdownMenu(
+                                    expanded = expandedPlaylistMenu == playlist.id,
+                                    onDismissRequest = { expandedPlaylistMenu = null }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.rename)) },
+                                        onClick = {
+                                            playlistToRename = playlist
+                                            expandedPlaylistMenu = null
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.delete)) },
+                                        onClick = {
+                                            playlistToDelete = playlist
+                                            expandedPlaylistMenu = null
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -197,6 +202,17 @@ fun PlaylistScreen(
             onConfirm = {
                 viewModel.deletePlaylist(playlist.id)
                 playlistToDelete = null
+            }
+        )
+    }
+
+    playlistToRename?.let { playlist ->
+        RenamePlaylistDialog(
+            currentName = playlist.name,
+            onDismiss = { playlistToRename = null },
+            onConfirm = { newName ->
+                viewModel.renamePlaylist(playlist.id, newName)
+                playlistToRename = null
             }
         )
     }
@@ -227,8 +243,13 @@ class PlaylistViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            repository.getFavoriteSongIds().collect { favorites ->
-                _uiState.value = _uiState.value.copy(favoriteCount = favorites.size)
+            repository.getFavoriteCount().collect { count ->
+                _uiState.value = _uiState.value.copy(favoriteCount = count)
+            }
+        }
+        viewModelScope.launch {
+            repository.getRecentSongCount().collect { count ->
+                _uiState.value = _uiState.value.copy(recentCount = count)
             }
         }
     }
@@ -236,6 +257,12 @@ class PlaylistViewModel @Inject constructor(
     fun createPlaylist(name: String) {
         viewModelScope.launch {
             repository.createPlaylist(name)
+        }
+    }
+
+    fun renamePlaylist(playlistId: Long, newName: String) {
+        viewModelScope.launch {
+            repository.renamePlaylist(playlistId, newName)
         }
     }
 

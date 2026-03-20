@@ -100,6 +100,12 @@
     <string name="no_songs">暂无歌曲</string>
     <string name="no_songs_description">设备上未找到音乐文件</string>
     <string name="refresh">刷新</string>
+    <string name="playlist_empty">播放列表为空</string>
+    <string name="no_favorites">暂无收藏歌曲</string>
+    <string name="no_recent_songs">暂无最近播放记录</string>
+    <string name="clear_history">清除历史记录</string>
+    <string name="clear_history_confirmation">确定要清除所有最近播放记录吗？</string>
+    <string name="remove_from_playlist">从播放列表移除</string>
     
     <!-- Player additional -->
     <string name="added_to_playlist">已添加到播放列表</string>

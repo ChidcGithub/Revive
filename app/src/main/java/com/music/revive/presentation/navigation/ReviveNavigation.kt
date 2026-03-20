@@ -35,8 +35,11 @@ import com.music.revive.presentation.screen.home.HomeViewModel
 import com.music.revive.presentation.screen.player.PlayerScreen
 import com.music.revive.presentation.screen.player.PlayerViewModel
 import com.music.revive.presentation.screen.player.QueueScreen
+import com.music.revive.presentation.screen.playlist.FavoritesScreen
+import com.music.revive.presentation.screen.playlist.PlaylistDetailScreen
 import com.music.revive.presentation.screen.playlist.PlaylistScreen
 import com.music.revive.presentation.screen.playlist.PlaylistViewModel
+import com.music.revive.presentation.screen.playlist.RecentScreen
 import com.music.revive.presentation.screen.search.SearchScreen
 import com.music.revive.presentation.screen.search.SearchViewModel
 import com.music.revive.presentation.screen.settings.SettingsScreen
@@ -383,11 +386,12 @@ fun ReviveNavigation(
                     onPlaylistClick = { playlistId ->
                         navController.navigate(PlaylistDetail(playlistId))
                     },
-                    onSongClick = { song, songList ->
-                        musicPlayer.playSong(song, songList)
-                        navController.navigate(Player)
+                    onFavoritesClick = {
+                        navController.navigate(Favorites)
                     },
-                    onFavoriteClick = { songId -> }
+                    onRecentClick = {
+                        navController.navigate(Recent)
+                    }
                 )
             }
 
@@ -475,15 +479,35 @@ fun ReviveNavigation(
             }
 
             composable<PlaylistDetail> {
-                // Playlist detail screen
+                val args = it.toRoute<PlaylistDetail>()
+                PlaylistDetailScreen(
+                    playlistId = args.playlistId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSongClick = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
+                    }
+                )
             }
 
             composable<Favorites> {
-                // Favorites screen
+                FavoritesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSongClick = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
+                    }
+                )
             }
 
             composable<Recent> {
-                // Recent screen
+                RecentScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSongClick = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
+                    }
+                )
             }
 
             composable<SongDetail> {
