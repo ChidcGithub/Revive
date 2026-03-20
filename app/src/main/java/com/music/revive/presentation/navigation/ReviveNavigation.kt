@@ -354,9 +354,6 @@ fun ReviveNavigation(
                     onArtistClick = { artist ->
                         navController.navigate(ArtistDetail(artist.id))
                     },
-                    onFolderClick = { folderPath ->
-                        navController.navigate(FolderDetail(folderPath))
-                    },
                     onPlaylistClick = { playlistId ->
                         navController.navigate(PlaylistDetail(playlistId))
                     },

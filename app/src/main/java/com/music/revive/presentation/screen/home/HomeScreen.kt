@@ -38,7 +38,6 @@ import coil.compose.AsyncImage
 import com.music.revive.R
 import com.music.revive.domain.model.Album
 import com.music.revive.domain.model.Artist
-import com.music.revive.domain.model.Folder
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.*
 
@@ -49,7 +48,6 @@ fun HomeScreen(
     onSongClick: (Song, List<Song>) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
-    onFolderClick: (String) -> Unit,
     onPlaylistClick: (Long) -> Unit,
     onSearchClick: () -> Unit,
     onFavoriteClick: (Long) -> Unit,
@@ -181,22 +179,6 @@ fun HomeScreen(
                                 )
                             }
                         }
-                    }
-                }
-
-                // Folders section (compact)
-                if (uiState.folders.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.folders),
-                            onSeeAllClick = {}
-                        )
-                    }
-                    items(uiState.folders.take(3)) { folder ->
-                        FolderListItem(
-                            folder = folder,
-                            onClick = { onFolderClick(folder.path) }
-                        )
                     }
                 }
 

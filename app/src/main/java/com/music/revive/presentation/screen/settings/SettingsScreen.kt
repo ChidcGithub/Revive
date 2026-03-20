@@ -1,5 +1,6 @@
 package com.music.revive.presentation.screen.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +32,8 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showClearHistoryDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -43,6 +47,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Appearance section
             item {
                 Text(
                     text = stringResource(R.string.appearance),
@@ -78,6 +83,7 @@ fun SettingsScreen(
                 )
             }
 
+            // Audio section
             item {
                 Text(
                     text = stringResource(R.string.audio),
@@ -103,6 +109,54 @@ fun SettingsScreen(
                 )
             }
 
+            // Library section
+            item {
+                Text(
+                    text = stringResource(R.string.library),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.scan_music_library)) },
+                    supportingContent = { Text(stringResource(R.string.scan_music_library_description)) },
+                    leadingContent = {
+                        if (uiState.isScanning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                        }
+                    },
+                    modifier = Modifier.clickable(enabled = !uiState.isScanning) {
+                        viewModel.scanMusicLibrary()
+                        Toast.makeText(context, context.getString(R.string.scanning_started), Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.show_folders)) },
+                    supportingContent = { Text(stringResource(R.string.show_folders_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Folder, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.showFolders,
+                            onCheckedChange = { viewModel.setShowFolders(it) }
+                        )
+                    }
+                )
+            }
+
+            // Data section
             item {
                 Text(
                     text = stringResource(R.string.data),
@@ -118,10 +172,11 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(Icons.Default.History, contentDescription = null)
                     },
-                    modifier = Modifier.clickable { viewModel.clearRecentHistory() }
+                    modifier = Modifier.clickable { showClearHistoryDialog = true }
                 )
             }
 
+            // About section
             item {
                 Text(
                     text = stringResource(R.string.about),
@@ -153,6 +208,7 @@ fun SettingsScreen(
         }
     }
 
+    // Theme selection dialog
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
@@ -187,6 +243,31 @@ fun SettingsScreen(
             }
         )
     }
+
+    // Clear history confirmation dialog
+    if (showClearHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryDialog = false },
+            title = { Text(stringResource(R.string.clear_recent_history)) },
+            text = { Text(stringResource(R.string.clear_recent_history_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearRecentHistory()
+                        showClearHistoryDialog = false
+                        Toast.makeText(context, context.getString(R.string.history_cleared), Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text(stringResource(R.string.clear))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 enum class ThemeOption(val displayName: String) {
@@ -199,7 +280,9 @@ data class SettingsUiState(
     val theme: ThemeOption = ThemeOption.SYSTEM,
     val themeDisplayName: String = ThemeOption.SYSTEM.displayName,
     val useDynamicColors: Boolean = true,
-    val handleAudioFocus: Boolean = true
+    val handleAudioFocus: Boolean = true,
+    val showFolders: Boolean = false,
+    val isScanning: Boolean = false
 )
 
 @HiltViewModel
@@ -223,6 +306,21 @@ class SettingsViewModel @Inject constructor(
 
     fun setAudioFocusHandling(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(handleAudioFocus = enabled)
+    }
+
+    fun setShowFolders(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(showFolders = enabled)
+    }
+
+    fun scanMusicLibrary() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isScanning = true)
+            // Trigger a rescan by calling getAllSongs which reads from MediaStore
+            repository.getAllSongs()
+            repository.getAlbums()
+            repository.getArtists()
+            _uiState.value = _uiState.value.copy(isScanning = false)
+        }
     }
 
     fun clearRecentHistory() {

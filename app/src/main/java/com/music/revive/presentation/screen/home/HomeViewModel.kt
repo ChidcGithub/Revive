@@ -64,11 +64,6 @@ class HomeViewModel @Inject constructor(
             }
 
             launch {
-                val folders = repository.getFolders()
-                _uiState.value = _uiState.value.copy(folders = folders)
-            }
-
-            launch {
                 repository.getAllPlaylists().collect { playlists ->
                     _uiState.value = _uiState.value.copy(playlists = playlists)
                 }
