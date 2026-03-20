@@ -102,14 +102,11 @@ private fun standardPopExitTransition(): ExitTransition {
     )
 }
 
-// Player screen uses slide up from bottom
+// Player screen uses slide up from bottom with smooth animation
 private fun playerEnterTransition(): EnterTransition {
     return slideInVertically(
         initialOffsetY = { it },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        )
+        animationSpec = tween(400, easing = DecelerateEasing)
     ) + fadeIn(
         animationSpec = tween(300, easing = SmoothEasing)
     )
@@ -118,10 +115,7 @@ private fun playerEnterTransition(): EnterTransition {
 private fun playerExitTransition(): ExitTransition {
     return slideOutVertically(
         targetOffsetY = { it },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        )
+        animationSpec = tween(350, easing = AccelerateEasing)
     ) + fadeOut(
         animationSpec = tween(200, easing = SmoothEasing)
     )
@@ -204,9 +198,17 @@ fun ReviveNavigation(
         Settings::class.qualifiedName ?: "Settings"
     )
 
-    val isBottomBarVisible = currentRoute.contains("Home") ||
+    // Hide bottom bar on full-screen pages like Player and Queue
+    val isFullScreenPage = currentRoute.contains("Player") || 
+            currentRoute.contains("Queue") ||
+            currentRoute.contains("SongDetail")
+
+    val isBottomBarVisible = (currentRoute.contains("Home") ||
             currentRoute.contains("Playlists") ||
-            currentRoute.contains("Settings")
+            currentRoute.contains("Settings")) && !isFullScreenPage
+
+    // Show bottom player bar only when there's a song and not on full-screen pages
+    val showBottomPlayerBar = playerState.currentSong != null && !isFullScreenPage
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -214,15 +216,12 @@ fun ReviveNavigation(
             Column {
                 // Bottom Player Bar with smooth entry animation
                 AnimatedVisibility(
-                    visible = playerState.currentSong != null,
+                    visible = showBottomPlayerBar,
                     enter = fadeIn(
                         animationSpec = tween(300, easing = SmoothEasing)
                     ) + slideInVertically(
                         initialOffsetY = { it },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
+                        animationSpec = tween(350, easing = DecelerateEasing)
                     ),
                     exit = fadeOut(
                         animationSpec = tween(200, easing = SmoothEasing)
@@ -327,10 +326,13 @@ fun ReviveNavigation(
             }
         }
     ) { paddingValues ->
+        // Determine if current page should use padding (non-fullscreen pages)
+        val contentPadding = if (isFullScreenPage) PaddingValues(0.dp) else paddingValues
+        
         NavHost(
             navController = navController,
             startDestination = Home,
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier.padding(contentPadding),
             enterTransition = { standardEnterTransition() },
             exitTransition = { standardExitTransition() },
             popEnterTransition = { standardPopEnterTransition() },

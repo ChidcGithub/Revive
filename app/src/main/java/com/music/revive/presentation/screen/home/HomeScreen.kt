@@ -69,8 +69,9 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 28.sp
                         )
                     }
                 },
