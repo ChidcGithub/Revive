@@ -33,7 +33,7 @@ class MediaStoreDataSource @Inject constructor(
         Media.DATA,
         Media.DATE_ADDED,
         Media.BITRATE,
-        Media.SAMPLE_RATE,
+        "sample_rate",  // SAMPLE_RATE column name
         Media.SIZE
     )
 
@@ -245,7 +245,8 @@ class MediaStoreDataSource @Inject constructor(
         val bitrate = getColumnIndex(Media.BITRATE).takeIf { it >= 0 }?.let { 
             getInt(it) / 1000  // Convert from bps to kbps
         } ?: 0
-        val sampleRate = getColumnIndex(Media.SAMPLE_RATE).takeIf { it >= 0 }?.let { 
+        // SAMPLE_RATE column was added in API 29
+        val sampleRate = getColumnIndex("sample_rate").takeIf { it >= 0 }?.let { 
             getInt(it) 
         } ?: 0
         val fileSize = getColumnIndex(Media.SIZE).takeIf { it >= 0 }?.let { 
