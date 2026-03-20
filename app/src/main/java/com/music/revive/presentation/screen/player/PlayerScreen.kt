@@ -272,11 +272,11 @@ fun PlayerScreen(
                             scaleY = albumScale * playingScale
                             shadowElevation = albumShadow.toPx()
                             clip = true
-                            shape = RoundedCornerShape(24.dp)
+                            shape = MaterialTheme.shapes.large
                             alpha = albumAlpha
                         },
                     tonalElevation = 0.dp,
-                    shape = RoundedCornerShape(24.dp)
+                    shape = MaterialTheme.shapes.large
                 ) {
                     if (song.albumArtUri != null) {
                         AsyncImage(
@@ -447,12 +447,14 @@ fun PlayerScreen(
                     )
                 }
 
-                // Play/Pause - Large FAB style
+                // Play/Pause - Large FAB style with M3 shape
                 FilledIconButton(
                     onClick = { viewModel.playPause() },
                     modifier = Modifier.size(72.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Icon(
@@ -585,7 +587,8 @@ fun PlayerScreen(
     if (showMoreOptionsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showMoreOptionsSheet = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = MaterialTheme.shapes.extraLarge
         ) {
             Column(
                 modifier = Modifier

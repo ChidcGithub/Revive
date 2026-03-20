@@ -216,12 +216,17 @@ fun HomeScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilledTonalButton(
+                            // High emphasis shuffle button
+                            Button(
                                 onClick = {
                                     if (uiState.songs.isNotEmpty()) {
                                         onSongClick(uiState.songs.random(), uiState.songs)
                                     }
-                                }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Shuffle,
@@ -385,8 +390,9 @@ private fun AlbumCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f),
-            shape = RoundedCornerShape(16.dp),
-            tonalElevation = 2.dp
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 2.dp,
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             if (album.albumArtUri != null) {
                 AsyncImage(
@@ -436,8 +442,8 @@ private fun ArtistCard(
     ) {
         Surface(
             modifier = Modifier.size(80.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -591,10 +597,9 @@ private fun ModernSongItem(
             }
         },
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = MaterialTheme.shapes.small
             ) {
                 if (song.albumArtUri != null) {
                     AsyncImage(

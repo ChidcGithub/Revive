@@ -6,12 +6,14 @@ import android.content.ContextWrapper
 import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 private fun findActivity(context: Context): Activity {
@@ -88,6 +90,18 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
+ * Material 3 Shape System
+ * Defines corner radii for different component sizes
+ */
+val ReviveShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),      // Chips, small buttons
+    small = RoundedCornerShape(8.dp),           // Buttons, text fields
+    medium = RoundedCornerShape(12.dp),         // Cards, dialogs
+    large = RoundedCornerShape(16.dp),          // Bottom sheets, large cards
+    extraLarge = RoundedCornerShape(28.dp)      // Floating action buttons, navigation drawer
+)
+
+/**
  * Revive Material 3 Theme
  * 
  * @param darkTheme Whether to use dark theme
@@ -132,6 +146,7 @@ fun ReviveTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = ReviveTypography,
+        shapes = ReviveShapes,
         content = content
     )
 }

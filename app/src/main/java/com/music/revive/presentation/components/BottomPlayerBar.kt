@@ -107,6 +107,19 @@ fun BottomPlayerBar(
         shadowElevation = 8.dp,
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
+        // Subtle gradient overlay for depth
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.05f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        ) {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -142,7 +155,7 @@ fun BottomPlayerBar(
                     modifier = Modifier
                         .size(52.dp)
                         .scale(albumScale),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     tonalElevation = 2.dp
                 ) {
                     if (song.albumArtUri != null) {
@@ -207,12 +220,14 @@ fun BottomPlayerBar(
                         )
                     }
 
-                    // Play/Pause - Filled button for emphasis
+                    // Play/Pause - Filled button for high emphasis
                     FilledIconButton(
                         onClick = onPlayPauseClick,
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier.size(48.dp),
+                        shape = MaterialTheme.shapes.large,
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Icon(
@@ -235,6 +250,7 @@ fun BottomPlayerBar(
                     }
                 }
             }
+        }
         }
     }
 }

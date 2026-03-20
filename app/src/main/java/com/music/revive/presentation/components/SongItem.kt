@@ -94,10 +94,10 @@ fun SongItem(
             )
         },
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp))
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = MaterialTheme.shapes.medium,
+                tonalElevation = 1.dp
             ) {
                 AlbumArtWithFallback(
                     albumArtUri = song.albumArtUri,
@@ -183,10 +183,9 @@ fun SongItemWithFavorite(
             }
         },
         leadingContent = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = MaterialTheme.shapes.small
             ) {
                 AlbumArtWithFallback(
                     albumArtUri = song.albumArtUri,
