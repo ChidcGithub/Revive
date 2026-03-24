@@ -17,8 +17,8 @@ import javax.inject.Singleton
  * Repository for fetching lyrics from multiple sources
  * 
  * Priority order:
- * 1. Local .lrc file (same directory as the song)
- * 2. Embedded lyrics (ID3 tags, Vorbis Comments, MP4 atoms)
+ * 1. Embedded lyrics (ID3 tags, Vorbis Comments, MP4 atoms)
+ * 2. Local .lrc file (same directory as the song)
  */
 @Singleton
 class LyricRepository @Inject constructor(
@@ -49,18 +49,18 @@ class LyricRepository @Inject constructor(
         _isLoading.value = true
         
         try {
-            // 1. Try local .lrc file
-            val localLyrics = loadFromLocalFile(song)
-            if (localLyrics != null && !localLyrics.isEmpty) {
-                cacheAndReturn(song.id, localLyrics)
-                return localLyrics
-            }
-            
-            // 2. Try embedded lyrics
+            // 1. Try embedded lyrics first
             val embeddedLyrics = embeddedLyricExtractor.extractLyrics(song)
             if (embeddedLyrics != null && !embeddedLyrics.isEmpty) {
                 cacheAndReturn(song.id, embeddedLyrics)
                 return embeddedLyrics
+            }
+            
+            // 2. Try local .lrc file
+            val localLyrics = loadFromLocalFile(song)
+            if (localLyrics != null && !localLyrics.isEmpty) {
+                cacheAndReturn(song.id, localLyrics)
+                return localLyrics
             }
             
             // No lyrics found
@@ -131,6 +131,7 @@ class LyricRepository @Inject constructor(
     
     /**
      * Check if lyrics are available for a song (without loading)
+     * Note: Only checks for local file, embedded requires loading
      */
     suspend fun hasLyrics(song: Song): Boolean {
         // Check cache
@@ -138,7 +139,7 @@ class LyricRepository @Inject constructor(
             return lyricsCache[song.id]?.isEmpty == false
         }
         
-        // Check local file
+        // Check local file (quick check)
         val songFile = File(song.path)
         val parentDir = songFile.parentFile ?: return false
         val lrcFile = File(parentDir, songFile.nameWithoutExtension + ".lrc")
