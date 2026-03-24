@@ -2,7 +2,6 @@ package com.music.revive.data.lyric
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
 import com.music.revive.domain.model.LyricSource
@@ -71,14 +70,20 @@ class EmbeddedLyricExtractor @Inject constructor(
     /**
      * Extract lyrics using Android's MediaMetadataRetriever
      * This is the most reliable method as it uses system codecs
+     * Note: METADATA_KEY_LYRICS (value 20) is only available in API 29+
      */
     private fun extractWithMediaMetadataRetriever(song: Song): Lyric? {
+        // METADATA_KEY_LYRICS is only available in API 29+
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            return null
+        }
+        
         val retriever = MediaMetadataRetriever()
         try {
-            retriever.setDataSource(context, Uri.parse(song.albumArtUri ?: Uri.fromFile(File(song.path)).toString()))
+            retriever.setDataSource(song.path)
             
-            // Try different metadata keys for lyrics
-            val lyrics = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LYRICS)
+            // METADATA_KEY_LYRICS = 20 (only available in API 29+)
+            val lyrics = retriever.extractMetadata(20)
             
             if (!lyrics.isNullOrBlank()) {
                 return processRawLyrics(lyrics, song.id)
@@ -93,19 +98,7 @@ class EmbeddedLyricExtractor @Inject constructor(
             }
         }
         
-        // Try with file path directly
-        return try {
-            val retriever2 = MediaMetadataRetriever()
-            retriever2.setDataSource(song.path)
-            val lyrics = retriever2.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LYRICS)
-            retriever2.release()
-            
-            if (!lyrics.isNullOrBlank()) {
-                processRawLyrics(lyrics, song.id)
-            } else null
-        } catch (e: Exception) {
-            null
-        }
+        return null
     }
     
     /**
