@@ -141,7 +141,6 @@
     <string name="lyrics_font_size">歌词字体大小</string>
     <string name="show_translation">显示翻译歌词</string>
     <string name="auto_scroll">自动滚动</string>
-    <string name="fetch_online_lyrics">获取在线歌词</string>
     <string name="lyrics_display_style">歌词显示样式</string>
     <string name="lyrics_centered">居中显示</string>
     <string name="lyrics_left_aligned">左对齐</string>

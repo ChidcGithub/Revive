@@ -18,14 +18,12 @@ import javax.inject.Singleton
  * 
  * Priority order:
  * 1. Local .lrc file (same directory as the song)
- * 2. Embedded lyrics (ID3 tags)
- * 3. Online lyrics (LRCLIB, NetEase)
+ * 2. Embedded lyrics (ID3 tags, Vorbis Comments, MP4 atoms)
  */
 @Singleton
 class LyricRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val embeddedLyricExtractor: EmbeddedLyricExtractor,
-    private val onlineLyricService: OnlineLyricService
+    private val embeddedLyricExtractor: EmbeddedLyricExtractor
 ) {
     // Cache for loaded lyrics
     private val lyricsCache = mutableMapOf<Long, Lyric>()
@@ -41,7 +39,7 @@ class LyricRepository @Inject constructor(
     /**
      * Load lyrics for a song from all available sources
      */
-    suspend fun loadLyrics(song: Song, fetchOnline: Boolean = true): Lyric {
+    suspend fun loadLyrics(song: Song): Lyric {
         // Check cache first
         lyricsCache[song.id]?.let { 
             _currentLyrics.value = it
@@ -63,15 +61,6 @@ class LyricRepository @Inject constructor(
             if (embeddedLyrics != null && !embeddedLyrics.isEmpty) {
                 cacheAndReturn(song.id, embeddedLyrics)
                 return embeddedLyrics
-            }
-            
-            // 3. Try online lyrics (if enabled)
-            if (fetchOnline) {
-                val onlineLyrics = onlineLyricService.fetchLyrics(song)
-                if (onlineLyrics != null && !onlineLyrics.isEmpty) {
-                    cacheAndReturn(song.id, onlineLyrics)
-                    return onlineLyrics
-                }
             }
             
             // No lyrics found
@@ -155,7 +144,7 @@ class LyricRepository @Inject constructor(
         val lrcFile = File(parentDir, songFile.nameWithoutExtension + ".lrc")
         if (lrcFile.exists()) return true
         
-        // Would need to check embedded/online, but that requires loading
+        // Would need to check embedded, but that requires loading
         // For now, just return false and let loadLyrics do the work
         return false
     }

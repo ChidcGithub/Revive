@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -45,9 +44,6 @@ class PlayerViewModel @Inject constructor(
     val showTranslation: StateFlow<Boolean> = lyricsPreferences.showTranslation
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
-    val fetchOnlineLyrics: StateFlow<Boolean> = lyricsPreferences.fetchOnlineLyrics
-        .stateIn(viewModelScope, SharingStarted.Lazily, true)
-
     val lyricsDisplayStyle: StateFlow<Int> = lyricsPreferences.lyricsDisplayStyle
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
@@ -73,8 +69,7 @@ class PlayerViewModel @Inject constructor(
     private fun loadLyrics(song: com.music.revive.domain.model.Song) {
         viewModelScope.launch {
             _isLoadingLyrics.value = true
-            val fetchOnline = fetchOnlineLyrics.first()
-            val lyrics = lyricRepository.loadLyrics(song, fetchOnline)
+            val lyrics = lyricRepository.loadLyrics(song)
             _currentLyrics.value = lyrics
             _isLoadingLyrics.value = false
         }

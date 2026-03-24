@@ -137,10 +137,6 @@ dependencies {
     // Palette for color extraction
     implementation("androidx.palette:palette-ktx:1.0.0")
 
-    // OkHttp for network requests
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
-
     // Kotlinx Serialization for JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 

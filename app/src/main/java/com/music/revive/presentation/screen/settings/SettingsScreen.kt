@@ -149,22 +149,6 @@ fun SettingsScreen(
 
             item {
                 ListItem(
-                    headlineContent = { Text(stringResource(R.string.fetch_online_lyrics)) },
-                    supportingContent = { Text(stringResource(R.string.lyrics_source_online)) },
-                    leadingContent = {
-                        Icon(Icons.Default.CloudDownload, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.fetchOnlineLyrics,
-                            onCheckedChange = { viewModel.setFetchOnlineLyrics(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
                     headlineContent = { Text(stringResource(R.string.lyrics_display_style)) },
                     supportingContent = { 
                         Text(if (uiState.lyricsDisplayStyle == 0) 
@@ -762,7 +746,6 @@ data class SettingsUiState(
     val lyricsFontSize: Float = 1.0f,
     val showTranslation: Boolean = true,
     val autoScroll: Boolean = true,
-    val fetchOnlineLyrics: Boolean = true,
     val lyricsDisplayStyle: Int = 0,
     // Playback
     val fadeInOut: Boolean = false,
@@ -858,11 +841,6 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            lyricsPreferences.fetchOnlineLyrics.collect { fetch ->
-                _uiState.value = _uiState.value.copy(fetchOnlineLyrics = fetch)
-            }
-        }
-        viewModelScope.launch {
             lyricsPreferences.lyricsDisplayStyle.collect { style ->
                 _uiState.value = _uiState.value.copy(lyricsDisplayStyle = style)
             }
@@ -954,12 +932,6 @@ class SettingsViewModel @Inject constructor(
     fun setAutoScroll(enabled: Boolean) {
         viewModelScope.launch {
             lyricsPreferences.setAutoScroll(enabled)
-        }
-    }
-
-    fun setFetchOnlineLyrics(enabled: Boolean) {
-        viewModelScope.launch {
-            lyricsPreferences.setFetchOnlineLyrics(enabled)
         }
     }
 

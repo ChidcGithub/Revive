@@ -27,7 +27,6 @@ class LyricsPreferences @Inject constructor(
         private val LYRICS_FONT_SIZE = floatPreferencesKey("lyrics_font_size")
         private val SHOW_TRANSLATION = booleanPreferencesKey("show_translation")
         private val AUTO_SCROLL = booleanPreferencesKey("auto_scroll")
-        private val FETCH_ONLINE_LYRICS = booleanPreferencesKey("fetch_online_lyrics")
         private val LYRICS_DISPLAY_STYLE = intPreferencesKey("lyrics_display_style") // 0: centered, 1: left-aligned
     }
     
@@ -42,10 +41,6 @@ class LyricsPreferences @Inject constructor(
     // Auto scroll to current line
     val autoScroll: Flow<Boolean> = context.lyricsDataStore.data
         .map { preferences -> preferences[AUTO_SCROLL] ?: true }
-    
-    // Fetch lyrics from online sources
-    val fetchOnlineLyrics: Flow<Boolean> = context.lyricsDataStore.data
-        .map { preferences -> preferences[FETCH_ONLINE_LYRICS] ?: true }
     
     // Display style (0: centered, 1: left-aligned)
     val lyricsDisplayStyle: Flow<Int> = context.lyricsDataStore.data
@@ -66,12 +61,6 @@ class LyricsPreferences @Inject constructor(
     suspend fun setAutoScroll(enabled: Boolean) {
         context.lyricsDataStore.edit { preferences ->
             preferences[AUTO_SCROLL] = enabled
-        }
-    }
-    
-    suspend fun setFetchOnlineLyrics(enabled: Boolean) {
-        context.lyricsDataStore.edit { preferences ->
-            preferences[FETCH_ONLINE_LYRICS] = enabled
         }
     }
     
