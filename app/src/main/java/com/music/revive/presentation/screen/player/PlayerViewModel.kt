@@ -2,7 +2,10 @@ package com.music.revive.presentation.screen.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.music.revive.data.lyric.LyricRepository
+import com.music.revive.data.local.LyricsPreferences
 import com.music.revive.data.repository.MusicRepository
+import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.PlayerState
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -17,7 +21,9 @@ import javax.inject.Inject
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     internal val musicPlayer: MusicPlayer,
-    private val repository: MusicRepository
+    private val repository: MusicRepository,
+    private val lyricRepository: LyricRepository,
+    private val lyricsPreferences: LyricsPreferences
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = musicPlayer.playerState
@@ -25,16 +31,60 @@ class PlayerViewModel @Inject constructor(
     private val _isFavorite = MutableStateFlow(false)
     val isFavorite: StateFlow<Boolean> = _isFavorite.asStateFlow()
 
+    // Lyrics state
+    private val _currentLyrics = MutableStateFlow<Lyric>(Lyric.Empty)
+    val currentLyrics: StateFlow<Lyric> = _currentLyrics.asStateFlow()
+
+    private val _isLoadingLyrics = MutableStateFlow(false)
+    val isLoadingLyrics: StateFlow<Boolean> = _isLoadingLyrics.asStateFlow()
+
+    // Settings
+    val lyricsFontSize: StateFlow<Float> = lyricsPreferences.lyricsFontSize
+        .stateIn(viewModelScope, SharingStarted.Lazily, 1.0f)
+
+    val showTranslation: StateFlow<Boolean> = lyricsPreferences.showTranslation
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
+    val fetchOnlineLyrics: StateFlow<Boolean> = lyricsPreferences.fetchOnlineLyrics
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
+    val lyricsDisplayStyle: StateFlow<Int> = lyricsPreferences.lyricsDisplayStyle
+        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
     init {
         viewModelScope.launch {
             musicPlayer.currentSong.collect { song ->
                 song?.let { currentSong ->
+                    // Update favorite status
                     repository.isFavorite(currentSong.id).collect { isFav ->
                         _isFavorite.value = isFav
                     }
+                    
+                    // Load lyrics for the new song
+                    loadLyrics(currentSong)
                 } ?: run {
                     _isFavorite.value = false
+                    _currentLyrics.value = Lyric.Empty
                 }
+            }
+        }
+    }
+
+    private fun loadLyrics(song: com.music.revive.domain.model.Song) {
+        viewModelScope.launch {
+            _isLoadingLyrics.value = true
+            val fetchOnline = fetchOnlineLyrics.first()
+            val lyrics = lyricRepository.loadLyrics(song, fetchOnline)
+            _currentLyrics.value = lyrics
+            _isLoadingLyrics.value = false
+        }
+    }
+
+    fun refreshLyrics() {
+        viewModelScope.launch {
+            musicPlayer.currentSong.value?.let { song ->
+                lyricRepository.clearCache(song.id)
+                loadLyrics(song)
             }
         }
     }

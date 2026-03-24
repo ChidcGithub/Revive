@@ -19,8 +19,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.music.revive.R
 import com.music.revive.BuildConfig
+import com.music.revive.data.local.LyricsPreferences
+import com.music.revive.data.local.NotificationPreferences
+import com.music.revive.data.local.PlayerPreferences
+import com.music.revive.data.local.ThemePreferences
 import com.music.revive.data.repository.MusicRepository
+import com.music.revive.data.lyric.LyricRepository
 import com.music.revive.domain.model.Folder
+import com.music.revive.presentation.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +43,9 @@ fun SettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showFolderManagerDialog by remember { mutableStateOf(false) }
+    var showLyricsFontSlider by remember { mutableStateOf(false) }
+    var showPlaybackSpeedSlider by remember { mutableStateOf(false) }
+    var showClearLyricsCacheDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Scaffold(
@@ -82,6 +91,249 @@ fun SettingsScreen(
                         Switch(
                             checked = uiState.useDynamicColors,
                             onCheckedChange = { viewModel.setDynamicColors(it) }
+                        )
+                    }
+                )
+            }
+
+            // Lyrics section
+            item {
+                Text(
+                    text = stringResource(R.string.lyrics_settings),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.lyrics_font_size)) },
+                    supportingContent = { Text("%.1fx".format(uiState.lyricsFontSize)) },
+                    leadingContent = {
+                        Icon(Icons.Default.TextFields, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable { showLyricsFontSlider = true }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.show_translation)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Translate, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.showTranslation,
+                            onCheckedChange = { viewModel.setShowTranslation(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.auto_scroll)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Scroll, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.autoScroll,
+                            onCheckedChange = { viewModel.setAutoScroll(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.fetch_online_lyrics)) },
+                    supportingContent = { Text(stringResource(R.string.lyrics_source_online)) },
+                    leadingContent = {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.fetchOnlineLyrics,
+                            onCheckedChange = { viewModel.setFetchOnlineLyrics(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.lyrics_display_style)) },
+                    supportingContent = { 
+                        Text(if (uiState.lyricsDisplayStyle == 0) 
+                            stringResource(R.string.lyrics_centered) 
+                        else 
+                            stringResource(R.string.lyrics_left_aligned)) 
+                    },
+                    leadingContent = {
+                        Icon(Icons.Default.AlignHorizontalCenter, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable { 
+                        viewModel.setLyricsDisplayStyle(if (uiState.lyricsDisplayStyle == 0) 1 else 0) 
+                    }
+                )
+            }
+
+            // Playback section
+            item {
+                Text(
+                    text = stringResource(R.string.playback_settings),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.fade_in_out)) },
+                    supportingContent = { Text(stringResource(R.string.fade_in_out_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.GraphicEq, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.fadeInOut,
+                            onCheckedChange = { viewModel.setFadeInOut(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.gapless_playback)) },
+                    supportingContent = { Text(stringResource(R.string.gapless_playback_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.SkipNext, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.gaplessPlayback,
+                            onCheckedChange = { viewModel.setGaplessPlayback(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.volume_normalization)) },
+                    supportingContent = { Text(stringResource(R.string.volume_normalization_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.VolumeUp, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.volumeNormalization,
+                            onCheckedChange = { viewModel.setVolumeNormalization(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.playback_speed)) },
+                    supportingContent = { Text("%.1fx".format(uiState.playbackSpeed)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Speed, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable { showPlaybackSpeedSlider = true }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.skip_silence)) },
+                    supportingContent = { Text(stringResource(R.string.skip_silence_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.FastForward, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.skipSilence,
+                            onCheckedChange = { viewModel.setSkipSilence(it) }
+                        )
+                    }
+                )
+            }
+
+            // Notification section
+            item {
+                Text(
+                    text = stringResource(R.string.notification_settings),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.show_notification)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Notifications, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.showNotification,
+                            onCheckedChange = { viewModel.setShowNotification(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.show_on_lock_screen)) },
+                    supportingContent = { Text(stringResource(R.string.show_on_lock_screen_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Lock, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.showOnLockScreen,
+                            onCheckedChange = { viewModel.setShowOnLockScreen(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.floating_lyrics)) },
+                    supportingContent = { Text(stringResource(R.string.floating_lyrics_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Layers, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.floatingLyrics,
+                            onCheckedChange = { viewModel.setFloatingLyrics(it) }
+                        )
+                    }
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.notification_lyrics)) },
+                    supportingContent = { Text(stringResource(R.string.notification_lyrics_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Lyrics, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = uiState.notificationLyrics,
+                            onCheckedChange = { viewModel.setNotificationLyrics(it) }
                         )
                     }
                 )
@@ -155,6 +407,27 @@ fun SettingsScreen(
                         Icon(Icons.Default.ChevronRight, contentDescription = null)
                     },
                     modifier = Modifier.clickable { showFolderManagerDialog = true }
+                )
+            }
+
+            // Storage section
+            item {
+                Text(
+                    text = stringResource(R.string.storage_settings),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.clear_lyrics_cache)) },
+                    supportingContent = { Text(stringResource(R.string.clear_cache_description)) },
+                    leadingContent = {
+                        Icon(Icons.Default.Delete, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable { showClearLyricsCacheDialog = true }
                 )
             }
 
@@ -246,6 +519,78 @@ fun SettingsScreen(
         )
     }
 
+    // Lyrics font size slider dialog
+    if (showLyricsFontSlider) {
+        var sliderValue by remember { mutableFloatStateOf(uiState.lyricsFontSize) }
+        AlertDialog(
+            onDismissRequest = { showLyricsFontSlider = false },
+            title = { Text(stringResource(R.string.lyrics_font_size)) },
+            text = {
+                Column {
+                    Slider(
+                        value = sliderValue,
+                        onValueChange = { sliderValue = it },
+                        valueRange = 0.8f..1.5f,
+                        steps = 7
+                    )
+                    Text(
+                        text = "%.1fx".format(sliderValue),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setLyricsFontSize(sliderValue)
+                    showLyricsFontSlider = false
+                }) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLyricsFontSlider = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Playback speed slider dialog
+    if (showPlaybackSpeedSlider) {
+        var sliderValue by remember { mutableFloatStateOf(uiState.playbackSpeed) }
+        AlertDialog(
+            onDismissRequest = { showPlaybackSpeedSlider = false },
+            title = { Text(stringResource(R.string.playback_speed)) },
+            text = {
+                Column {
+                    Slider(
+                        value = sliderValue,
+                        onValueChange = { sliderValue = it },
+                        valueRange = 0.5f..2.0f,
+                        steps = 15
+                    )
+                    Text(
+                        text = "%.1fx".format(sliderValue),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setPlaybackSpeed(sliderValue)
+                    showPlaybackSpeedSlider = false
+                }) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPlaybackSpeedSlider = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
     // Clear history confirmation dialog
     if (showClearHistoryDialog) {
         AlertDialog(
@@ -265,6 +610,31 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearHistoryDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Clear lyrics cache confirmation dialog
+    if (showClearLyricsCacheDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearLyricsCacheDialog = false },
+            title = { Text(stringResource(R.string.clear_lyrics_cache)) },
+            text = { Text(stringResource(R.string.clear_cache_description)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearLyricsCache()
+                        showClearLyricsCacheDialog = false
+                        Toast.makeText(context, context.getString(R.string.lyrics_cache_cleared), Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text(stringResource(R.string.clear))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearLyricsCacheDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -384,10 +754,30 @@ enum class ThemeOption(val displayName: String) {
 }
 
 data class SettingsUiState(
+    // Appearance
     val theme: ThemeOption = ThemeOption.SYSTEM,
     val themeDisplayName: String = ThemeOption.SYSTEM.displayName,
     val useDynamicColors: Boolean = true,
+    // Lyrics
+    val lyricsFontSize: Float = 1.0f,
+    val showTranslation: Boolean = true,
+    val autoScroll: Boolean = true,
+    val fetchOnlineLyrics: Boolean = true,
+    val lyricsDisplayStyle: Int = 0,
+    // Playback
+    val fadeInOut: Boolean = false,
+    val gaplessPlayback: Boolean = true,
+    val volumeNormalization: Boolean = false,
+    val playbackSpeed: Float = 1.0f,
+    val skipSilence: Boolean = false,
+    // Notification
+    val showNotification: Boolean = true,
+    val showOnLockScreen: Boolean = true,
+    val floatingLyrics: Boolean = false,
+    val notificationLyrics: Boolean = false,
+    // Audio focus
     val handleAudioFocus: Boolean = true,
+    // Library
     val isScanning: Boolean = false,
     val folders: List<Folder> = emptyList(),
     val excludedFolders: Set<String> = emptySet()
@@ -395,7 +785,12 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: MusicRepository
+    private val repository: MusicRepository,
+    private val lyricsPreferences: LyricsPreferences,
+    private val playerPreferences: PlayerPreferences,
+    private val notificationPreferences: NotificationPreferences,
+    private val lyricRepository: LyricRepository,
+    private val themePreferences: ThemePreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -404,6 +799,10 @@ class SettingsViewModel @Inject constructor(
     init {
         loadFolders()
         loadExcludedFolders()
+        loadLyricsSettings()
+        loadPlaybackSettings()
+        loadNotificationSettings()
+        loadThemeSettings()
     }
 
     private fun loadFolders() {
@@ -421,29 +820,229 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private fun loadThemeSettings() {
+        viewModelScope.launch {
+            themePreferences.themeMode.collect { mode ->
+                val themeOption = when (mode) {
+                    ThemeMode.LIGHT -> ThemeOption.LIGHT
+                    ThemeMode.DARK -> ThemeOption.DARK
+                    ThemeMode.SYSTEM -> ThemeOption.SYSTEM
+                }
+                _uiState.value = _uiState.value.copy(
+                    theme = themeOption,
+                    themeDisplayName = themeOption.displayName
+                )
+            }
+        }
+        viewModelScope.launch {
+            themePreferences.dynamicColorsEnabled.collect { enabled ->
+                _uiState.value = _uiState.value.copy(useDynamicColors = enabled)
+            }
+        }
+    }
+
+    private fun loadLyricsSettings() {
+        viewModelScope.launch {
+            lyricsPreferences.lyricsFontSize.collect { size ->
+                _uiState.value = _uiState.value.copy(lyricsFontSize = size)
+            }
+        }
+        viewModelScope.launch {
+            lyricsPreferences.showTranslation.collect { show ->
+                _uiState.value = _uiState.value.copy(showTranslation = show)
+            }
+        }
+        viewModelScope.launch {
+            lyricsPreferences.autoScroll.collect { auto ->
+                _uiState.value = _uiState.value.copy(autoScroll = auto)
+            }
+        }
+        viewModelScope.launch {
+            lyricsPreferences.fetchOnlineLyrics.collect { fetch ->
+                _uiState.value = _uiState.value.copy(fetchOnlineLyrics = fetch)
+            }
+        }
+        viewModelScope.launch {
+            lyricsPreferences.lyricsDisplayStyle.collect { style ->
+                _uiState.value = _uiState.value.copy(lyricsDisplayStyle = style)
+            }
+        }
+    }
+
+    private fun loadPlaybackSettings() {
+        viewModelScope.launch {
+            playerPreferences.fadeInOut.collect { enabled ->
+                _uiState.value = _uiState.value.copy(fadeInOut = enabled)
+            }
+        }
+        viewModelScope.launch {
+            playerPreferences.gaplessPlayback.collect { enabled ->
+                _uiState.value = _uiState.value.copy(gaplessPlayback = enabled)
+            }
+        }
+        viewModelScope.launch {
+            playerPreferences.volumeNormalization.collect { enabled ->
+                _uiState.value = _uiState.value.copy(volumeNormalization = enabled)
+            }
+        }
+        viewModelScope.launch {
+            playerPreferences.playbackSpeed.collect { speed ->
+                _uiState.value = _uiState.value.copy(playbackSpeed = speed)
+            }
+        }
+        viewModelScope.launch {
+            playerPreferences.skipSilence.collect { enabled ->
+                _uiState.value = _uiState.value.copy(skipSilence = enabled)
+            }
+        }
+    }
+
+    private fun loadNotificationSettings() {
+        viewModelScope.launch {
+            notificationPreferences.showNotification.collect { show ->
+                _uiState.value = _uiState.value.copy(showNotification = show)
+            }
+        }
+        viewModelScope.launch {
+            notificationPreferences.showOnLockScreen.collect { show ->
+                _uiState.value = _uiState.value.copy(showOnLockScreen = show)
+            }
+        }
+        viewModelScope.launch {
+            notificationPreferences.floatingLyrics.collect { enabled ->
+                _uiState.value = _uiState.value.copy(floatingLyrics = enabled)
+            }
+        }
+        viewModelScope.launch {
+            notificationPreferences.notificationLyrics.collect { enabled ->
+                _uiState.value = _uiState.value.copy(notificationLyrics = enabled)
+            }
+        }
+    }
+
+    // Theme
     fun setTheme(theme: ThemeOption) {
-        _uiState.value = _uiState.value.copy(
-            theme = theme,
-            themeDisplayName = theme.displayName
-        )
+        viewModelScope.launch {
+            val mode = when (theme) {
+                ThemeOption.LIGHT -> ThemeMode.LIGHT
+                ThemeOption.DARK -> ThemeMode.DARK
+                ThemeOption.SYSTEM -> ThemeMode.SYSTEM
+            }
+            themePreferences.setThemeMode(mode)
+        }
     }
 
     fun setDynamicColors(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(useDynamicColors = enabled)
+        viewModelScope.launch {
+            themePreferences.setDynamicColorsEnabled(enabled)
+        }
     }
 
+    // Lyrics settings
+    fun setLyricsFontSize(size: Float) {
+        viewModelScope.launch {
+            lyricsPreferences.setLyricsFontSize(size)
+        }
+    }
+
+    fun setShowTranslation(show: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setShowTranslation(show)
+        }
+    }
+
+    fun setAutoScroll(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setAutoScroll(enabled)
+        }
+    }
+
+    fun setFetchOnlineLyrics(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setFetchOnlineLyrics(enabled)
+        }
+    }
+
+    fun setLyricsDisplayStyle(style: Int) {
+        viewModelScope.launch {
+            lyricsPreferences.setLyricsDisplayStyle(style)
+        }
+    }
+
+    fun clearLyricsCache() {
+        viewModelScope.launch {
+            lyricRepository.clearAllCache()
+        }
+    }
+
+    // Playback settings
+    fun setFadeInOut(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setFadeInOut(enabled)
+        }
+    }
+
+    fun setGaplessPlayback(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setGaplessPlayback(enabled)
+        }
+    }
+
+    fun setVolumeNormalization(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setVolumeNormalization(enabled)
+        }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        viewModelScope.launch {
+            playerPreferences.setPlaybackSpeed(speed)
+        }
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setSkipSilence(enabled)
+        }
+    }
+
+    // Notification settings
+    fun setShowNotification(show: Boolean) {
+        viewModelScope.launch {
+            notificationPreferences.setShowNotification(show)
+        }
+    }
+
+    fun setShowOnLockScreen(show: Boolean) {
+        viewModelScope.launch {
+            notificationPreferences.setShowOnLockScreen(show)
+        }
+    }
+
+    fun setFloatingLyrics(enabled: Boolean) {
+        viewModelScope.launch {
+            notificationPreferences.setFloatingLyrics(enabled)
+        }
+    }
+
+    fun setNotificationLyrics(enabled: Boolean) {
+        viewModelScope.launch {
+            notificationPreferences.setNotificationLyrics(enabled)
+        }
+    }
+
+    // Audio focus
     fun setAudioFocusHandling(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(handleAudioFocus = enabled)
     }
 
+    // Library
     fun scanMusicLibrary() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isScanning = true)
-            // Trigger a rescan by calling getAllSongs which reads from MediaStore
             repository.getAllSongs()
             repository.getAlbums()
             repository.getArtists()
-            // Reload folders
             val folders = repository.getFolders()
             _uiState.value = _uiState.value.copy(
                 isScanning = false,

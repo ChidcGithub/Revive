@@ -7,6 +7,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -47,11 +48,13 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.music.revive.R
 import com.music.revive.data.repository.MusicRepository
+import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.Playlist
 import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.AddToPlaylistDialog
 import com.music.revive.presentation.components.CreatePlaylistDialog
+import com.music.revive.presentation.components.LyricsView
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -96,6 +99,14 @@ fun PlayerScreen(
     var paletteColors by remember { mutableStateOf<PaletteColors?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // Lyrics state
+    var showLyrics by remember { mutableStateOf(false) }
+    val currentLyrics by viewModel.currentLyrics.collectAsState()
+    val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsState()
+    val lyricsFontSize by viewModel.lyricsFontSize.collectAsState()
+    val showTranslation by viewModel.showTranslation.collectAsState()
+    val lyricsDisplayStyle by viewModel.lyricsDisplayStyle.collectAsState()
 
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -223,11 +234,18 @@ fun PlayerScreen(
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = stringResource(R.string.playing),
+                    text = if (showLyrics) stringResource(R.string.lyrics) else stringResource(R.string.playing),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.weight(1f))
+                // Toggle lyrics/album art button
+                IconButton(onClick = { showLyrics = !showLyrics }) {
+                    Icon(
+                        imageVector = if (showLyrics) Icons.Rounded.Album else Icons.Rounded.Lyrics,
+                        contentDescription = if (showLyrics) stringResource(R.string.show_album_art) else stringResource(R.string.show_lyrics)
+                    )
+                }
                 IconButton(onClick = onQueueClick) {
                     Icon(
                         imageVector = Icons.Rounded.QueueMusic,
@@ -236,7 +254,7 @@ fun PlayerScreen(
                 }
             }
 
-            // Album art with animation
+            // Album art or Lyrics view with animation
             val albumShape = MaterialTheme.shapes.large
             
             Box(
@@ -248,52 +266,95 @@ fun PlayerScreen(
             ) {
                 // Glow effect behind album art
                 val currentPaletteColors = paletteColors
-                if (playerState.isPlaying && currentPaletteColors != null) {
+                
+                AnimatedVisibility(
+                    visible = !showLyrics,
+                    enter = fadeIn(tween(300)),
+                    exit = fadeOut(tween(300))
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (playerState.isPlaying && currentPaletteColors != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize(0.75f)
+                                    .aspectRatio(1f)
+                                    .graphicsLayer {
+                                        scaleX = albumScale * playingScale
+                                        scaleY = albumScale * playingScale
+                                        alpha = albumAlpha * 0.4f
+                                    }
+                                    .background(
+                                        currentPaletteColors.dominant.copy(alpha = 0.4f),
+                                        CircleShape
+                                    )
+                            )
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize(0.8f)
+                                .aspectRatio(1f)
+                                .graphicsLayer {
+                                    scaleX = albumScale * playingScale
+                                    scaleY = albumScale * playingScale
+                                    shadowElevation = albumShadow.toPx()
+                                    clip = true
+                                    shape = albumShape
+                                    alpha = albumAlpha
+                                },
+                            tonalElevation = 0.dp,
+                            shape = albumShape
+                        ) {
+                            if (song.albumArtUri != null) {
+                                AsyncImage(
+                                    model = song.albumArtUri,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.mipmap.ic_launcher),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Lyrics view
+                AnimatedVisibility(
+                    visible = showLyrics,
+                    enter = fadeIn(tween(300)),
+                    exit = fadeOut(tween(300))
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize(0.75f)
-                            .aspectRatio(1f)
-                            .graphicsLayer {
-                                scaleX = albumScale * playingScale
-                                scaleY = albumScale * playingScale
-                                alpha = albumAlpha * 0.4f
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = albumAlpha }
+                    ) {
+                        if (isLoadingLyrics) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
                             }
-                            .background(
-                                currentPaletteColors.dominant.copy(alpha = 0.4f),
-                                CircleShape
+                        } else {
+                            LyricsView(
+                                lyric = currentLyrics,
+                                currentPositionMs = playerState.position,
+                                fontSizeMultiplier = lyricsFontSize,
+                                showTranslation = showTranslation,
+                                isCentered = lyricsDisplayStyle == 0,
+                                modifier = Modifier.fillMaxSize()
                             )
-                    )
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize(0.8f)
-                        .aspectRatio(1f)
-                        .graphicsLayer {
-                            scaleX = albumScale * playingScale
-                            scaleY = albumScale * playingScale
-                            shadowElevation = albumShadow.toPx()
-                            clip = true
-                            shape = albumShape
-                            alpha = albumAlpha
-                        },
-                    tonalElevation = 0.dp,
-                    shape = albumShape
-                ) {
-                    if (song.albumArtUri != null) {
-                        AsyncImage(
-                            model = song.albumArtUri,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = R.mipmap.ic_launcher),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        }
                     }
                 }
             }

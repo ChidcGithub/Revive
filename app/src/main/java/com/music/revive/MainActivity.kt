@@ -17,13 +17,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.music.revive.data.local.ThemePreferences
 import com.music.revive.presentation.navigation.ReviveNavigation
 import com.music.revive.presentation.theme.ReviveTheme
+import com.music.revive.presentation.theme.ThemeMode
 import com.music.revive.service.MusicService
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var themePreferences: ThemePreferences
 
     private var hasPermissions by mutableStateOf(false)
 
@@ -43,7 +52,27 @@ class MainActivity : ComponentActivity() {
         checkAndRequestPermissions()
 
         setContent {
-            ReviveTheme {
+            // Read persisted theme settings
+            var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
+            var dynamicColorsEnabled by remember { mutableStateOf(true) }
+            
+            LaunchedEffect(Unit) {
+                lifecycleScope.launch {
+                    themePreferences.themeMode.collect { mode ->
+                        themeMode = mode
+                    }
+                }
+                lifecycleScope.launch {
+                    themePreferences.dynamicColorsEnabled.collect { enabled ->
+                        dynamicColorsEnabled = enabled
+                    }
+                }
+            }
+            
+            ReviveTheme(
+                themeMode = themeMode,
+                dynamicColor = dynamicColorsEnabled
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

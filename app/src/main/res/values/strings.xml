@@ -129,4 +129,56 @@
     <string name="equalizer">均衡器</string>
     <string name="queue_empty">播放队列为空</string>
     <string name="remove">移除</string>
+    
+    <!-- Lyrics -->
+    <string name="lyrics">歌词</string>
+    <string name="show_lyrics">显示歌词</string>
+    <string name="show_album_art">显示专辑封面</string>
+    <string name="no_lyrics">暂无歌词</string>
+    <string name="no_lyrics_description">尝试添加 .lrc 文件或从在线获取</string>
+    <string name="refresh_lyrics">刷新歌词</string>
+    <string name="lyrics_settings">歌词设置</string>
+    <string name="lyrics_font_size">歌词字体大小</string>
+    <string name="show_translation">显示翻译歌词</string>
+    <string name="auto_scroll">自动滚动</string>
+    <string name="fetch_online_lyrics">获取在线歌词</string>
+    <string name="lyrics_display_style">歌词显示样式</string>
+    <string name="lyrics_centered">居中显示</string>
+    <string name="lyrics_left_aligned">左对齐</string>
+    <string name="lyrics_source">歌词来源</string>
+    <string name="lyrics_source_embedded">内嵌歌词</string>
+    <string name="lyrics_source_local">本地文件</string>
+    <string name="lyrics_source_online">在线歌词</string>
+    
+    <!-- Player settings -->
+    <string name="playback_settings">播放设置</string>
+    <string name="fade_in_out">淡入淡出</string>
+    <string name="fade_in_out_description">歌曲开始和结束时淡入淡出效果</string>
+    <string name="gapless_playback">无缝播放</string>
+    <string name="gapless_playback_description">消除歌曲之间的静音间隔</string>
+    <string name="volume_normalization">音量均衡</string>
+    <string name="volume_normalization_description">自动调整所有歌曲的音量</string>
+    <string name="playback_speed">播放速度</string>
+    <string name="skip_silence">跳过静音</string>
+    <string name="skip_silence_description">自动跳过歌曲中的静音部分</string>
+    
+    <!-- Notification settings -->
+    <string name="notification_settings">通知与锁屏</string>
+    <string name="show_notification">显示通知</string>
+    <string name="show_on_lock_screen">锁屏显示</string>
+    <string name="show_on_lock_screen_description">在锁屏界面显示播放控制</string>
+    <string name="floating_lyrics">悬浮歌词</string>
+    <string name="floating_lyrics_description">在其他应用上方显示歌词</string>
+    <string name="notification_lyrics">通知栏歌词</string>
+    <string name="notification_lyrics_description">在通知栏显示当前歌词</string>
+    
+    <!-- Storage settings -->
+    <string name="storage_settings">存储与缓存</string>
+    <string name="clear_cache">清除缓存</string>
+    <string name="clear_cache_description">清除临时文件和歌词缓存</string>
+    <string name="cache_size">缓存大小</string>
+    <string name="cache_cleared">缓存已清除</string>
+    <string name="lyrics_cache">歌词缓存</string>
+    <string name="clear_lyrics_cache">清除歌词缓存</string>
+    <string name="lyrics_cache_cleared">歌词缓存已清除</string>
 </resources>
