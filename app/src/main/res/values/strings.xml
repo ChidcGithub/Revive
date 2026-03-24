@@ -181,4 +181,15 @@
     <string name="lyrics_cache">歌词缓存</string>
     <string name="clear_lyrics_cache">清除歌词缓存</string>
     <string name="lyrics_cache_cleared">歌词缓存已清除</string>
+    
+    <!-- Crash Report -->
+    <string name="crash_report_title">应用程序崩溃</string>
+    <string name="crash_report_subtitle">很抱歉，应用程序遇到了问题并意外退出。以下是崩溃日志，您可以复制或保存它以便排查问题。</string>
+    <string name="crash_action_copy">复制日志</string>
+    <string name="crash_action_save">保存日志</string>
+    <string name="crash_action_restart">重新启动</string>
+    <string name="crash_action_exit">退出应用</string>
+    <string name="crash_log_copied">崩溃日志已复制到剪贴板</string>
+    <string name="crash_log_saved">崩溃日志已保存至 %1$s</string>
+    <string name="crash_log_save_failed">保存崩溃日志失败</string>
 </resources>

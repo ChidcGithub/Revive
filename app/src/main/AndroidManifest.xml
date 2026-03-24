@@ -40,6 +40,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Crash Report Activity -->
+        <activity
+            android:name=".crash.CrashReportActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Revive" />
+
         <!-- Music Service -->
         <service
             android:name=".service.MusicService"
