@@ -32,7 +32,6 @@ class MediaStoreDataSource @Inject constructor(
         Media.DATA,
         Media.DATE_ADDED,
         Media.BITRATE,
-        "sample_rate",  // SAMPLE_RATE column name
         Media.SIZE
     )
 
