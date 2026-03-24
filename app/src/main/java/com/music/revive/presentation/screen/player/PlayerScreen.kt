@@ -267,11 +267,8 @@ fun PlayerScreen(
                 // Glow effect behind album art
                 val currentPaletteColors = paletteColors
                 
-                AnimatedVisibility(
-                    visible = !showLyrics,
-                    enter = fadeIn(tween(300)),
-                    exit = fadeOut(tween(300))
-                ) {
+                // Album art view
+                if (!showLyrics) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -325,14 +322,8 @@ fun PlayerScreen(
                             }
                         }
                     }
-                }
-                
-                // Lyrics view
-                AnimatedVisibility(
-                    visible = showLyrics,
-                    enter = fadeIn(tween(300)),
-                    exit = fadeOut(tween(300))
-                ) {
+                } else {
+                    // Lyrics view
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

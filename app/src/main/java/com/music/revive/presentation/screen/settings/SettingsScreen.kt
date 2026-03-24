@@ -136,7 +136,7 @@ fun SettingsScreen(
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.auto_scroll)) },
                     leadingContent = {
-                        Icon(Icons.Default.Scroll, contentDescription = null)
+                        Icon(Icons.Default.List, contentDescription = null)
                     },
                     trailingContent = {
                         Switch(

@@ -53,8 +53,8 @@ object LrcParser {
             }
             
             // Parse standard lyric line with time tags
-            parseLyricLine(trimmedLine)?.let { lyricLine ->
-                lines.add(lyricLine)
+            parseLyricLine(trimmedLine)?.let { lyricLines ->
+                lines.addAll(lyricLines)
             }
         }
         
