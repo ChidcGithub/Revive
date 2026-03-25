@@ -51,11 +51,15 @@ fun AudioQualityBadge(
     modifier: Modifier = Modifier
 ) {
     val (backgroundColor, contentColor) = when (quality) {
-        AudioQuality.LOSSLESS -> 
+        AudioQuality.HI_RES -> 
             MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        AudioQuality.LOSSLESS -> 
+            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        AudioQuality.EXTREME -> 
+            MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         AudioQuality.HIGH -> 
             MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        AudioQuality.MEDIUM -> 
+        AudioQuality.GOOD -> 
             MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         AudioQuality.STANDARD -> 
             MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
