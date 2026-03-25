@@ -57,14 +57,52 @@ class EmbeddedLyricExtractor @Inject constructor(
             "lyrics eng", "lyricstext", "lyricsplus"
         )
         
-        // Vorbis Comment field names for lyrics
+        // Vorbis Comment field names for lyrics (FLAC, OGG, Opus, etc.)
         private val VORBIS_LYRIC_FIELDS = setOf(
+            // Standard fields
             "LYRICS", "UNSYNCEDLYRICS", "SYNCEDLYRICS", "LYRIC",
             "META_LYRICS", "LYRICS_UNSYNCED", "LYRICS_SYNCED",
             "UNSYNCED LYRICS", "SYNCED LYRICS", "SONG LYRICS",
+            // Extended fields
             "ESLyrics", "LYRICIST", "LYRICSXXX", "SYNCED_LYRICS",
             "UNSYNCED_LYRICS", "LYRIC_TEXT", "SONGLYRICS",
-            "LYRICS_ENG", "LYRICSSYNC", "LYRICSUNSYNCED"
+            "LYRICS_ENG", "LYRICSSYNC", "LYRICSUNSYNCED",
+            // FLAC-specific fields
+            "LYRICS_ENGLISH", "LYRICS_NATIVE", "SYNC_LYRICS",
+            "UNSYNC_LYRICS", "LYRIC_TEXT_SYNC", "LYRIC_TEXT_UNSYNC",
+            // Popular taggers
+            "MINILYRICS", "SYNCEDLYRIC", "UNSYNCEDLYRIC",
+            "LYRICS_SYNC", "LYRICS_UNSYNC", "LYRICSSYNCED",
+            // Format-specific
+            "LRCLYRICS", "LRC_LYRICS", "EMBEDDED_LYRICS",
+            "TRACK_LYRICS", "SONGLYRIC", "LYRICS_TEXT",
+            // Language variants
+            "LYRICS_CHN", "LYRICS_CHI", "LYRICS_JPN", "LYRICS_KOR",
+            "LYRICS_CN", "LYRICS_TW", "LYRICS_HK",
+            // Player-specific
+            "FOOBAR2000_LYRICS", "WINAMP_LYRICS", "AIMP_LYRICS",
+            // Additional common fields
+            "DESCRIPTION", "COMMENT", "NOTES"  // Sometimes contain lyrics
+        )
+        
+        // FLAC metadata block types
+        private const val FLAC_STREAMINFO = 0
+        private const val FLAC_PADDING = 1
+        private const val FLAC_APPLICATION = 2
+        private const val FLAC_SEEKTABLE = 3
+        private const val FLAC_VORBIS_COMMENT = 4
+        private const val FLAC_CUESHEET = 5
+        private const val FLAC_PICTURE = 6
+        
+        // Known APPLICATION block IDs that may contain lyrics
+        private val FLAC_APP_IDS_WITH_LYRICS = setOf(
+            "lrc ",  // LRC data
+            "lyrc",  // Lyrics data
+            "LyrX",  // Lyrics extension
+            "muLy",  // Music lyrics
+            "foLy",  // foobar2000 lyrics
+            "xmly",  // Custom lyrics
+            "elyr"   // Embedded lyrics
         )
         
         // MP4/M4A atom names for lyrics
@@ -510,36 +548,334 @@ class EmbeddedLyricExtractor @Inject constructor(
     // ==================== FLAC ====================
     
     /**
-     * Extract lyrics from FLAC file (Vorbis Comments)
+     * Extract lyrics from FLAC file
+     * 
+     * FLAC supports multiple metadata blocks:
+     * - Vorbis Comment (type 4): Primary metadata storage
+     * - CUESHEET (type 5): Track index info, may contain lyrics
+     * - APPLICATION (type 2): Third-party app data, may contain lyrics
+     * - ID3v2: Non-standard but some files have it
      */
     private fun extractFromFlac(file: File, songId: Long): Lyric? {
         RandomAccessFile(file, "r").use { raf ->
+            // Check for ID3v2 at the start (non-standard but exists)
+            val firstBytes = ByteArray(3)
+            raf.read(firstBytes)
+            
+            if (String(firstBytes, Charsets.ISO_8859_1) == "ID3") {
+                // ID3v2 tag before FLAC header
+                raf.seek(0)
+                val id3Lyrics = extractId3FromStart(file, songId)
+                if (id3Lyrics != null && !id3Lyrics.isEmpty) {
+                    Log.d(TAG, "Found lyrics in FLAC ID3v2 tag")
+                    return id3Lyrics
+                }
+                // Reset to after ID3
+                raf.seek(0)
+                skipId3v2Tag(raf)
+            } else {
+                raf.seek(0)
+            }
+            
+            // Check FLAC magic
             val magic = ByteArray(4)
             raf.read(magic)
             
-            if (String(magic, Charsets.ISO_8859_1) == "fLaC") {
-                var hasMore = true
-                while (hasMore) {
-                    val header = raf.readInt()
-                    val isLast = (header ushr 24) and 0x80 != 0
-                    val blockType = (header ushr 24) and 0x7F
-                    val blockSize = header and 0xFFFFFF
-                    
-                    if (blockType == 4) { // VORBIS_COMMENT
+            if (String(magic, Charsets.ISO_8859_1) != "fLaC") {
+                return null
+            }
+            
+            // Parse metadata blocks
+            var hasMore = true
+            var vorbisLyrics: Lyric? = null
+            var cueSheetLyrics: Lyric? = null
+            var appLyrics: Lyric? = null
+            
+            while (hasMore) {
+                if (raf.filePointer >= raf.length() - 4) break
+                
+                val header = raf.readInt()
+                val isLast = (header ushr 24) and 0x80 != 0
+                val blockType = (header ushr 24) and 0x7F
+                val blockSize = header and 0xFFFFFF
+                
+                Log.d(TAG, "FLAC block type: $blockType, size: $blockSize, last: $isLast")
+                
+                when (blockType) {
+                    FLAC_VORBIS_COMMENT -> {
                         val data = ByteArray(blockSize)
                         raf.read(data)
-                        return parseVorbisComment(data, songId)
-                    } else if (blockType == 0) {
-                        // STREAMINFO - skip
-                        raf.skipBytes(blockSize)
-                    } else {
+                        vorbisLyrics = parseVorbisCommentEnhanced(data, songId)
+                    }
+                    FLAC_CUESHEET -> {
+                        val data = ByteArray(blockSize)
+                        raf.read(data)
+                        cueSheetLyrics = parseFlacCueSheet(data, songId)
+                    }
+                    FLAC_APPLICATION -> {
+                        val data = ByteArray(blockSize)
+                        raf.read(data)
+                        appLyrics = parseFlacApplicationBlock(data, songId)
+                    }
+                    FLAC_PICTURE -> {
+                        // Check for lyrics in picture description
+                        val data = ByteArray(blockSize)
+                        raf.read(data)
+                        // Skip for now - rarely contains lyrics
+                    }
+                    else -> {
                         raf.skipBytes(blockSize)
                     }
-                    
-                    hasMore = !isLast
+                }
+                
+                hasMore = !isLast
+            }
+            
+            // Check for ID3v1 at end
+            if (vorbisLyrics == null) {
+                val id3v1Lyrics = extractId3v1FromEnd(raf, songId)
+                if (id3v1Lyrics != null && !id3v1Lyrics.isEmpty) {
+                    Log.d(TAG, "Found lyrics in FLAC ID3v1 tag")
+                    return id3v1Lyrics
                 }
             }
             
+            // Return first found lyrics (priority: vorbis > cuesheet > application)
+            return when {
+                vorbisLyrics != null && !vorbisLyrics.isEmpty -> {
+                    Log.d(TAG, "Found lyrics in FLAC Vorbis Comment")
+                    vorbisLyrics
+                }
+                cueSheetLyrics != null && !cueSheetLyrics.isEmpty -> {
+                    Log.d(TAG, "Found lyrics in FLAC CUESHEET")
+                    cueSheetLyrics
+                }
+                appLyrics != null && !appLyrics.isEmpty -> {
+                    Log.d(TAG, "Found lyrics in FLAC APPLICATION block")
+                    appLyrics
+                }
+                else -> null
+            }
+        }
+    }
+    
+    /**
+     * Skip ID3v2 tag at current position
+     */
+    private fun skipId3v2Tag(raf: RandomAccessFile) {
+        try {
+            val header = ByteArray(3)
+            raf.read(header)
+            if (String(header, Charsets.ISO_8859_1) != "ID3") return
+            
+            raf.skipBytes(2) // version
+            raf.skipBytes(1) // flags
+            
+            val size = readSyncSafeInt(raf)
+            raf.skipBytes(size)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+    
+    /**
+     * Parse FLAC CUESHEET block for embedded lyrics
+     */
+    private fun parseFlacCueSheet(data: ByteArray, songId: Long): Lyric? {
+        try {
+            // CUESHEET structure:
+            // 128 bytes: catalog number (null-terminated)
+            // 8 bytes: lead-in samples
+            // 1 byte: is CD flag
+            // 258 bytes: reserved
+            // 1 byte: number of tracks
+            // Then track entries
+            
+            if (data.size < 396) return null
+            
+            var offset = 128 + 8 + 1 + 258 // Skip to track count
+            val numTracks = data[offset++].toInt() and 0xFF
+            
+            val lines = mutableListOf<LyricLine>()
+            
+            for (i in 0 until numTracks) {
+                if (offset + 36 > data.size) break
+                
+                // Track offset (8 bytes, big-endian)
+                var trackOffset = 0L
+                for (j in 0 until 8) {
+                    trackOffset = (trackOffset shl 8) or (data[offset++].toLong() and 0xFF)
+                }
+                
+                // Track number (1 byte)
+                val trackNum = data[offset++].toInt() and 0xFF
+                if (trackNum == 0) continue // Lead-out track
+                
+                // ISRC (12 bytes)
+                val isrc = String(data, offset, 12, Charsets.ISO_8859_1).trim { it == '\u0000' }
+                offset += 12
+                
+                // 1 byte: track flags
+                offset += 1
+                
+                // 13 bytes: reserved
+                offset += 13
+                
+                // 1 byte: number of index points
+                val numIndices = data[offset++].toInt() and 0xFF
+                
+                // Skip index points (each is 12 bytes)
+                offset += numIndices * 12
+                
+                // Convert sample offset to time (assuming 44100 Hz)
+                val timeMs = (trackOffset * 1000 / 44100)
+                
+                // Check if ISRC contains recognizable info or use track number
+                val text = if (isrc.isNotBlank() && !isrc.all { it == '\u0000' }) {
+                    isrc
+                } else {
+                    "Track $trackNum"
+                }
+                
+                lines.add(LyricLine(timeMs = timeMs, text = text))
+            }
+            
+            return if (lines.size > 1) {
+                Lyric(songId = songId, lines = lines, source = LyricSource.EMBEDDED)
+            } else null
+        } catch (e: Exception) {
+            return null
+        }
+    }
+    
+    /**
+     * Parse FLAC APPLICATION block for lyrics
+     */
+    private fun parseFlacApplicationBlock(data: ByteArray, songId: Long): Lyric? {
+        try {
+            if (data.size < 4) return null
+            
+            // Application ID (4 bytes)
+            val appId = String(data, 0, 4, Charsets.ISO_8859_1)
+            
+            if (appId !in FLAC_APP_IDS_WITH_LYRICS && appId.lowercase() !in FLAC_APP_IDS_WITH_LYRICS) {
+                return null
+            }
+            
+            // Application data
+            val appData = String(data, 4, data.size - 4, Charsets.UTF_8)
+            
+            return processRawLyrics(appData, songId)
+        } catch (e: Exception) {
+            return null
+        }
+    }
+    
+    /**
+     * Extract ID3v1 tag from end of file
+     */
+    private fun extractId3v1FromEnd(raf: RandomAccessFile, songId: Long): Lyric? {
+        try {
+            if (raf.length() < 128) return null
+            
+            raf.seek(raf.length() - 128)
+            val tag = ByteArray(3)
+            raf.read(tag)
+            
+            if (String(tag, Charsets.ISO_8859_1) != "TAG") return null
+            
+            // ID3v1 Enhanced (TAG+) check
+            raf.seek(raf.length() - 227)
+            val extTag = ByteArray(4)
+            raf.read(extTag)
+            val hasExtended = String(extTag, Charsets.ISO_8859_1) == "TAG+"
+            
+            // ID3v1 doesn't have a lyrics field, but we can check comment
+            raf.seek(raf.length() - 128 + 97) // Comment field starts at offset 97
+            val comment = ByteArray(if (hasExtended) 28 else 30)
+            raf.read(comment)
+            
+            val commentText = String(comment, Charsets.ISO_8859_1).trim { it == '\u0000' }
+            
+            if (looksLikeLyrics(commentText)) {
+                return processRawLyrics(commentText, songId)
+            }
+            
+            return null
+        } catch (e: Exception) {
+            return null
+        }
+    }
+    
+    /**
+     * Enhanced Vorbis Comment parser with better field handling
+     */
+    private fun parseVorbisCommentEnhanced(data: ByteArray, songId: Long): Lyric? {
+        try {
+            var offset = 0
+            
+            // Vendor string length (little-endian)
+            val vendorLen = readLittleEndianInt(data, offset)
+            offset += 4 + vendorLen
+            
+            if (offset + 4 > data.size) return null
+            
+            // Number of comments
+            val numComments = readLittleEndianInt(data, offset)
+            offset += 4
+            
+            var foundLyrics: String? = null
+            var foundSyncedLyrics: String? = null
+            var foundPlainLyrics: String? = null
+            
+            for (i in 0 until numComments) {
+                if (offset + 4 > data.size) break
+                
+                val commentLen = readLittleEndianInt(data, offset)
+                offset += 4
+                
+                if (offset + commentLen > data.size) break
+                
+                val comment = try {
+                    String(data, offset, commentLen, Charsets.UTF_8)
+                } catch (e: Exception) {
+                    offset += commentLen
+                    continue
+                }
+                offset += commentLen
+                
+                val eqIndex = comment.indexOf('=')
+                if (eqIndex > 0) {
+                    val key = comment.substring(0, eqIndex).uppercase()
+                    val value = comment.substring(eqIndex + 1)
+                    
+                    // Check for synced lyrics first (higher priority)
+                    if (key.contains("SYNC") || key.contains("LRC") || key.contains("TIMED")) {
+                        if (foundSyncedLyrics.isNullOrBlank() && value.isNotBlank()) {
+                            foundSyncedLyrics = value
+                        }
+                    }
+                    // Then check for any lyrics field
+                    else if (key in VORBIS_LYRIC_FIELDS) {
+                        if (foundPlainLyrics.isNullOrBlank() && value.isNotBlank()) {
+                            foundPlainLyrics = value
+                        }
+                    }
+                    // Check DESCRIPTION/COMMENT fields for lyrics content
+                    else if ((key == "DESCRIPTION" || key == "COMMENT") && value.isNotBlank()) {
+                        if (looksLikeLyrics(value) && foundPlainLyrics.isNullOrBlank()) {
+                            foundPlainLyrics = value
+                        }
+                    }
+                }
+            }
+            
+            // Priority: synced > plain lyrics
+            foundLyrics = foundSyncedLyrics ?: foundPlainLyrics
+            
+            return foundLyrics?.let { processRawLyrics(it, songId) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing Vorbis Comment", e)
             return null
         }
     }
@@ -556,21 +892,26 @@ class EmbeddedLyricExtractor @Inject constructor(
             raf.read(magic)
             
             if (String(magic, Charsets.ISO_8859_1) == "OggS") {
-                // Skip to Vorbis identification header
-                // Structure: OggS page -> Vorbis identification -> Vorbis comment
                 raf.seek(0)
                 
                 // Read through pages to find comment header
-                while (raf.filePointer < raf.length() - 4) {
+                while (raf.filePointer < raf.length() - 8) {
                     val pageMagic = ByteArray(4)
                     raf.read(pageMagic)
                     
                     if (String(pageMagic, Charsets.ISO_8859_1) != "OggS") {
+                        // Try to find next page
+                        raf.seek(raf.filePointer - 3)
                         continue
                     }
                     
                     // Parse OGG page header
-                    raf.skipBytes(22) // version, flags, granule, serial, seq, crc
+                    raf.skipBytes(1) // version
+                    val headerType = raf.readByte().toInt() and 0xFF
+                    raf.skipBytes(8) // granule position
+                    raf.skipBytes(4) // serial number
+                    raf.skipBytes(4) // page sequence
+                    raf.skipBytes(4) // CRC
                     
                     val numSegments = raf.readByte().toInt() and 0xFF
                     var pageDataSize = 0
@@ -583,27 +924,36 @@ class EmbeddedLyricExtractor @Inject constructor(
                         continue
                     }
                     
-                    // Check header type
-                    val headerType = raf.readByte().toInt() and 0xFF
-                    raf.seek(raf.filePointer - 1)
-                    
                     // Read page data
                     val pageData = ByteArray(pageDataSize)
                     raf.read(pageData)
                     
-                    // Check for Vorbis comment header (0x03 "vorbis") or Opus tags (0x4F "OpusTags")
-                    if (pageData.size > 7) {
-                        val packetHeader = String(pageData, 0, minOf(7, pageData.size), Charsets.ISO_8859_1)
-                        
-                        if (pageData[0] == 0x03.toByte() && packetHeader.contains("vorbis")) {
-                            // Vorbis comment: [0x03 "vorbis"] + comment data
-                            return parseVorbisComment(pageData.copyOfRange(7, pageData.size), songId)
-                        } else if (pageData[0] == 0x4F.toByte() && packetHeader.startsWith("OpusTag")) {
-                            // Opus tags: "OpusTags" + vendor string + comments
-                            if (pageData.size > 8) {
-                                return parseVorbisComment(pageData.copyOfRange(8, pageData.size), songId)
-                            }
+                    // Check for Vorbis comment header (0x03 "vorbis")
+                    if (pageData.size > 7 && pageData[0] == 0x03.toByte()) {
+                        val header = String(pageData, 0, 7, Charsets.ISO_8859_1)
+                        if (header == "\u0003vorbis") {
+                            return parseVorbisCommentEnhanced(
+                                pageData.copyOfRange(7, pageData.size), 
+                                songId
+                            )
                         }
+                    }
+                    
+                    // Check for Opus tags (0x4F "OpusTags")
+                    if (pageData.size > 8 && pageData[0] == 0x4F.toByte()) {
+                        val header = String(pageData, 0, 8, Charsets.ISO_8859_1)
+                        if (header == "OpusTags") {
+                            return parseVorbisCommentEnhanced(
+                                pageData.copyOfRange(8, pageData.size), 
+                                songId
+                            )
+                        }
+                    }
+                    
+                    // Check for Speex headers
+                    if (pageData.size > 8 && String(pageData, 0, 8, Charsets.ISO_8859_1) == "Speex   ") {
+                        // Continue to next page for comment
+                        continue
                     }
                 }
             }
@@ -616,55 +966,8 @@ class EmbeddedLyricExtractor @Inject constructor(
      * Extract lyrics from Opus file
      */
     private fun extractFromOpus(file: File, songId: Long): Lyric? {
-        // Opus uses the same container as OGG
+        // Opus uses the same OGG container
         return extractFromOgg(file, songId)
-    }
-    
-    /**
-     * Parse Vorbis Comment block
-     */
-    private fun parseVorbisComment(data: ByteArray, songId: Long): Lyric? {
-        try {
-            var offset = 0
-            
-            // Vendor string length (little-endian)
-            val vendorLen = readLittleEndianInt(data, offset)
-            offset += 4 + vendorLen
-            
-            if (offset + 4 > data.size) return null
-            
-            // Number of comments
-            val numComments = readLittleEndianInt(data, offset)
-            offset += 4
-            
-            var foundLyrics: String? = null
-            
-            for (i in 0 until numComments) {
-                if (offset + 4 > data.size) break
-                
-                val commentLen = readLittleEndianInt(data, offset)
-                offset += 4
-                
-                if (offset + commentLen > data.size) break
-                
-                val comment = String(data, offset, commentLen, Charsets.UTF_8)
-                offset += commentLen
-                
-                val eqIndex = comment.indexOf('=')
-                if (eqIndex > 0) {
-                    val key = comment.substring(0, eqIndex).uppercase()
-                    val value = comment.substring(eqIndex + 1)
-                    
-                    if (key in VORBIS_LYRIC_FIELDS && foundLyrics.isNullOrBlank()) {
-                        foundLyrics = value
-                    }
-                }
-            }
-            
-            return foundLyrics?.let { processRawLyrics(it, songId) }
-        } catch (e: Exception) {
-            return null
-        }
     }
     
     // ==================== MP4 / M4A ====================
