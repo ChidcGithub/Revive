@@ -1,6 +1,9 @@
 package com.music.revive.presentation.screen.settings
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -60,409 +63,367 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Appearance section
+            // Appearance section (collapsible)
             item {
-                Text(
-                    text = stringResource(R.string.appearance),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.theme)) },
-                    supportingContent = { Text(uiState.themeDisplayName) },
-                    leadingContent = {
-                        Icon(Icons.Default.Palette, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { showThemeDialog = true }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.use_dynamic_colors)) },
-                    leadingContent = {
-                        Icon(Icons.Default.ColorLens, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.useDynamicColors,
-                            onCheckedChange = { viewModel.setDynamicColors(it) }
-                        )
-                    }
-                )
-            }
-
-            // Lyrics section
-            item {
-                Text(
-                    text = stringResource(R.string.lyrics_settings),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.lyrics_font_size)) },
-                    supportingContent = { Text("%.1fx".format(uiState.lyricsFontSize)) },
-                    leadingContent = {
-                        Icon(Icons.Default.TextFields, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { showLyricsFontSlider = true }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.show_translation)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Translate, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.showTranslation,
-                            onCheckedChange = { viewModel.setShowTranslation(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.auto_scroll)) },
-                    leadingContent = {
-                        Icon(Icons.Default.List, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.autoScroll,
-                            onCheckedChange = { viewModel.setAutoScroll(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.lyrics_display_style)) },
-                    supportingContent = { 
-                        Text(if (uiState.lyricsDisplayStyle == 0) 
-                            stringResource(R.string.lyrics_centered) 
-                        else 
-                            stringResource(R.string.lyrics_left_aligned)) 
-                    },
-                    leadingContent = {
-                        Icon(Icons.Default.AlignHorizontalCenter, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { 
-                        viewModel.setLyricsDisplayStyle(if (uiState.lyricsDisplayStyle == 0) 1 else 0) 
-                    }
-                )
-            }
-
-            // Playback section
-            item {
-                Text(
-                    text = stringResource(R.string.playback_settings),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.fade_in_out)) },
-                    supportingContent = { Text(stringResource(R.string.fade_in_out_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.GraphicEq, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.fadeInOut,
-                            onCheckedChange = { viewModel.setFadeInOut(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.gapless_playback)) },
-                    supportingContent = { Text(stringResource(R.string.gapless_playback_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.SkipNext, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.gaplessPlayback,
-                            onCheckedChange = { viewModel.setGaplessPlayback(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.volume_normalization)) },
-                    supportingContent = { Text(stringResource(R.string.volume_normalization_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.VolumeUp, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.volumeNormalization,
-                            onCheckedChange = { viewModel.setVolumeNormalization(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.playback_speed)) },
-                    supportingContent = { Text("%.1fx".format(uiState.playbackSpeed)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Speed, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { showPlaybackSpeedSlider = true }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.skip_silence)) },
-                    supportingContent = { Text(stringResource(R.string.skip_silence_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.FastForward, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.skipSilence,
-                            onCheckedChange = { viewModel.setSkipSilence(it) }
-                        )
-                    }
-                )
-            }
-
-            // Notification section
-            item {
-                Text(
-                    text = stringResource(R.string.notification_settings),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.show_notification)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Notifications, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.showNotification,
-                            onCheckedChange = { viewModel.setShowNotification(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.show_on_lock_screen)) },
-                    supportingContent = { Text(stringResource(R.string.show_on_lock_screen_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Lock, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.showOnLockScreen,
-                            onCheckedChange = { viewModel.setShowOnLockScreen(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.floating_lyrics)) },
-                    supportingContent = { Text(stringResource(R.string.floating_lyrics_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Layers, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.floatingLyrics,
-                            onCheckedChange = { viewModel.setFloatingLyrics(it) }
-                        )
-                    }
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.notification_lyrics)) },
-                    supportingContent = { Text(stringResource(R.string.notification_lyrics_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Lyrics, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.notificationLyrics,
-                            onCheckedChange = { viewModel.setNotificationLyrics(it) }
-                        )
-                    }
-                )
-            }
-
-            // Audio section
-            item {
-                Text(
-                    text = stringResource(R.string.audio),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.audio_focus)) },
-                    supportingContent = { Text(stringResource(R.string.audio_focus_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.VolumeUp, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = uiState.handleAudioFocus,
-                            onCheckedChange = { viewModel.setAudioFocusHandling(it) }
-                        )
-                    }
-                )
-            }
-
-            // Library section
-            item {
-                Text(
-                    text = stringResource(R.string.library),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.scan_music_library)) },
-                    supportingContent = { Text(stringResource(R.string.scan_music_library_description)) },
-                    leadingContent = {
-                        if (uiState.isScanning) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.appearance),
+                    icon = Icons.Default.Palette,
+                    initiallyExpanded = true
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.theme)) },
+                        supportingContent = { Text(uiState.themeDisplayName) },
+                        leadingContent = {
+                            Icon(Icons.Default.Palette, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showThemeDialog = true }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.use_dynamic_colors)) },
+                        leadingContent = {
+                            Icon(Icons.Default.ColorLens, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.useDynamicColors,
+                                onCheckedChange = { viewModel.setDynamicColors(it) }
                             )
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
                         }
-                    },
-                    modifier = Modifier.clickable(enabled = !uiState.isScanning) {
-                        viewModel.scanMusicLibrary()
-                        Toast.makeText(context, context.getString(R.string.scanning_started), Toast.LENGTH_SHORT).show()
-                    }
-                )
+                    )
+                }
             }
 
+            // Lyrics section (collapsible)
             item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.manage_folders)) },
-                    supportingContent = { Text(stringResource(R.string.manage_folders_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Folder, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Icon(Icons.Default.ChevronRight, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { showFolderManagerDialog = true }
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.lyrics_settings),
+                    icon = Icons.Default.Lyrics,
+                    initiallyExpanded = true
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.lyrics_font_size)) },
+                        supportingContent = { Text("%.1fx".format(uiState.lyricsFontSize)) },
+                        leadingContent = {
+                            Icon(Icons.Default.TextFields, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showLyricsFontSlider = true }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.show_translation)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Translate, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.showTranslation,
+                                onCheckedChange = { viewModel.setShowTranslation(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.auto_scroll)) },
+                        leadingContent = {
+                            Icon(Icons.Default.List, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.autoScroll,
+                                onCheckedChange = { viewModel.setAutoScroll(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.lyrics_display_style)) },
+                        supportingContent = { 
+                            Text(if (uiState.lyricsDisplayStyle == 0) 
+                                stringResource(R.string.lyrics_centered) 
+                            else 
+                                stringResource(R.string.lyrics_left_aligned)) 
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.AlignHorizontalCenter, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { 
+                            viewModel.setLyricsDisplayStyle(if (uiState.lyricsDisplayStyle == 0) 1 else 0) 
+                        }
+                    )
+                }
             }
 
-            // Storage section
+            // Playback section (collapsible)
             item {
-                Text(
-                    text = stringResource(R.string.storage_settings),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.playback_settings),
+                    icon = Icons.Default.PlayCircle,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.fade_in_out)) },
+                        supportingContent = { Text(stringResource(R.string.fade_in_out_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.GraphicEq, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.fadeInOut,
+                                onCheckedChange = { viewModel.setFadeInOut(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.gapless_playback)) },
+                        supportingContent = { Text(stringResource(R.string.gapless_playback_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.SkipNext, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.gaplessPlayback,
+                                onCheckedChange = { viewModel.setGaplessPlayback(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.volume_normalization)) },
+                        supportingContent = { Text(stringResource(R.string.volume_normalization_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.VolumeUp, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.volumeNormalization,
+                                onCheckedChange = { viewModel.setVolumeNormalization(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.playback_speed)) },
+                        supportingContent = { Text("%.1fx".format(uiState.playbackSpeed)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Speed, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showPlaybackSpeedSlider = true }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.skip_silence)) },
+                        supportingContent = { Text(stringResource(R.string.skip_silence_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.FastForward, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.skipSilence,
+                                onCheckedChange = { viewModel.setSkipSilence(it) }
+                            )
+                        }
+                    )
+                }
             }
 
+            // Notification section (collapsible)
             item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.clear_lyrics_cache)) },
-                    supportingContent = { Text(stringResource(R.string.clear_cache_description)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { showClearLyricsCacheDialog = true }
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.notification_settings),
+                    icon = Icons.Default.Notifications,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.show_notification)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Notifications, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.showNotification,
+                                onCheckedChange = { viewModel.setShowNotification(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.show_on_lock_screen)) },
+                        supportingContent = { Text(stringResource(R.string.show_on_lock_screen_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Lock, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.showOnLockScreen,
+                                onCheckedChange = { viewModel.setShowOnLockScreen(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.floating_lyrics)) },
+                        supportingContent = { Text(stringResource(R.string.floating_lyrics_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Layers, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.floatingLyrics,
+                                onCheckedChange = { viewModel.setFloatingLyrics(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.notification_lyrics)) },
+                        supportingContent = { Text(stringResource(R.string.notification_lyrics_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Lyrics, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.notificationLyrics,
+                                onCheckedChange = { viewModel.setNotificationLyrics(it) }
+                            )
+                        }
+                    )
+                }
             }
 
-            // Data section
+            // Audio section (collapsible)
             item {
-                Text(
-                    text = stringResource(R.string.data),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.audio),
+                    icon = Icons.Default.VolumeUp,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.audio_focus)) },
+                        supportingContent = { Text(stringResource(R.string.audio_focus_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.VolumeUp, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.handleAudioFocus,
+                                onCheckedChange = { viewModel.setAudioFocusHandling(it) }
+                            )
+                        }
+                    )
+                }
             }
 
+            // Library section (collapsible)
             item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.clear_recent_history)) },
-                    leadingContent = {
-                        Icon(Icons.Default.History, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { showClearHistoryDialog = true }
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.library),
+                    icon = Icons.Default.LibraryMusic,
+                    initiallyExpanded = true
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.scan_music_library)) },
+                        supportingContent = { 
+                            if (uiState.isScanning) {
+                                Text(stringResource(R.string.scanning))
+                            } else {
+                                Text(stringResource(R.string.scan_music_library_description))
+                            }
+                        },
+                        leadingContent = {
+                            if (uiState.isScanning) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = null)
+                            }
+                        },
+                        modifier = Modifier.clickable(enabled = !uiState.isScanning) {
+                            viewModel.scanMusicLibrary()
+                            Toast.makeText(context, context.getString(R.string.scanning_started), Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.manage_folders)) },
+                        supportingContent = { Text(stringResource(R.string.manage_folders_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Folder, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Icon(Icons.Default.ChevronRight, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showFolderManagerDialog = true }
+                    )
+                }
             }
 
-            // About section
+            // Storage section (collapsible)
             item {
-                Text(
-                    text = stringResource(R.string.about),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.storage_settings),
+                    icon = Icons.Default.Storage,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.clear_lyrics_cache)) },
+                        supportingContent = { Text(stringResource(R.string.clear_cache_description)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showClearLyricsCacheDialog = true }
+                    )
+                }
             }
 
+            // Data section (collapsible)
             item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.version)) },
-                    supportingContent = { Text(BuildConfig.VERSION_NAME) },
-                    leadingContent = {
-                        Icon(Icons.Default.Info, contentDescription = null)
-                    }
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.data),
+                    icon = Icons.Default.DataObject,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.clear_recent_history)) },
+                        leadingContent = {
+                            Icon(Icons.Default.History, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showClearHistoryDialog = true }
+                    )
+                }
             }
 
+            // About section (collapsible)
             item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.open_source_licenses)) },
-                    leadingContent = {
-                        Icon(Icons.Default.Code, contentDescription = null)
-                    },
-                    modifier = Modifier.clickable { }
-                )
+                CollapsibleSettingsSection(
+                    title = stringResource(R.string.about),
+                    icon = Icons.Default.Info,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.version)) },
+                        supportingContent = { Text(BuildConfig.VERSION_NAME) },
+                        leadingContent = {
+                            Icon(Icons.Default.Info, contentDescription = null)
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.open_source_licenses)) },
+                        leadingContent = {
+                            Icon(Icons.Default.Code, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { }
+                    )
+                }
+            }
+            
+            // Bottom padding
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -638,6 +599,69 @@ fun SettingsScreen(
                 }
             },
             onDismiss = { showFolderManagerDialog = false }
+        )
+    }
+}
+
+/**
+ * Collapsible settings section component
+ */
+@Composable
+private fun CollapsibleSettingsSection(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    initiallyExpanded: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(initiallyExpanded) }
+    
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Header - clickable to toggle expansion
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            trailingContent = {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "收起" else "展开",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            modifier = Modifier.clickable { isExpanded = !isExpanded },
+            colors = ListItemDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        )
+        
+        // Animated content
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(
+                content = content
+            )
+        }
+        
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
         )
     }
 }
@@ -1012,9 +1036,7 @@ class SettingsViewModel @Inject constructor(
     fun scanMusicLibrary() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isScanning = true)
-            repository.getAllSongs()
-            repository.getAlbums()
-            repository.getArtists()
+            repository.scanMusicLibrary()
             val folders = repository.getFolders()
             _uiState.value = _uiState.value.copy(
                 isScanning = false,

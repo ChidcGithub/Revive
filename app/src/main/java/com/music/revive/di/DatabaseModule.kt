@@ -3,9 +3,12 @@ package com.music.revive.di
 import android.content.Context
 import androidx.room.Room
 import com.music.revive.data.local.MusicDatabase
+import com.music.revive.data.local.dao.ArtistCacheDao
 import com.music.revive.data.local.dao.FavoriteDao
 import com.music.revive.data.local.dao.PlaylistDao
 import com.music.revive.data.local.dao.RecentSongDao
+import com.music.revive.data.local.dao.ScanStatusDao
+import com.music.revive.data.local.dao.SongCacheDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,5 +45,20 @@ object DatabaseModule {
     @Provides
     fun provideRecentSongDao(database: MusicDatabase): RecentSongDao {
         return database.recentSongDao()
+    }
+
+    @Provides
+    fun provideSongCacheDao(database: MusicDatabase): SongCacheDao {
+        return database.songCacheDao()
+    }
+
+    @Provides
+    fun provideArtistCacheDao(database: MusicDatabase): ArtistCacheDao {
+        return database.artistCacheDao()
+    }
+
+    @Provides
+    fun provideScanStatusDao(database: MusicDatabase): ScanStatusDao {
+        return database.scanStatusDao()
     }
 }

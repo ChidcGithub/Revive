@@ -15,11 +15,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
     val isLoading: Boolean = true,
+    val isScanning: Boolean = false,
     val songs: List<Song> = emptyList(),
     val albums: List<Album> = emptyList(),
     val artists: List<Artist> = emptyList(),
@@ -29,7 +31,8 @@ data class HomeUiState(
     val playlists: List<Playlist> = emptyList(),
     val searchQuery: String = "",
     val searchResults: List<Song> = emptyList(),
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
+    val cacheInfo: MusicRepository.CacheInfo? = null
 )
 
 @HiltViewModel
@@ -40,6 +43,19 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    // Flow-based data from cache (fast loading)
+    private val songsFlow = repository.getAllSongsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    private val artistsFlow = repository.getArtistsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    private val playlistsFlow = repository.getAllPlaylists()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    private val favoriteIdsFlow = repository.getFavoriteSongIds()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         loadAllData()
     }
@@ -48,34 +64,50 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            launch {
-                val songs = repository.getAllSongs()
-                _uiState.value = _uiState.value.copy(songs = songs)
+            // Check if cache is valid, if not scan first
+            val isCacheValid = repository.isCacheValid()
+            if (!isCacheValid) {
+                _uiState.value = _uiState.value.copy(isScanning = true)
+                repository.scanMusicLibrary()
+                _uiState.value = _uiState.value.copy(isScanning = false)
             }
 
+            // Collect flow-based data from cache
+            launch {
+                songsFlow.collect { songs ->
+                    _uiState.update { it.copy(songs = songs, isLoading = false) }
+                }
+            }
+
+            launch {
+                artistsFlow.collect { artists ->
+                    _uiState.update { it.copy(artists = artists) }
+                }
+            }
+
+            launch {
+                playlistsFlow.collect { playlists ->
+                    _uiState.update { it.copy(playlists = playlists) }
+                }
+            }
+
+            launch {
+                favoriteIdsFlow.collect { ids ->
+                    _uiState.update { it.copy(favoriteSongIds = ids.toSet()) }
+                }
+            }
+
+            // Load albums from MediaStore (not cached yet)
             launch {
                 val albums = repository.getAlbums()
-                _uiState.value = _uiState.value.copy(albums = albums)
+                _uiState.update { it.copy(albums = albums) }
             }
 
+            // Load cache info
             launch {
-                val artists = repository.getArtists()
-                _uiState.value = _uiState.value.copy(artists = artists)
+                val cacheInfo = repository.getCacheInfo()
+                _uiState.update { it.copy(cacheInfo = cacheInfo) }
             }
-
-            launch {
-                repository.getAllPlaylists().collect { playlists ->
-                    _uiState.value = _uiState.value.copy(playlists = playlists)
-                }
-            }
-
-            launch {
-                repository.getFavoriteSongIds().collect { ids ->
-                    _uiState.value = _uiState.value.copy(favoriteSongIds = ids.toSet())
-                }
-            }
-
-            _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
 
@@ -130,6 +162,18 @@ class HomeViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadAllData()
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isScanning = true)
+            repository.scanMusicLibrary()
+            _uiState.value = _uiState.value.copy(isScanning = false)
+            
+            // Reload albums
+            val albums = repository.getAlbums()
+            _uiState.update { it.copy(albums = albums) }
+            
+            // Update cache info
+            val cacheInfo = repository.getCacheInfo()
+            _uiState.update { it.copy(cacheInfo = cacheInfo) }
+        }
     }
 }
