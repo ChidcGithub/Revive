@@ -2,6 +2,7 @@ package com.music.revive.data.lyric
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
+import android.util.Log
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
 import com.music.revive.domain.model.LyricSource
@@ -51,7 +52,9 @@ class EmbeddedLyricExtractor @Inject constructor(
         private val LYRIC_TXXX_DESCS = setOf(
             "lyrics", "lyric", "syncedlyrics", "synced lyrics",
             "unsyncedlyrics", "unsynced lyrics", "song lyrics",
-            "embedded lyrics", "内嵌歌词", "歌词"
+            "embedded lyrics", "内嵌歌词", "歌词", "lyrics-xxx",
+            "syncedlyrics", "syncedlyrics.com", "minilyrics",
+            "lyrics eng", "lyricstext", "lyricsplus"
         )
         
         // Vorbis Comment field names for lyrics
@@ -59,16 +62,28 @@ class EmbeddedLyricExtractor @Inject constructor(
             "LYRICS", "UNSYNCEDLYRICS", "SYNCEDLYRICS", "LYRIC",
             "META_LYRICS", "LYRICS_UNSYNCED", "LYRICS_SYNCED",
             "UNSYNCED LYRICS", "SYNCED LYRICS", "SONG LYRICS",
-            "ESLyrics", "LYRICIST"
+            "ESLyrics", "LYRICIST", "LYRICSXXX", "SYNCED_LYRICS",
+            "UNSYNCED_LYRICS", "LYRIC_TEXT", "SONGLYRICS",
+            "LYRICS_ENG", "LYRICSSYNC", "LYRICSUNSYNCED"
         )
         
         // MP4/M4A atom names for lyrics
-        private val MP4_LYRIC_ATOMS = setOf("@lyr", "lyr ", "©lyr", "lyrics", "xid ")
+        private val MP4_LYRIC_ATOMS = setOf(
+            "@lyr", "lyr ", "©lyr", "lyrics", "xid ",
+            "lrc ", "©lrc", "snc ", "syncedlyrics"
+        )
         
         // APE tag field names for lyrics
         private val APE_LYRIC_FIELDS = setOf(
             "LYRICS", "UNSYNCED LYRICS", "SYNCED LYRICS",
-            "LYRIC", "SONG LYRICS"
+            "LYRIC", "SONG LYRICS", "SYNCEDLYRICS", "UNSYNCEDLYRICS",
+            "LYRICS SYNCED", "LYRICS UNSYNCED", "ESLyrics"
+        )
+        
+        // WMA/ASF lyric field names
+        private val WMA_LYRIC_FIELDS = setOf(
+            "wm/lyrics", "lyrics", "wm/lyrics_synchronised",
+            "wm/lyrics_synchronized", "wm/lyricist"
         )
     }
     
@@ -78,12 +93,19 @@ class EmbeddedLyricExtractor @Inject constructor(
     suspend fun extractLyrics(song: Song): Lyric? = withContext(Dispatchers.IO) {
         try {
             val file = File(song.path)
-            if (!file.exists()) return@withContext null
+            if (!file.exists()) {
+                Log.d(TAG, "File not found: ${song.path}")
+                return@withContext null
+            }
             
             val extension = file.extension.lowercase()
+            Log.d(TAG, "Extracting lyrics from ${file.name} (format: $extension)")
             
             // Method 1: Try MediaMetadataRetriever first (most reliable for common formats)
-            extractWithMediaMetadataRetriever(song)?.let { return@withContext it }
+            extractWithMediaMetadataRetriever(song)?.let { 
+                Log.d(TAG, "Found lyrics via MediaMetadataRetriever")
+                return@withContext it 
+            }
             
             // Method 2: Manual parsing based on file extension
             when (extension) {
@@ -100,9 +122,21 @@ class EmbeddedLyricExtractor @Inject constructor(
                 "dsf", "dff" -> extractFromDsf(file, song.id)
                 "tta" -> extractFromTta(file, song.id)
                 "mpc", "mp+", "mpp" -> extractFromMusepack(file, song.id)
-                else -> null
+                "sf2", "sf3" -> null // SoundFont files - no lyrics
+                "mid", "midi" -> null // MIDI files - no embedded lyrics typically
+                else -> {
+                    Log.d(TAG, "Unsupported format: $extension")
+                    null
+                }
+            }?.let { 
+                Log.d(TAG, "Found lyrics via manual parsing for $extension")
+                return@withContext it 
             }
+            
+            Log.d(TAG, "No lyrics found in ${file.name}")
+            null
         } catch (e: Exception) {
+            Log.e(TAG, "Error extracting lyrics from ${song.path}", e)
             null
         }
     }
@@ -1286,8 +1320,8 @@ class EmbeddedLyricExtractor @Inject constructor(
         val bytes = ByteArray(8)
         raf.read(bytes)
         var result = 0L
-        for (i in 7 downTo 0) {
-            result = (result shl 8) or (bytes[i].toLong() and 0xFF)
+        for (i in 0 until 8) {
+            result = result or ((bytes[i].toLong() and 0xFF) shl (i * 8))
         }
         return result
     }
