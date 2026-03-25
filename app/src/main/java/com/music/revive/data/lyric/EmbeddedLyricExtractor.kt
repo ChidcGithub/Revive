@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.absoluteValue
 import java.io.RandomAccessFile
 import java.nio.charset.Charset
 import javax.inject.Inject
@@ -58,13 +59,14 @@ class EmbeddedLyricExtractor @Inject constructor(
         )
         
         // Vorbis Comment field names for lyrics (FLAC, OGG, Opus, etc.)
+        // Note: DESCRIPTION and COMMENT are handled separately with content validation
         private val VORBIS_LYRIC_FIELDS = setOf(
             // Standard fields
             "LYRICS", "UNSYNCEDLYRICS", "SYNCEDLYRICS", "LYRIC",
             "META_LYRICS", "LYRICS_UNSYNCED", "LYRICS_SYNCED",
             "UNSYNCED LYRICS", "SYNCED LYRICS", "SONG LYRICS",
             // Extended fields
-            "ESLyrics", "LYRICIST", "LYRICSXXX", "SYNCED_LYRICS",
+            "ESLyrics", "LYRICSXXX", "SYNCED_LYRICS",
             "UNSYNCED_LYRICS", "LYRIC_TEXT", "SONGLYRICS",
             "LYRICS_ENG", "LYRICSSYNC", "LYRICSUNSYNCED",
             // FLAC-specific fields
@@ -81,8 +83,8 @@ class EmbeddedLyricExtractor @Inject constructor(
             "LYRICS_CN", "LYRICS_TW", "LYRICS_HK",
             // Player-specific
             "FOOBAR2000_LYRICS", "WINAMP_LYRICS", "AIMP_LYRICS",
-            // Additional common fields
-            "DESCRIPTION", "COMMENT", "NOTES"  // Sometimes contain lyrics
+            // Additional common fields (excluding DESCRIPTION/COMMENT - handled separately)
+            "LYRICIST", "NOTES"
         )
         
         // FLAC metadata block types
@@ -400,17 +402,67 @@ class EmbeddedLyricExtractor @Inject constructor(
     
     /**
      * Check if text looks like lyrics (has typical lyrics patterns)
+     * Improved to better detect Chinese and other non-English lyrics
      */
     private fun looksLikeLyrics(text: String): Boolean {
-        val lines = text.lines()
-        if (lines.size < 2) return false
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return false
+        
+        val lines = trimmed.lines()
+        if (lines.size < 2) {
+            // Single line might still be valid if it's long enough (like a short phrase)
+            return trimmed.length > 10
+        }
+        
+        // Check for LRC time tags (strong indicator)
+        if (LrcParser.isLrcFormat(trimmed)) return true
         
         // Check for common lyrics patterns
-        val lowerText = text.lowercase()
-        val lyricPatterns = listOf("verse", "chorus", "bridge", "intro", "outro", 
-                                   "[01:", "[00:", "副歌", "主歌")
+        val lowerText = trimmed.lowercase()
+        val lyricPatterns = listOf(
+            // English patterns
+            "verse", "chorus", "bridge", "intro", "outro",
+            // Chinese patterns
+            "副歌", "主歌", "间奏", "尾奏", "歌词",
+            // LRC-like patterns
+            "[01:", "[00:", "[02:",
+            // Common lyric indicators
+            "la la la", "oh oh", "na na"
+        )
         
-        return lyricPatterns.any { lowerText.contains(it) }
+        if (lyricPatterns.any { lowerText.contains(it) }) return true
+        
+        // Check for Chinese character ratio (high ratio suggests lyrics)
+        val chineseChars = trimmed.count { it.code in 0x4E00..0x9FFF }
+        val totalChars = trimmed.replace(Regex("\\s"), "").length
+        if (totalChars > 0 && chineseChars.toFloat() / totalChars > 0.3f) {
+            // Additional check: multiple lines with similar length (typical for lyrics)
+            val nonEmptyLines = lines.filter { it.isNotBlank() }
+            if (nonEmptyLines.size >= 3) {
+                return true
+            }
+        }
+        
+        // Check for line structure typical of lyrics
+        // (multiple short lines, similar lengths)
+        val nonEmptyLines = lines.filter { it.isNotBlank() }
+        if (nonEmptyLines.size >= 4) {
+            val avgLength = nonEmptyLines.map { it.length }.average()
+            val lengthVariance = nonEmptyLines.map { (it.length - avgLength).absoluteValue }.average()
+            // Low variance in line length suggests lyrics
+            if (lengthVariance < avgLength * 0.5) {
+                return true
+            }
+        }
+        
+        // Check for repeating patterns (common in lyrics)
+        val uniqueLines = nonEmptyLines.distinctBy { it.trim().lowercase() }
+        if (nonEmptyLines.size >= 4 && uniqueLines.size < nonEmptyLines.size) {
+            // Has repeating lines, likely lyrics
+            return true
+        }
+        
+        return false
     }
     
     /**
