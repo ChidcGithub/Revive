@@ -197,6 +197,7 @@ fun ReviveNavigation(
 
     val bottomNavRoutes = listOf(
         Home::class.qualifiedName ?: "Home",
+        Songs::class.qualifiedName ?: "Songs",
         Playlists::class.qualifiedName ?: "Playlists",
         Settings::class.qualifiedName ?: "Settings"
     )
@@ -207,6 +208,7 @@ fun ReviveNavigation(
             currentRoute.contains("SongDetail")
 
     val isBottomBarVisible = (currentRoute.contains("Home") ||
+            currentRoute.contains("Songs") ||
             currentRoute.contains("Playlists") ||
             currentRoute.contains("Settings")) && !isFullScreenPage
 
@@ -273,6 +275,30 @@ fun ReviveNavigation(
                                 Text(
                                     text = stringResource(R.string.home),
                                     fontWeight = if (currentRoute.contains("Home")) FontWeight.Medium else FontWeight.Normal
+                                )
+                            }
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute.contains("Songs"),
+                            onClick = {
+                                if (!currentRoute.contains("Songs")) {
+                                    navController.navigate(Songs) {
+                                        popUpTo(Home) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute.contains("Songs")) Icons.Rounded.MusicNote else Icons.Outlined.MusicNote,
+                                    contentDescription = null
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(R.string.songs),
+                                    fontWeight = if (currentRoute.contains("Songs")) FontWeight.Medium else FontWeight.Normal
                                 )
                             }
                         )
@@ -374,6 +400,33 @@ fun ReviveNavigation(
                     },
                     onSongDetailClick = { songId ->
                         navController.navigate(com.music.revive.presentation.navigation.SongDetail(songId))
+                    },
+                    onNavigateToSongs = {
+                        navController.navigate(Songs)
+                    }
+                )
+            }
+
+            composable<Songs> {
+                com.music.revive.presentation.screen.song.SongsScreen(
+                    songs = homeUiState.songs,
+                    favoriteSongIds = homeUiState.favoriteSongIds,
+                    playlists = homeUiState.playlists,
+                    onSongClick = { song, songList ->
+                        musicPlayer.playSong(song, songList)
+                        navController.navigate(Player)
+                    },
+                    onFavoriteClick = { songId ->
+                        homeViewModel.toggleFavorite(songId)
+                    },
+                    onSongDetailClick = { songId ->
+                        navController.navigate(com.music.revive.presentation.navigation.SongDetail(songId))
+                    },
+                    onAddToPlaylist = { playlistId, songId ->
+                        homeViewModel.addToPlaylist(playlistId, songId)
+                    },
+                    onCreatePlaylist = { name ->
+                        homeViewModel.createPlaylist(name)
                     }
                 )
             }

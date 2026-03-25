@@ -27,6 +27,14 @@
     <string name="unknown_title">未知标题</string>
     <string name="unknown_artist">未知艺术家</string>
     
+    <!-- Sort -->
+    <string name="sort">排序</string>
+    <string name="sort_by_title">按标题</string>
+    <string name="sort_by_artist">按艺术家</string>
+    <string name="sort_by_album">按专辑</string>
+    <string name="sort_by_duration">按时长</string>
+    <string name="sort_by_date_added">按添加日期</string>
+    
     <!-- Player -->
     <string name="playing">正在播放</string>
     <string name="play">播放</string>
@@ -114,6 +122,7 @@
     
     <!-- Empty states -->
     <string name="no_songs">暂无歌曲</string>
+    <string name="no_songs_found">未找到歌曲</string>
     <string name="no_songs_description">设备上未找到音乐文件</string>
     <string name="refresh">刷新</string>
     <string name="playlist_empty">播放列表为空</string>

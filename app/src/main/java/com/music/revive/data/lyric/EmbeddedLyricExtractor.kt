@@ -184,9 +184,11 @@ class EmbeddedLyricExtractor @Inject constructor(
     /**
      * Extract lyrics using Android's MediaMetadataRetriever
      * Note: METADATA_KEY_LYRICS (value 20) is only available in API 29+
+     * Returns null if extraction fails or data is invalid, to allow fallback to manual parsing
      */
     private fun extractWithMediaMetadataRetriever(song: Song): Lyric? {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            Log.d(TAG, "API < 29, skipping MediaMetadataRetriever")
             return null
         }
         
@@ -197,10 +199,19 @@ class EmbeddedLyricExtractor @Inject constructor(
             // METADATA_KEY_LYRICS = 20
             val lyrics = retriever.extractMetadata(20)
             
+            Log.d(TAG, "MediaMetadataRetriever lyrics result: ${if (lyrics.isNullOrBlank()) "null/blank" else "${lyrics.length} chars"}")
+            
             if (!lyrics.isNullOrBlank()) {
-                return processRawLyrics(lyrics, song.id)
+                val result = processRawLyrics(lyrics, song.id)
+                if (result != null && !result.isEmpty) {
+                    Log.d(TAG, "Successfully parsed lyrics from MediaMetadataRetriever")
+                    return result
+                } else {
+                    Log.d(TAG, "Failed to parse MediaMetadataRetriever lyrics, falling back to manual")
+                }
             }
         } catch (e: Exception) {
+            Log.d(TAG, "MediaMetadataRetriever failed: ${e.message}")
             // Fallback to manual parsing
         } finally {
             try {
@@ -870,11 +881,15 @@ class EmbeddedLyricExtractor @Inject constructor(
             val vendorLen = readLittleEndianInt(data, offset)
             offset += 4 + vendorLen
             
-            if (offset + 4 > data.size) return null
+            if (offset + 4 > data.size) {
+                Log.d(TAG, "Vorbis Comment: data too short after vendor string")
+                return null
+            }
             
             // Number of comments
             val numComments = readLittleEndianInt(data, offset)
             offset += 4
+            Log.d(TAG, "Vorbis Comment: $numComments comments to parse")
             
             var foundLyrics: String? = null
             var foundSyncedLyrics: String? = null
@@ -901,21 +916,26 @@ class EmbeddedLyricExtractor @Inject constructor(
                     val key = comment.substring(0, eqIndex).uppercase()
                     val value = comment.substring(eqIndex + 1)
                     
+                    Log.v(TAG, "Vorbis Comment field: $key = ${value.take(50)}...")
+                    
                     // Check for synced lyrics first (higher priority)
                     if (key.contains("SYNC") || key.contains("LRC") || key.contains("TIMED")) {
                         if (foundSyncedLyrics.isNullOrBlank() && value.isNotBlank()) {
+                            Log.d(TAG, "Found synced lyrics in field: $key")
                             foundSyncedLyrics = value
                         }
                     }
                     // Then check for any lyrics field
                     else if (key in VORBIS_LYRIC_FIELDS) {
                         if (foundPlainLyrics.isNullOrBlank() && value.isNotBlank()) {
+                            Log.d(TAG, "Found plain lyrics in field: $key (${value.length} chars)")
                             foundPlainLyrics = value
                         }
                     }
                     // Check DESCRIPTION/COMMENT fields for lyrics content
                     else if ((key == "DESCRIPTION" || key == "COMMENT") && value.isNotBlank()) {
                         if (looksLikeLyrics(value) && foundPlainLyrics.isNullOrBlank()) {
+                            Log.d(TAG, "Found lyrics-like content in field: $key")
                             foundPlainLyrics = value
                         }
                     }
@@ -925,7 +945,13 @@ class EmbeddedLyricExtractor @Inject constructor(
             // Priority: synced > plain lyrics
             foundLyrics = foundSyncedLyrics ?: foundPlainLyrics
             
-            return foundLyrics?.let { processRawLyrics(it, songId) }
+            if (foundLyrics.isNullOrBlank()) {
+                Log.d(TAG, "No lyrics found in Vorbis Comment")
+                return null
+            }
+            
+            Log.d(TAG, "Processing lyrics: ${foundLyrics.length} chars, first 100: ${foundLyrics.take(100)}")
+            return foundLyrics.let { processRawLyrics(it, songId) }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing Vorbis Comment", e)
             return null
