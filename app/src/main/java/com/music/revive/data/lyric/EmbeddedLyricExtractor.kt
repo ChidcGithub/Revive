@@ -651,7 +651,6 @@ class EmbeddedLyricExtractor @Inject constructor(
             // Parse metadata blocks
             var hasMore = true
             var vorbisLyrics: Lyric? = null
-            var cueSheetLyrics: Lyric? = null
             var appLyrics: Lyric? = null
             
             while (hasMore) {
@@ -670,21 +669,10 @@ class EmbeddedLyricExtractor @Inject constructor(
                         raf.read(data)
                         vorbisLyrics = parseVorbisCommentEnhanced(data, songId)
                     }
-                    FLAC_CUESHEET -> {
-                        val data = ByteArray(blockSize)
-                        raf.read(data)
-                        cueSheetLyrics = parseFlacCueSheet(data, songId)
-                    }
                     FLAC_APPLICATION -> {
                         val data = ByteArray(blockSize)
                         raf.read(data)
                         appLyrics = parseFlacApplicationBlock(data, songId)
-                    }
-                    FLAC_PICTURE -> {
-                        // Check for lyrics in picture description
-                        val data = ByteArray(blockSize)
-                        raf.read(data)
-                        // Skip for now - rarely contains lyrics
                     }
                     else -> {
                         raf.skipBytes(blockSize)
@@ -703,15 +691,12 @@ class EmbeddedLyricExtractor @Inject constructor(
                 }
             }
             
-            // Return first found lyrics (priority: vorbis > cuesheet > application)
+            // Return first found lyrics (priority: vorbis > application)
+            // Note: CUESHEET is NOT used as lyrics - it contains CD track index info, not lyrics
             return when {
                 vorbisLyrics != null && !vorbisLyrics.isEmpty -> {
                     Log.d(TAG, "Found lyrics in FLAC Vorbis Comment")
                     vorbisLyrics
-                }
-                cueSheetLyrics != null && !cueSheetLyrics.isEmpty -> {
-                    Log.d(TAG, "Found lyrics in FLAC CUESHEET")
-                    cueSheetLyrics
                 }
                 appLyrics != null && !appLyrics.isEmpty -> {
                     Log.d(TAG, "Found lyrics in FLAC APPLICATION block")

@@ -2,14 +2,13 @@ package com.music.revive.presentation.screen.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -17,22 +16,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.music.revive.R
 import com.music.revive.domain.model.Album
 import com.music.revive.domain.model.Artist
 import com.music.revive.domain.model.Song
+import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,142 +52,266 @@ fun HomeScreen(
     onSongDetailClick: (Long) -> Unit = {},
     onNavigateToSongs: () -> Unit = {}
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
+    val listState = rememberLazyListState()
+    
+    // Calculate scroll progress (0 = top, 1 = scrolled)
+    val scrollProgress by remember {
+        derivedStateOf {
+            val firstVisibleItem = listState.firstVisibleItemIndex
+            val firstVisibleOffset = listState.firstVisibleItemScrollOffset
+            
+            if (firstVisibleItem == 0) {
+                min(1f, firstVisibleOffset / 300f)
+            } else {
+                1f
+            }
+        }
+    }
+    
+    // Animated values based on scroll
+    val titleScale by animateFloatAsState(
+        targetValue = 1f - (scrollProgress * 0.4f),
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "titleScale"
+    )
+    
+    val titleAlpha by animateFloatAsState(
+        targetValue = 1f - scrollProgress,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "titleAlpha"
+    )
+    
+    val topBarAlpha by animateFloatAsState(
+        targetValue = scrollProgress,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "topBarAlpha"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Main content
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 100.dp)
+        ) {
+            // Hero header with large title
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    MaterialTheme.colorScheme.surface
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Large centered title
                     Text(
                         text = stringResource(R.string.app_name),
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.displayMedium.copy(
+                            fontSize = (48 * titleScale).sp,
+                            letterSpacing = 2.sp
+                        ),
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .scale(titleScale)
+                            .alpha(titleAlpha)
                     )
-                },
-                actions = {
-                    FilledTonalIconButton(onClick = onSearchClick) {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = stringResource(R.string.search)
-                        )
+                }
+            }
+            
+            // Quick access section - Recently played
+            if (uiState.recentSongs.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = stringResource(R.string.recently_played),
+                        icon = Icons.Rounded.History,
+                        onSeeAllClick = {}
+                    )
+                }
+                // Recent chips row
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.recentSongs.take(10)) { recentSong ->
+                            RecentSongChip(
+                                song = recentSong.song,
+                                onClick = { onSongClick(recentSong.song, uiState.recentSongs.map { it.song }) }
+                            )
+                        }
                     }
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Rounded.Refresh,
-                            contentDescription = stringResource(R.string.refresh)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                }
+                
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+
+            // Quick actions card - Navigate to all songs
+            item {
+                QuickActionsCard(
+                    songsCount = uiState.songs.size,
+                    onShuffleClick = {
+                        if (uiState.songs.isNotEmpty()) {
+                            onSongClick(uiState.songs.random(), uiState.songs)
+                        }
+                    },
+                    onViewAllClick = onNavigateToSongs
                 )
-            )
+            }
+            
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+
+            // Featured albums section
+            if (uiState.albums.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = stringResource(R.string.albums),
+                        icon = Icons.Rounded.Album,
+                        onSeeAllClick = {}
+                    )
+                }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(uiState.albums.take(10)) { album ->
+                            AlbumCard(
+                                album = album,
+                                onClick = { onAlbumClick(album) }
+                            )
+                        }
+                    }
+                }
+                
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+
+            // Artists section
+            if (uiState.artists.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = stringResource(R.string.artists),
+                        icon = Icons.Rounded.Person,
+                        onSeeAllClick = {}
+                    )
+                }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.artists.take(8)) { artist ->
+                            ArtistCard(
+                                artist = artist,
+                                onClick = { onArtistClick(artist) }
+                            )
+                        }
+                    }
+                }
+            }
         }
-    ) { paddingValues ->
+        
+        // Collapsed top bar with blur effect (appears when scrolled)
+        AnimatedVisibility(
+            visible = scrollProgress > 0.1f,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f * topBarAlpha),
+                tonalElevation = (4 * topBarAlpha).dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .blur((8 * (1 - topBarAlpha)).dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.alpha(topBarAlpha)
+                        )
+                        
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.alpha(topBarAlpha)
+                        ) {
+                            FilledTonalIconButton(onClick = onSearchClick) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Search,
+                                    contentDescription = stringResource(R.string.search)
+                                )
+                            }
+                            IconButton(onClick = onRefresh) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Refresh,
+                                    contentDescription = stringResource(R.string.refresh)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Floating action buttons (always visible at top right when at top)
+        AnimatedVisibility(
+            visible = scrollProgress < 0.5f,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(16.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.alpha(1f - topBarAlpha)
+            ) {
+                FilledTonalIconButton(onClick = onSearchClick) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = stringResource(R.string.search)
+                    )
+                }
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Rounded.Refresh,
+                        contentDescription = stringResource(R.string.refresh)
+                    )
+                }
+            }
+        }
+        
+        // Loading indicator
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Quick access section - Recently played
-                if (uiState.recentSongs.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.recently_played),
-                            icon = Icons.Rounded.History,
-                            onSeeAllClick = {}
-                        )
-                    }
-                    // Recent chips row
-                    item {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(uiState.recentSongs.take(10)) { recentSong ->
-                                RecentSongChip(
-                                    song = recentSong.song,
-                                    onClick = { onSongClick(recentSong.song, uiState.recentSongs.map { it.song }) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Quick actions card - Navigate to all songs
-                item {
-                    QuickActionsCard(
-                        songsCount = uiState.songs.size,
-                        onShuffleClick = {
-                            if (uiState.songs.isNotEmpty()) {
-                                onSongClick(uiState.songs.random(), uiState.songs)
-                            }
-                        },
-                        onViewAllClick = onNavigateToSongs
-                    )
-                }
-
-                // Featured albums section
-                if (uiState.albums.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.albums),
-                            icon = Icons.Rounded.Album,
-                            onSeeAllClick = {}
-                        )
-                    }
-                    item {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.albums.take(10)) { album ->
-                                AlbumCard(
-                                    album = album,
-                                    onClick = { onAlbumClick(album) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Artists section
-                if (uiState.artists.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.artists),
-                            icon = Icons.Rounded.Person,
-                            onSeeAllClick = {}
-                        )
-                    }
-                    item {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(uiState.artists.take(8)) { artist ->
-                                ArtistCard(
-                                    artist = artist,
-                                    onClick = { onArtistClick(artist) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Extra spacing at bottom for player bar
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
-                }
             }
         }
     }
@@ -300,7 +426,7 @@ private fun SectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
