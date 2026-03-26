@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -185,7 +186,7 @@ fun AboutDialog(
                         )
                         
                         InfoRow(
-                            icon = Icons.Rounded.Version,
+                            icon = Icons.Rounded.Info,
                             label = "完整版本",
                             value = getFullVersionString()
                         )
