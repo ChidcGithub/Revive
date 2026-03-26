@@ -1,27 +1,38 @@
 package com.music.revive.presentation.screen.settings
 
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.music.revive.R
 import com.music.revive.BuildConfig
+import com.music.revive.data.local.ColorSource
 import com.music.revive.data.local.LyricsPreferences
 import com.music.revive.data.local.NotificationPreferences
 import com.music.revive.data.local.PlayerPreferences
@@ -44,6 +55,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showColorSourceDialog by remember { mutableStateOf(false) }
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showFolderManagerDialog by remember { mutableStateOf(false) }
     var showLyricsFontSlider by remember { mutableStateOf(false) }
@@ -53,8 +65,17 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings)) }
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        text = stringResource(R.string.settings),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
             )
         }
     ) { paddingValues ->
@@ -67,29 +88,31 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.appearance),
-                    icon = Icons.Default.Palette,
+                    icon = Icons.Rounded.Palette,
                     initiallyExpanded = true
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.theme)) },
                         supportingContent = { Text(uiState.themeDisplayName) },
                         leadingContent = {
-                            Icon(Icons.Default.Palette, contentDescription = null)
+                            Icon(Icons.Rounded.DarkMode, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = null)
                         },
                         modifier = Modifier.clickable { showThemeDialog = true }
                     )
                     
                     ListItem(
-                        headlineContent = { Text(stringResource(R.string.use_dynamic_colors)) },
+                        headlineContent = { Text(stringResource(R.string.color_source)) },
+                        supportingContent = { Text(uiState.colorSourceDisplayName) },
                         leadingContent = {
-                            Icon(Icons.Default.ColorLens, contentDescription = null)
+                            Icon(Icons.Rounded.ColorLens, contentDescription = null)
                         },
                         trailingContent = {
-                            Switch(
-                                checked = uiState.useDynamicColors,
-                                onCheckedChange = { viewModel.setDynamicColors(it) }
-                            )
-                        }
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { showColorSourceDialog = true }
                     )
                 }
             }
@@ -98,14 +121,14 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.lyrics_settings),
-                    icon = Icons.Default.Lyrics,
+                    icon = Icons.Rounded.Lyrics,
                     initiallyExpanded = true
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.lyrics_font_size)) },
                         supportingContent = { Text("%.1fx".format(uiState.lyricsFontSize)) },
                         leadingContent = {
-                            Icon(Icons.Default.TextFields, contentDescription = null)
+                            Icon(Icons.Rounded.TextFields, contentDescription = null)
                         },
                         modifier = Modifier.clickable { showLyricsFontSlider = true }
                     )
@@ -113,7 +136,7 @@ fun SettingsScreen(
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.show_translation)) },
                         leadingContent = {
-                            Icon(Icons.Default.Translate, contentDescription = null)
+                            Icon(Icons.Rounded.Translate, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -126,7 +149,7 @@ fun SettingsScreen(
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.auto_scroll)) },
                         leadingContent = {
-                            Icon(Icons.Default.List, contentDescription = null)
+                            Icon(Icons.Rounded.List, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -145,7 +168,7 @@ fun SettingsScreen(
                                 stringResource(R.string.lyrics_left_aligned)) 
                         },
                         leadingContent = {
-                            Icon(Icons.Default.AlignHorizontalCenter, contentDescription = null)
+                            Icon(Icons.Rounded.FormatAlignCenter, contentDescription = null)
                         },
                         modifier = Modifier.clickable { 
                             viewModel.setLyricsDisplayStyle(if (uiState.lyricsDisplayStyle == 0) 1 else 0) 
@@ -158,14 +181,14 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.playback_settings),
-                    icon = Icons.Default.PlayCircle,
+                    icon = Icons.Rounded.PlayCircle,
                     initiallyExpanded = false
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.fade_in_out)) },
                         supportingContent = { Text(stringResource(R.string.fade_in_out_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.GraphicEq, contentDescription = null)
+                            Icon(Icons.Rounded.GraphicEq, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -179,7 +202,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.gapless_playback)) },
                         supportingContent = { Text(stringResource(R.string.gapless_playback_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.SkipNext, contentDescription = null)
+                            Icon(Icons.Rounded.SkipNext, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -193,7 +216,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.volume_normalization)) },
                         supportingContent = { Text(stringResource(R.string.volume_normalization_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.VolumeUp, contentDescription = null)
+                            Icon(Icons.Rounded.VolumeUp, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -207,7 +230,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.playback_speed)) },
                         supportingContent = { Text("%.1fx".format(uiState.playbackSpeed)) },
                         leadingContent = {
-                            Icon(Icons.Default.Speed, contentDescription = null)
+                            Icon(Icons.Rounded.Speed, contentDescription = null)
                         },
                         modifier = Modifier.clickable { showPlaybackSpeedSlider = true }
                     )
@@ -216,7 +239,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.skip_silence)) },
                         supportingContent = { Text(stringResource(R.string.skip_silence_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.FastForward, contentDescription = null)
+                            Icon(Icons.Rounded.FastForward, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -232,13 +255,13 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.notification_settings),
-                    icon = Icons.Default.Notifications,
+                    icon = Icons.Rounded.Notifications,
                     initiallyExpanded = false
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.show_notification)) },
                         leadingContent = {
-                            Icon(Icons.Default.Notifications, contentDescription = null)
+                            Icon(Icons.Rounded.Notifications, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -252,7 +275,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.show_on_lock_screen)) },
                         supportingContent = { Text(stringResource(R.string.show_on_lock_screen_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.Lock, contentDescription = null)
+                            Icon(Icons.Rounded.Lock, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -266,7 +289,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.floating_lyrics)) },
                         supportingContent = { Text(stringResource(R.string.floating_lyrics_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.Layers, contentDescription = null)
+                            Icon(Icons.Rounded.Layers, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -280,7 +303,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.notification_lyrics)) },
                         supportingContent = { Text(stringResource(R.string.notification_lyrics_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.Lyrics, contentDescription = null)
+                            Icon(Icons.Rounded.Lyrics, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -296,14 +319,14 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.audio),
-                    icon = Icons.Default.VolumeUp,
+                    icon = Icons.Rounded.VolumeUp,
                     initiallyExpanded = false
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.audio_focus)) },
                         supportingContent = { Text(stringResource(R.string.audio_focus_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.VolumeUp, contentDescription = null)
+                            Icon(Icons.Rounded.VolumeUp, contentDescription = null)
                         },
                         trailingContent = {
                             Switch(
@@ -319,7 +342,7 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.library),
-                    icon = Icons.Default.LibraryMusic,
+                    icon = Icons.Rounded.LibraryMusic,
                     initiallyExpanded = true
                 ) {
                     ListItem(
@@ -338,7 +361,7 @@ fun SettingsScreen(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Icon(Icons.Default.Refresh, contentDescription = null)
+                                Icon(Icons.Rounded.Refresh, contentDescription = null)
                             }
                         },
                         modifier = Modifier.clickable(enabled = !uiState.isScanning) {
@@ -351,10 +374,10 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.manage_folders)) },
                         supportingContent = { Text(stringResource(R.string.manage_folders_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.Folder, contentDescription = null)
+                            Icon(Icons.Rounded.Folder, contentDescription = null)
                         },
                         trailingContent = {
-                            Icon(Icons.Default.ChevronRight, contentDescription = null)
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = null)
                         },
                         modifier = Modifier.clickable { showFolderManagerDialog = true }
                     )
@@ -365,14 +388,14 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.storage_settings),
-                    icon = Icons.Default.Storage,
+                    icon = Icons.Rounded.Storage,
                     initiallyExpanded = false
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.clear_lyrics_cache)) },
                         supportingContent = { Text(stringResource(R.string.clear_cache_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.Delete, contentDescription = null)
+                            Icon(Icons.Rounded.Delete, contentDescription = null)
                         },
                         modifier = Modifier.clickable { showClearLyricsCacheDialog = true }
                     )
@@ -383,13 +406,13 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.data),
-                    icon = Icons.Default.DataObject,
+                    icon = Icons.Rounded.DataObject,
                     initiallyExpanded = false
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.clear_recent_history)) },
                         leadingContent = {
-                            Icon(Icons.Default.History, contentDescription = null)
+                            Icon(Icons.Rounded.History, contentDescription = null)
                         },
                         modifier = Modifier.clickable { showClearHistoryDialog = true }
                     )
@@ -400,21 +423,21 @@ fun SettingsScreen(
             item {
                 CollapsibleSettingsSection(
                     title = stringResource(R.string.about),
-                    icon = Icons.Default.Info,
+                    icon = Icons.Rounded.Info,
                     initiallyExpanded = false
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.version)) },
                         supportingContent = { Text(BuildConfig.VERSION_NAME) },
                         leadingContent = {
-                            Icon(Icons.Default.Info, contentDescription = null)
+                            Icon(Icons.Rounded.Info, contentDescription = null)
                         }
                     )
                     
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.open_source_licenses)) },
                         leadingContent = {
-                            Icon(Icons.Default.Code, contentDescription = null)
+                            Icon(Icons.Rounded.Code, contentDescription = null)
                         },
                         modifier = Modifier.clickable { }
                     )
@@ -434,23 +457,27 @@ fun SettingsScreen(
             onDismissRequest = { showThemeDialog = false },
             title = { Text(stringResource(R.string.choose_theme)) },
             text = {
-                Column {
+                Column(modifier = Modifier.selectableGroup()) {
                     ThemeOption.entries.forEach { theme ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    viewModel.setTheme(theme)
-                                    showThemeDialog = false
-                                }
+                                .selectable(
+                                    selected = uiState.theme == theme,
+                                    onClick = {
+                                        viewModel.setTheme(theme)
+                                        showThemeDialog = false
+                                    },
+                                    role = Role.RadioButton
+                                )
                                 .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            if (uiState.theme == theme) {
-                                Icon(Icons.Default.Check, contentDescription = null)
-                            } else {
-                                Spacer(Modifier.width(24.dp))
-                            }
+                            RadioButton(
+                                selected = uiState.theme == theme,
+                                onClick = null
+                            )
                             Text(theme.displayName)
                         }
                     }
@@ -458,7 +485,64 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.done))
+                }
+            }
+        )
+    }
+
+    // Color source selection dialog
+    if (showColorSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showColorSourceDialog = false },
+            title = { Text(stringResource(R.string.color_source)) },
+            text = {
+                Column(modifier = Modifier.selectableGroup()) {
+                    // Static colors
+                    ColorSourceOption(
+                        title = stringResource(R.string.color_source_static),
+                        description = stringResource(R.string.color_source_static_desc),
+                        selected = uiState.colorSource == ColorSource.STATIC,
+                        onClick = {
+                            viewModel.setColorSource(ColorSource.STATIC)
+                            showColorSourceDialog = false
+                        },
+                        previewColor = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Dynamic colors (Material You)
+                    ColorSourceOption(
+                        title = stringResource(R.string.color_source_dynamic),
+                        description = stringResource(R.string.color_source_dynamic_desc),
+                        selected = uiState.colorSource == ColorSource.DYNAMIC,
+                        onClick = {
+                            viewModel.setColorSource(ColorSource.DYNAMIC)
+                            showColorSourceDialog = false
+                        },
+                        previewColor = MaterialTheme.colorScheme.tertiary,
+                        enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Album colors
+                    ColorSourceOption(
+                        title = stringResource(R.string.color_source_album),
+                        description = stringResource(R.string.color_source_album_desc),
+                        selected = uiState.colorSource == ColorSource.ALBUM,
+                        onClick = {
+                            viewModel.setColorSource(ColorSource.ALBUM)
+                            showColorSourceDialog = false
+                        },
+                        previewColor = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showColorSourceDialog = false }) {
+                    Text(stringResource(R.string.done))
                 }
             }
         )
@@ -604,6 +688,75 @@ fun SettingsScreen(
 }
 
 /**
+ * Color source option item for selection
+ */
+@Composable
+private fun ColorSourceOption(
+    title: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    previewColor: androidx.compose.ui.graphics.Color,
+    enabled: Boolean = true
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                onClick = onClick,
+                role = Role.RadioButton
+            ),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+               else MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Color preview circle
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(previewColor.copy(alpha = if (enabled) 1f else 0.5f))
+                    .then(
+                        if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        else Modifier
+                    )
+            )
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface
+                           else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+            
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                enabled = enabled
+            )
+        }
+    }
+}
+
+/**
  * Collapsible settings section component
  */
 @Composable
@@ -619,33 +772,52 @@ private fun CollapsibleSettingsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         // Header - clickable to toggle expansion
-        ListItem(
-            headlineContent = {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isExpanded = !isExpanded },
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
-            },
-            leadingContent = {
+                
                 Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingContent = {
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "收起" else "展开",
+                    imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            },
-            modifier = Modifier.clickable { isExpanded = !isExpanded },
-            colors = ListItemDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        )
+            }
+        }
         
         // Animated content
         AnimatedVisibility(
@@ -654,6 +826,7 @@ private fun CollapsibleSettingsSection(
             exit = shrinkVertically()
         ) {
             Column(
+                modifier = Modifier.padding(start = 56.dp),
                 content = content
             )
         }
@@ -765,7 +938,8 @@ data class SettingsUiState(
     // Appearance
     val theme: ThemeOption = ThemeOption.SYSTEM,
     val themeDisplayName: String = ThemeOption.SYSTEM.displayName,
-    val useDynamicColors: Boolean = true,
+    val colorSource: ColorSource = ColorSource.DYNAMIC,
+    val colorSourceDisplayName: String = "Dynamic",
     // Lyrics
     val lyricsFontSize: Float = 1.0f,
     val showTranslation: Boolean = true,
@@ -788,7 +962,10 @@ data class SettingsUiState(
     val isScanning: Boolean = false,
     val folders: List<Folder> = emptyList(),
     val excludedFolders: Set<String> = emptySet()
-)
+) {
+    // Legacy compatibility
+    val useDynamicColors: Boolean get() = colorSource == ColorSource.DYNAMIC
+}
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -842,8 +1019,16 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            themePreferences.dynamicColorsEnabled.collect { enabled ->
-                _uiState.value = _uiState.value.copy(useDynamicColors = enabled)
+            themePreferences.colorSource.collect { source ->
+                val displayName = when (source) {
+                    ColorSource.STATIC -> "Static"
+                    ColorSource.DYNAMIC -> "Dynamic"
+                    ColorSource.ALBUM -> "Album"
+                }
+                _uiState.value = _uiState.value.copy(
+                    colorSource = source,
+                    colorSourceDisplayName = displayName
+                )
             }
         }
     }
@@ -934,9 +1119,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setColorSource(source: ColorSource) {
+        viewModelScope.launch {
+            themePreferences.setColorSource(source)
+        }
+    }
+
     fun setDynamicColors(enabled: Boolean) {
         viewModelScope.launch {
-            themePreferences.setDynamicColorsEnabled(enabled)
+            themePreferences.setColorSource(if (enabled) ColorSource.DYNAMIC else ColorSource.STATIC)
         }
     }
 

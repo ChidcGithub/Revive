@@ -1,7 +1,6 @@
 package com.music.revive
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -11,20 +10,26 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.music.revive.data.local.ColorSource
 import com.music.revive.data.local.ThemePreferences
 import com.music.revive.presentation.navigation.ReviveNavigation
+import com.music.revive.presentation.theme.AlbumColors
+import com.music.revive.presentation.theme.ColorExtractor
 import com.music.revive.presentation.theme.ReviveTheme
 import com.music.revive.presentation.theme.ThemeMode
+import com.music.revive.service.MusicPlayer
 import com.music.revive.service.MusicService
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,6 +38,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var themePreferences: ThemePreferences
+    
+    @Inject
+    lateinit var musicPlayer: MusicPlayer
 
     private var hasPermissions by mutableStateOf(false)
 
@@ -54,8 +62,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Read persisted theme settings
             var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
-            var dynamicColorsEnabled by remember { mutableStateOf(true) }
+            var colorSource by remember { mutableStateOf(ColorSource.DYNAMIC) }
+            var albumColors by remember { mutableStateOf<AlbumColors?>(null) }
             
+            // Collect theme preferences
             LaunchedEffect(Unit) {
                 lifecycleScope.launch {
                     themePreferences.themeMode.collect { mode ->
@@ -63,15 +73,37 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 lifecycleScope.launch {
-                    themePreferences.dynamicColorsEnabled.collect { enabled ->
-                        dynamicColorsEnabled = enabled
+                    themePreferences.colorSource.collect { source ->
+                        colorSource = source
                     }
+                }
+            }
+            
+            // Extract album colors when color source is ALBUM
+            val currentSong by musicPlayer.currentSong.collectAsState()
+            val isDarkTheme = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            
+            LaunchedEffect(currentSong?.albumArtUri, colorSource, isDarkTheme) {
+                if (colorSource == ColorSource.ALBUM && currentSong?.albumArtUri != null) {
+                    val colors = ColorExtractor.extractFromUri(
+                        this@MainActivity,
+                        currentSong?.albumArtUri,
+                        isDarkTheme
+                    )
+                    albumColors = colors
+                } else if (colorSource != ColorSource.ALBUM) {
+                    albumColors = null
                 }
             }
             
             ReviveTheme(
                 themeMode = themeMode,
-                dynamicColor = dynamicColorsEnabled
+                colorSource = colorSource,
+                albumColors = albumColors
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -87,6 +119,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    @Composable
+    private fun isSystemInDarkTheme(): Boolean {
+        return androidx.compose.foundation.isSystemInDarkTheme()
     }
 
     private fun checkAndRequestPermissions() {
@@ -121,20 +158,66 @@ class MainActivity : ComponentActivity() {
 fun PermissionRequestScreen(
     onRequestPermissions: () -> Unit
 ) {
-    Box(
+    Surface(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            // Icon
+            Surface(
+                modifier = Modifier.size(120.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
             Text(
-                text = "需要权限才能访问音乐文件",
-                style = MaterialTheme.typography.titleLarge
+                text = "Revive",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRequestPermissions) {
-                Text("授予权限")
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "需要存储权限才能访问您的音乐文件",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            FilledTonalButton(
+                onClick = onRequestPermissions,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text(
+                    text = "授予权限",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
     }

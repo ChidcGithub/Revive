@@ -4,7 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
-import androidx.annotation.VisibleForTesting
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -15,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.music.revive.data.local.ColorSource
 
 private fun findActivity(context: Context): Activity {
     var contextInner = context
@@ -107,12 +110,16 @@ val ReviveShapes = Shapes(
  * @param darkTheme Whether to use dark theme
  * @param dynamicColor Whether to use dynamic colors (Material You) on Android 12+
  * @param themeMode Override theme mode (light, dark, system)
+ * @param colorSource The source of theme colors
+ * @param albumColors Optional album-based colors for album color mode
  */
 @Composable
 fun ReviveTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
+    colorSource: ColorSource = if (dynamicColor) ColorSource.DYNAMIC else ColorSource.STATIC,
+    albumColors: AlbumColors? = null,
     content: @Composable () -> Unit
 ) {
     val useDarkTheme = when (themeMode) {
@@ -121,14 +128,23 @@ fun ReviveTheme(
         ThemeMode.SYSTEM -> darkTheme
     }
 
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+    val targetColorScheme = when {
+        // Album colors take priority when provided and color source is ALBUM
+        colorSource == ColorSource.ALBUM && albumColors != null -> {
+            if (useDarkTheme) albumColors.toDarkColorScheme() else albumColors.toLightColorScheme()
+        }
+        // Dynamic colors (Material You)
+        colorSource == ColorSource.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+        // Static colors
         useDarkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    
+    // Animate color transitions smoothly
+    val colorScheme = animateColorScheme(targetColorScheme)
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -151,6 +167,56 @@ fun ReviveTheme(
     )
 }
 
+/**
+ * Animate color scheme transitions for smooth theme changes
+ */
+@Composable
+private fun animateColorScheme(targetColorScheme: ColorScheme): ColorScheme {
+    val animationSpec = spring<Color>(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+    
+    return ColorScheme(
+        primary = animateColorAsState(targetColorScheme.primary, animationSpec, label = "primary").value,
+        onPrimary = animateColorAsState(targetColorScheme.onPrimary, animationSpec, label = "onPrimary").value,
+        primaryContainer = animateColorAsState(targetColorScheme.primaryContainer, animationSpec, label = "primaryContainer").value,
+        onPrimaryContainer = animateColorAsState(targetColorScheme.onPrimaryContainer, animationSpec, label = "onPrimaryContainer").value,
+        inversePrimary = animateColorAsState(targetColorScheme.inversePrimary, animationSpec, label = "inversePrimary").value,
+        secondary = animateColorAsState(targetColorScheme.secondary, animationSpec, label = "secondary").value,
+        onSecondary = animateColorAsState(targetColorScheme.onSecondary, animationSpec, label = "onSecondary").value,
+        secondaryContainer = animateColorAsState(targetColorScheme.secondaryContainer, animationSpec, label = "secondaryContainer").value,
+        onSecondaryContainer = animateColorAsState(targetColorScheme.onSecondaryContainer, animationSpec, label = "onSecondaryContainer").value,
+        tertiary = animateColorAsState(targetColorScheme.tertiary, animationSpec, label = "tertiary").value,
+        onTertiary = animateColorAsState(targetColorScheme.onTertiary, animationSpec, label = "onTertiary").value,
+        tertiaryContainer = animateColorAsState(targetColorScheme.tertiaryContainer, animationSpec, label = "tertiaryContainer").value,
+        onTertiaryContainer = animateColorAsState(targetColorScheme.onTertiaryContainer, animationSpec, label = "onTertiaryContainer").value,
+        background = animateColorAsState(targetColorScheme.background, animationSpec, label = "background").value,
+        onBackground = animateColorAsState(targetColorScheme.onBackground, animationSpec, label = "onBackground").value,
+        surface = animateColorAsState(targetColorScheme.surface, animationSpec, label = "surface").value,
+        onSurface = animateColorAsState(targetColorScheme.onSurface, animationSpec, label = "onSurface").value,
+        surfaceVariant = animateColorAsState(targetColorScheme.surfaceVariant, animationSpec, label = "surfaceVariant").value,
+        onSurfaceVariant = animateColorAsState(targetColorScheme.onSurfaceVariant, animationSpec, label = "onSurfaceVariant").value,
+        surfaceTint = animateColorAsState(targetColorScheme.surfaceTint, animationSpec, label = "surfaceTint").value,
+        inverseSurface = animateColorAsState(targetColorScheme.inverseSurface, animationSpec, label = "inverseSurface").value,
+        inverseOnSurface = animateColorAsState(targetColorScheme.inverseOnSurface, animationSpec, label = "inverseOnSurface").value,
+        error = animateColorAsState(targetColorScheme.error, animationSpec, label = "error").value,
+        onError = animateColorAsState(targetColorScheme.onError, animationSpec, label = "onError").value,
+        errorContainer = animateColorAsState(targetColorScheme.errorContainer, animationSpec, label = "errorContainer").value,
+        onErrorContainer = animateColorAsState(targetColorScheme.onErrorContainer, animationSpec, label = "onErrorContainer").value,
+        outline = animateColorAsState(targetColorScheme.outline, animationSpec, label = "outline").value,
+        outlineVariant = animateColorAsState(targetColorScheme.outlineVariant, animationSpec, label = "outlineVariant").value,
+        scrim = animateColorAsState(targetColorScheme.scrim, animationSpec, label = "scrim").value,
+        surfaceBright = animateColorAsState(targetColorScheme.surfaceBright, animationSpec, label = "surfaceBright").value,
+        surfaceDim = animateColorAsState(targetColorScheme.surfaceDim, animationSpec, label = "surfaceDim").value,
+        surfaceContainer = animateColorAsState(targetColorScheme.surfaceContainer, animationSpec, label = "surfaceContainer").value,
+        surfaceContainerHigh = animateColorAsState(targetColorScheme.surfaceContainerHigh, animationSpec, label = "surfaceContainerHigh").value,
+        surfaceContainerHighest = animateColorAsState(targetColorScheme.surfaceContainerHighest, animationSpec, label = "surfaceContainerHighest").value,
+        surfaceContainerLow = animateColorAsState(targetColorScheme.surfaceContainerLow, animationSpec, label = "surfaceContainerLow").value,
+        surfaceContainerLowest = animateColorAsState(targetColorScheme.surfaceContainerLowest, animationSpec, label = "surfaceContainerLowest").value
+    )
+}
+
 enum class ThemeMode {
     LIGHT,
     DARK,
@@ -164,21 +230,27 @@ enum class ThemeMode {
 fun rememberThemeState(): ThemeState {
     val context = LocalContext.current
     var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
-    var dynamicColorEnabled by remember { mutableStateOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) }
+    var colorSource by remember { mutableStateOf(ColorSource.DYNAMIC) }
 
-    return remember(themeMode, dynamicColorEnabled) {
+    return remember(themeMode, colorSource) {
         ThemeState(
             themeMode = themeMode,
-            dynamicColorEnabled = dynamicColorEnabled,
+            colorSource = colorSource,
             setThemeMode = { themeMode = it },
-            setDynamicColorEnabled = { dynamicColorEnabled = it }
+            setColorSource = { colorSource = it }
         )
     }
 }
 
 data class ThemeState(
     val themeMode: ThemeMode,
-    val dynamicColorEnabled: Boolean,
+    val colorSource: ColorSource,
     val setThemeMode: (ThemeMode) -> Unit,
-    val setDynamicColorEnabled: (Boolean) -> Unit
-)
+    val setColorSource: (ColorSource) -> Unit
+) {
+    // Legacy compatibility
+    val dynamicColorEnabled: Boolean get() = colorSource == ColorSource.DYNAMIC
+    fun setDynamicColorEnabled(enabled: Boolean) = setColorSource(
+        if (enabled) ColorSource.DYNAMIC else ColorSource.STATIC
+    )
+}

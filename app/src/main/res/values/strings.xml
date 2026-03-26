@@ -89,6 +89,13 @@
     <string name="theme">主题</string>
     <string name="choose_theme">选择主题</string>
     <string name="use_dynamic_colors">使用动态颜色</string>
+    <string name="color_source">颜色来源</string>
+    <string name="color_source_static">静态颜色</string>
+    <string name="color_source_static_desc">使用默认的 Material 3 紫色主题</string>
+    <string name="color_source_dynamic">动态颜色</string>
+    <string name="color_source_dynamic_desc">从系统壁纸提取颜色 (Android 12+)</string>
+    <string name="color_source_album">专辑封面颜色</string>
+    <string name="color_source_album_desc">从当前播放歌曲的专辑封面提取颜色</string>
     <string name="audio">音频</string>
     <string name="audio_focus">音频焦点</string>
     <string name="audio_focus_description">当其他应用播放音频时自动暂停</string>
