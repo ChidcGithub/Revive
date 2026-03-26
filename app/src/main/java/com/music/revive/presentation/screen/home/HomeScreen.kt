@@ -52,11 +52,11 @@ fun HomeScreen(
 ) {
     Scaffold(
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.app_name),
-                        fontWeight = FontWeight.Black
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 actions = {
@@ -73,9 +73,8 @@ fun HomeScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
