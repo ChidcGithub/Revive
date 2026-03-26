@@ -240,9 +240,6 @@ fun SongsScreen(
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.remove)) },
                                 onClick = { expandedSongMenu = null },
-                                colors = MenuItemDefaults.colors(
-                                    textColor = MaterialTheme.colorScheme.error
-                                ),
                                 leadingIcon = {
                                     Icon(Icons.Rounded.Delete, contentDescription = null)
                                 }

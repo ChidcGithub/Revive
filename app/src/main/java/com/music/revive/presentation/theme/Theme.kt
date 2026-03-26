@@ -162,9 +162,6 @@ fun ReviveTheme(
                 
                 // Navigation bar icons contrast  
                 isAppearanceLightNavigationBars = !useDarkTheme
-                
-                // Hide system bars when appropriate (for immersive experiences)
-                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
             
             // Enable drawing behind system bars

@@ -20,10 +20,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.layer.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -108,15 +108,11 @@ fun BottomPlayerBar(
         shadowElevation = 12.dp,
         color = Color.Transparent
     ) {
-        // Backdrop blur layer using graphicsLayer for better performance
+        // Backdrop blur layer
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    renderEffect = android.graphics.RenderEffect.createBlurEffect(
-                        30f, 30f, android.graphics.Shader.TileMode.CLAMP
-                    )
-                }
+                .blur(15.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
         ) {
             Spacer(modifier = Modifier.height(1.dp))

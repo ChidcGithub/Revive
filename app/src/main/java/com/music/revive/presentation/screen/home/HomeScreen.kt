@@ -28,6 +28,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,12 +89,6 @@ fun HomeScreen(
         label = "titleAlpha"
     )
     
-    val headerHeight by animateDpAsState(
-        targetValue = (220 - scrollProgress * 80).dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "headerHeight"
-    )
-
     // Get greeting based on time
     val greeting = remember { getGreeting() }
     
@@ -109,7 +105,6 @@ fun HomeScreen(
                     greeting = greeting,
                     titleScale = titleScale,
                     titleAlpha = titleAlpha,
-                    headerHeight = headerHeight,
                     onSearchClick = onSearchClick
                 )
             }
@@ -215,20 +210,7 @@ fun HomeScreen(
             }
         }
         
-        // Pull to refresh indicator
-        if (uiState.isRefreshing) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            }
-        }
+        // Pull to refresh indicator (removed - isRefreshing field doesn't exist in HomeUiState)
     }
 }
 
@@ -238,7 +220,6 @@ private fun AnimatedHeroHeader(
     greeting: String,
     titleScale: Float,
     titleAlpha: Float,
-    headerHeight: Dp,
     onSearchClick: () -> Unit
 ) {
     var isVisible by remember { mutableStateOf(false) }
@@ -250,7 +231,7 @@ private fun AnimatedHeroHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(headerHeight)
+            .height(220.dp)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -407,7 +388,7 @@ private fun StatItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
             imageVector = icon,

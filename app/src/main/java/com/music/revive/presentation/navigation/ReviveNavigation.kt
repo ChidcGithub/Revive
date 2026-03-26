@@ -11,7 +11,6 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.layer.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -255,11 +254,7 @@ fun ReviveNavigation(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .graphicsLayer {
-                                renderEffect = android.graphics.RenderEffect.createBlurEffect(
-                                    20f, 20f, android.graphics.Shader.TileMode.CLAMP
-                                )
-                            }
+                            .blur(12.dp)
                             .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.7f))
                     ) {
                         Spacer(modifier = Modifier.height(1.dp))

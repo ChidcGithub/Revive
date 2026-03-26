@@ -6,8 +6,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.rotateIn
-import androidx.compose.animation.rotateOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,11 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalImeInsets
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -843,8 +841,8 @@ private fun CollapsibleSettingsSection(
                 
                 AnimatedVisibility(
                     visible = isExpanded,
-                    enter = fadeIn() + rotateIn(clockwise = false),
-                    exit = fadeOut() + rotateOut(clockwise = false)
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.ExpandLess,
@@ -855,11 +853,11 @@ private fun CollapsibleSettingsSection(
                 }
                 AnimatedVisibility(
                     visible = !isExpanded,
-                    enter = fadeIn() + rotateIn(clockwise = true),
-                    exit = fadeOut() + rotateOut(clockwise = true)
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.ChevronDown,
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = "Expand",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
@@ -868,11 +866,10 @@ private fun CollapsibleSettingsSection(
             }
         }
         
-        // Animated content
         AnimatedVisibility(
             visible = isExpanded,
-            enter = expandVertically(expandFrom = Top) + fadeIn(),
-            exit = shrinkVertically(shrinkTowards = Top) + fadeOut()
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
         ) {
             Column(
                 modifier = Modifier

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.music.revive.data.local.ColorSource
 import com.music.revive.data.local.ThemePreferences
@@ -55,16 +56,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // Enable edge-to-edge for full screen immersive experience
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
+        enableEdgeToEdge()
+        
+        // Set transparent status and navigation bars
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
         checkAndRequestPermissions()
 
