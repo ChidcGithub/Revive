@@ -9,6 +9,7 @@ import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.PlayerState
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,15 +48,22 @@ class PlayerViewModel @Inject constructor(
     val lyricsDisplayStyle: StateFlow<Int> = lyricsPreferences.lyricsDisplayStyle
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
+    private var favoriteJob: Job? = null
+
     init {
         viewModelScope.launch {
             musicPlayer.currentSong.collect { song ->
+                favoriteJob?.cancel()
+
                 song?.let { currentSong ->
-                    // Update favorite status
-                    repository.isFavorite(currentSong.id).collect { isFav ->
-                        _isFavorite.value = isFav
+                    // Update favorite status in a separate coroutine
+                    // so it doesn't block loadLyrics
+                    favoriteJob = launch {
+                        repository.isFavorite(currentSong.id).collect { isFav ->
+                            _isFavorite.value = isFav
+                        }
                     }
-                    
+
                     // Load lyrics for the new song
                     loadLyrics(currentSong)
                 } ?: run {
