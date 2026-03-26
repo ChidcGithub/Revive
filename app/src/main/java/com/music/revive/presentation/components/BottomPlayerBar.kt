@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -105,8 +106,23 @@ fun BottomPlayerBar(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         tonalElevation = 3.dp,
         shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
     ) {
+        // Backdrop blur effect
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .blur(8.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        ) {
+        }
         // Subtle gradient overlay for depth
         Box(
             modifier = Modifier

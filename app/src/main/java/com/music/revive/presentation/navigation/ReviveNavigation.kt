@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -244,15 +245,23 @@ fun ReviveNavigation(
                     )
                 }
 
-                // Navigation Bar
+                // Navigation Bar with blur effect
                 AnimatedVisibility(
                     visible = isBottomBarVisible,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .blur(4.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.9f)
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth())
+                    }
                     NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 0.dp
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f),
+                        tonalElevation = 2.dp
                     ) {
                         NavigationBarItem(
                             selected = currentRoute.contains("Home"),
