@@ -291,6 +291,7 @@ fun SongsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DefaultTopBar(
     songsCount: Int,
@@ -750,7 +751,8 @@ private fun AddToPlaylistDialog(
                         modifier = Modifier.clickable(onClick = onCreateNew)
                     )
                 }
-                items(playlists) { playlist ->
+                items(playlists.size) { index ->
+                    val playlist = playlists[index]
                     ListItem(
                         headlineContent = { Text(playlist.name) },
                         supportingContent = { 

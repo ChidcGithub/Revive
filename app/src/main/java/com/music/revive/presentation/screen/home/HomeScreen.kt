@@ -29,8 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -560,7 +558,7 @@ private fun AnimatedRecentSongChip(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                alpha = alpha
+                this.alpha = alpha
             },
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
@@ -668,7 +666,7 @@ private fun AnimatedAlbumCard(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                alpha = alpha
+                this.alpha = alpha
             },
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
