@@ -150,12 +150,25 @@ fun ReviveTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = findActivity(view.context).window
+            
+            // Set transparent status and navigation bars
             window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = Color.Transparent.toArgb()
+            
+            // Configure window insets controller
             WindowCompat.getInsetsController(window, view).apply {
+                // Status bar icons contrast
                 isAppearanceLightStatusBars = !useDarkTheme
+                
+                // Navigation bar icons contrast  
                 isAppearanceLightNavigationBars = !useDarkTheme
+                
+                // Hide system bars when appropriate (for immersive experiences)
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
+            
+            // Enable drawing behind system bars
+            window.setDecorFitsSystemWindows(false)
         }
     }
 
