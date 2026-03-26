@@ -129,8 +129,11 @@ object LrcParser {
             val wordSegments = mutableListOf<WordSegment>()
             for (i in wordMatches.indices) {
                 val match = wordMatches[i]
-                val (minutes, seconds, milliseconds) = match.destructured
+                val minutes = match.groupValues[1]
+                val seconds = match.groupValues[2]
+                val milliseconds = match.groupValues[3]
                 val wordText = match.groupValues[4]
+                
                 val startMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
                 
                 // End time is the start of the next word, or estimated
@@ -145,7 +148,7 @@ object LrcParser {
                     startMs + 500L // Default 500ms for last word
                 }
                 
-                if (wordText.isNotEmpty()) {
+                if (wordText.isNotBlank()) {
                     wordSegments.add(WordSegment(
                         text = wordText,
                         startTimeMs = startMs,
@@ -157,7 +160,9 @@ object LrcParser {
             val fullText = wordSegments.joinToString("") { it.text }.trim()
             if (fullText.isNotEmpty()) {
                 return timeTags.map { match ->
-                    val (minutes, seconds, milliseconds) = match.destructured
+                    val minutes = match.groupValues[1]
+                    val seconds = match.groupValues[2]
+                    val milliseconds = match.groupValues[3]
                     val timeMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
                     LyricLine(
                         timeMs = timeMs,
@@ -170,7 +175,9 @@ object LrcParser {
         
         // Standard format - create a lyric line for each time tag
         return timeTags.map { match ->
-            val (minutes, seconds, milliseconds) = match.destructured
+            val minutes = match.groupValues[1]
+            val seconds = match.groupValues[2]
+            val milliseconds = match.groupValues[3]
             val timeMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
             LyricLine(timeMs = timeMs, text = rawText)
         }
@@ -248,20 +255,21 @@ object LrcParser {
     
     /**
      * Parse time components to milliseconds
+     * Supports formats: mm:ss.xx, mm:ss:xx, mm:ss.xxx
      */
     private fun parseTimeMs(minutes: String, seconds: String, milliseconds: String): Long {
-        val mins = minutes.toLongOrNull() ?: 0L
-        val secs = seconds.toLongOrNull() ?: 0L
-        val ms = milliseconds.toLongOrNull() ?: 0L
+        val mins = minutes.toLongOrNull()?.coerceAtMost(59) ?: 0L
+        val secs = seconds.toLongOrNull()?.coerceAtMost(59) ?: 0L
         
-        // Normalize milliseconds (could be 2 or 3 digits)
-        val normalizedMs = when (milliseconds.length) {
-            1 -> ms * 100
-            2 -> ms * 10
-            else -> ms
-        }
+        // Properly handle milliseconds (could be 1, 2, or 3 digits)
+        val ms = when (milliseconds.length) {
+            1 -> milliseconds.toLongOrNull()?.times(100) ?: 0L  // "5" -> 500ms
+            2 -> milliseconds.toLongOrNull()?.times(10) ?: 0L   // "20" -> 200ms
+            3 -> milliseconds.toLongOrNull() ?: 0L              // "200" -> 200ms
+            else -> 0L
+        }.coerceAtMost(999L)
         
-        return mins * 60 * 1000 + secs * 1000 + normalizedMs
+        return mins * 60 * 1000 + secs * 1000 + ms
     }
     
     /**
