@@ -208,4 +208,12 @@
     <string name="crash_log_copied">崩溃日志已复制到剪贴板</string>
     <string name="crash_log_saved">崩溃日志已保存至 %1$s</string>
     <string name="crash_log_save_failed">保存崩溃日志失败</string>
+    
+    <!-- Home screen -->
+    <string name="featured_albums">精选专辑</string>
+    <string name="top_artists">热门歌手</string>
+    <string name="good_morning">早上好 ☀️</string>
+    <string name="good_afternoon">下午好 ☕</string>
+    <string name="good_evening">晚上好 🌆</string>
+    <string name="good_night">晚安 🌙</string>
 </resources>

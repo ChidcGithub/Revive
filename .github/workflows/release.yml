@@ -70,17 +70,20 @@ jobs:
             fi
           fi
           
-          # Get version from input or auto-increment
+          # Get version from input or auto-increment with 0.1.x format
           VERSION_NAME="${{ github.event.inputs.version_name }}"
           if [ -z "$VERSION_NAME" ]; then
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
             VERSION_NAME="${LATEST_TAG#v}"
+            # Remove any suffix like -beta
+            VERSION_NAME="${VERSION_NAME%-*}"
             IFS='.' read -ra VERSION_PARTS <<< "$VERSION_NAME"
             MAJOR="${VERSION_PARTS[0]:-0}"
-            MINOR="${VERSION_PARTS[1]:-0}"
-            PATCH="${VERSION_PARTS[2]:-0}"
-            PATCH=$((PATCH + 1))
-            VERSION_NAME="$MAJOR.$MINOR.$PATCH"
+            MINOR="${VERSION_PARTS[1]:-1}"
+            # Auto-increment build number (x in 0.1.x)
+            BUILD_NUM="${VERSION_PARTS[2]:-0}"
+            BUILD_NUM=$((BUILD_NUM + 1))
+            VERSION_NAME="$MAJOR.$MINOR.$BUILD_NUM"
           fi
           
           FULL_VERSION="$VERSION_NAME.$BUILD_TYPE$BUILD_NUMBER-$GIT_SHA"
