@@ -40,6 +40,7 @@ import com.music.revive.data.local.ThemePreferences
 import com.music.revive.data.repository.MusicRepository
 import com.music.revive.data.lyric.LyricRepository
 import com.music.revive.domain.model.Folder
+import com.music.revive.presentation.components.AboutDialog
 import com.music.revive.presentation.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,7 @@ fun SettingsScreen(
     var showLyricsFontSlider by remember { mutableStateOf(false) }
     var showPlaybackSpeedSlider by remember { mutableStateOf(false) }
     var showClearLyricsCacheDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Scaffold(
@@ -430,7 +432,8 @@ fun SettingsScreen(
                         supportingContent = { Text(BuildConfig.VERSION_NAME) },
                         leadingContent = {
                             Icon(Icons.Rounded.Info, contentDescription = null)
-                        }
+                        },
+                        modifier = Modifier.clickable { showAboutDialog = true }
                     )
                     
                     ListItem(
@@ -683,6 +686,11 @@ fun SettingsScreen(
             },
             onDismiss = { showFolderManagerDialog = false }
         )
+    }
+    
+    // About dialog
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
     }
 }
 
