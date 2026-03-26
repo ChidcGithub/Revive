@@ -61,7 +61,7 @@ fun HomeScreen(
             val firstVisibleOffset = listState.firstVisibleItemScrollOffset
             
             if (firstVisibleItem == 0) {
-                min(1f, firstVisibleOffset / 300f)
+                min(1f, firstVisibleOffset / 400f)
             } else {
                 1f
             }
@@ -70,7 +70,7 @@ fun HomeScreen(
     
     // Animated values based on scroll
     val titleScale by animateFloatAsState(
-        targetValue = 1f - (scrollProgress * 0.4f),
+        targetValue = 1f - (scrollProgress * 0.5f),
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "titleScale"
     )
@@ -80,12 +80,6 @@ fun HomeScreen(
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "titleAlpha"
     )
-    
-    val topBarAlpha by animateFloatAsState(
-        targetValue = scrollProgress,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "topBarAlpha"
-    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Main content
@@ -94,12 +88,12 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            // Hero header with large title
+            // Hero header with large centered title
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(220.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -114,8 +108,8 @@ fun HomeScreen(
                     Text(
                         text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.displayMedium.copy(
-                            fontSize = (48 * titleScale).sp,
-                            letterSpacing = 2.sp
+                            fontSize = (56 * titleScale).sp,
+                            letterSpacing = 4.sp
                         ),
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary,
@@ -215,92 +209,6 @@ fun HomeScreen(
                             )
                         }
                     }
-                }
-            }
-        }
-        
-        // Collapsed top bar with blur effect (appears when scrolled)
-        AnimatedVisibility(
-            visible = scrollProgress > 0.1f,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f * topBarAlpha),
-                tonalElevation = (4 * topBarAlpha).dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .blur((8 * (1 - topBarAlpha)).dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.alpha(topBarAlpha)
-                        )
-                        
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.alpha(topBarAlpha)
-                        ) {
-                            FilledTonalIconButton(onClick = onSearchClick) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Search,
-                                    contentDescription = stringResource(R.string.search)
-                                )
-                            }
-                            IconButton(onClick = onRefresh) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Refresh,
-                                    contentDescription = stringResource(R.string.refresh)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Floating action buttons (always visible at top right when at top)
-        AnimatedVisibility(
-            visible = scrollProgress < 0.5f,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut(),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(16.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.alpha(1f - topBarAlpha)
-            ) {
-                FilledTonalIconButton(onClick = onSearchClick) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = stringResource(R.string.search)
-                    )
-                }
-                IconButton(onClick = onRefresh) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = stringResource(R.string.refresh)
-                    )
                 }
             }
         }

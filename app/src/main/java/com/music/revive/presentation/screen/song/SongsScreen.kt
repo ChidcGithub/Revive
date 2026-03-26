@@ -44,7 +44,9 @@ fun SongsScreen(
     onFavoriteClick: (Long) -> Unit,
     onSongDetailClick: (Long) -> Unit = {},
     onAddToPlaylist: (Long, Long) -> Unit,
-    onCreatePlaylist: (String) -> Unit
+    onCreatePlaylist: (String) -> Unit,
+    onSearchClick: () -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Long?>(null) }
@@ -82,6 +84,20 @@ fun SongsScreen(
                     }
                 },
                 actions = {
+                    // Search button
+                    IconButton(onClick = onSearchClick) {
+                        Icon(
+                            imageVector = Icons.Rounded.Search,
+                            contentDescription = stringResource(R.string.search)
+                        )
+                    }
+                    // Refresh button
+                    IconButton(onClick = onRefresh) {
+                        Icon(
+                            imageVector = Icons.Rounded.Refresh,
+                            contentDescription = stringResource(R.string.refresh)
+                        )
+                    }
                     // Shuffle all button
                     IconButton(
                         onClick = {

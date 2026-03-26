@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -245,23 +246,29 @@ fun ReviveNavigation(
                     )
                 }
 
-                // Navigation Bar with blur effect
+                // Navigation Bar with backdrop blur effect
                 AnimatedVisibility(
                     visible = isBottomBarVisible,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    Surface(
+                    // Backdrop blur layer
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .blur(4.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.9f)
+                            .graphicsLayer {
+                                renderEffect = android.graphics.RenderEffect.createBlurEffect(
+                                    20f, 20f, android.graphics.Shader.TileMode.CLAMP
+                                )
+                            }
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.7f))
                     ) {
-                        Box(modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(1.dp))
                     }
+                    
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f),
-                        tonalElevation = 2.dp
+                        tonalElevation = 0.dp
                     ) {
                         NavigationBarItem(
                             selected = currentRoute.contains("Home"),
@@ -436,6 +443,12 @@ fun ReviveNavigation(
                     },
                     onCreatePlaylist = { name ->
                         homeViewModel.createPlaylist(name)
+                    },
+                    onSearchClick = {
+                        navController.navigate(Search)
+                    },
+                    onRefresh = {
+                        homeViewModel.refresh()
                     }
                 )
             }

@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -104,33 +105,32 @@ fun BottomPlayerBar(
                 onClick = onBarClick
             ),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        tonalElevation = 3.dp,
-        shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
+        tonalElevation = 0.dp,
+        shadowElevation = 12.dp,
+        color = Color.Transparent
     ) {
-        // Backdrop blur effect
+        // Backdrop blur layer using graphicsLayer for better performance
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .blur(8.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                            Color.Transparent
-                        )
+                .graphicsLayer {
+                    renderEffect = android.graphics.RenderEffect.createBlurEffect(
+                        30f, 30f, android.graphics.Shader.TileMode.CLAMP
                     )
-                )
+                }
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
         ) {
+            Spacer(modifier = Modifier.height(1.dp))
         }
-        // Subtle gradient overlay for depth
+        
+        // Content container with gradient overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.05f),
+                            MaterialTheme.colorScheme.surfaceTint.copy(alpha = 0.08f),
                             Color.Transparent
                         )
                     )
