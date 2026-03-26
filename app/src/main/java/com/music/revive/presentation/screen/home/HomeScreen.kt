@@ -114,8 +114,8 @@ fun HomeScreen(
                         ) {
                             items(uiState.recentSongs.take(10)) { recentSong ->
                                 RecentSongChip(
-                                    song = recentSong,
-                                    onClick = { onSongClick(recentSong, uiState.recentSongs) }
+                                    song = recentSong.song,
+                                    onClick = { onSongClick(recentSong.song, uiState.recentSongs.map { it.song }) }
                                 )
                             }
                         }
