@@ -161,6 +161,10 @@
     <string name="lyrics_display_style">歌词显示样式</string>
     <string name="lyrics_centered">居中显示</string>
     <string name="lyrics_left_aligned">左对齐</string>
+    <string name="enable_glow_effect">启用辉光效果</string>
+    <string name="glow_effect_description">当前歌词行发光特效</string>
+    <string name="enable_karaoke_effect">启用卡拉 OK 渐变</string>
+    <string name="karaoke_effect_description">歌词随进度渐变填色 (逐字/逐行)</string>
     <string name="lyrics_source">歌词来源</string>
     <string name="lyrics_source_embedded">内嵌歌词</string>
     <string name="lyrics_source_local">本地文件</string>

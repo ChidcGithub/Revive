@@ -28,6 +28,8 @@ class LyricsPreferences @Inject constructor(
         private val SHOW_TRANSLATION = booleanPreferencesKey("show_translation")
         private val AUTO_SCROLL = booleanPreferencesKey("auto_scroll")
         private val LYRICS_DISPLAY_STYLE = intPreferencesKey("lyrics_display_style") // 0: centered, 1: left-aligned
+        private val ENABLE_GLOW = booleanPreferencesKey("enable_glow")
+        private val ENABLE_KARAOKE = booleanPreferencesKey("enable_karaoke")
     }
     
     // Font size multiplier (0.8 to 1.5)
@@ -45,6 +47,14 @@ class LyricsPreferences @Inject constructor(
     // Display style (0: centered, 1: left-aligned)
     val lyricsDisplayStyle: Flow<Int> = context.lyricsDataStore.data
         .map { preferences -> preferences[LYRICS_DISPLAY_STYLE] ?: 0 }
+    
+    // Enable glow effect on active lyric line
+    val enableGlow: Flow<Boolean> = context.lyricsDataStore.data
+        .map { preferences -> preferences[ENABLE_GLOW] ?: true }
+    
+    // Enable karaoke gradient sweep effect
+    val enableKaraoke: Flow<Boolean> = context.lyricsDataStore.data
+        .map { preferences -> preferences[ENABLE_KARAOKE] ?: true }
     
     suspend fun setLyricsFontSize(size: Float) {
         context.lyricsDataStore.edit { preferences ->
@@ -67,6 +77,18 @@ class LyricsPreferences @Inject constructor(
     suspend fun setLyricsDisplayStyle(style: Int) {
         context.lyricsDataStore.edit { preferences ->
             preferences[LYRICS_DISPLAY_STYLE] = style
+        }
+    }
+    
+    suspend fun setEnableGlow(enabled: Boolean) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[ENABLE_GLOW] = enabled
+        }
+    }
+    
+    suspend fun setEnableKaraoke(enabled: Boolean) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[ENABLE_KARAOKE] = enabled
         }
     }
 }

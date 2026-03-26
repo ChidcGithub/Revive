@@ -48,6 +48,12 @@ class PlayerViewModel @Inject constructor(
     val lyricsDisplayStyle: StateFlow<Int> = lyricsPreferences.lyricsDisplayStyle
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
+    val enableGlow: StateFlow<Boolean> = lyricsPreferences.enableGlow
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
+    val enableKaraoke: StateFlow<Boolean> = lyricsPreferences.enableKaraoke
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
     private var favoriteJob: Job? = null
 
     init {

@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -108,6 +109,8 @@ fun PlayerScreen(
     val lyricsFontSize by viewModel.lyricsFontSize.collectAsState()
     val showTranslation by viewModel.showTranslation.collectAsState()
     val lyricsDisplayStyle by viewModel.lyricsDisplayStyle.collectAsState()
+    val enableGlow by viewModel.enableGlow.collectAsState()
+    val enableKaraoke by viewModel.enableKaraoke.collectAsState()
 
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -324,12 +327,34 @@ fun PlayerScreen(
                         }
                     }
                 } else {
-                    // Lyrics view
+                    // Lyrics view with immersive background
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer { alpha = albumAlpha }
                     ) {
+                        // Subtle album color tint behind lyrics
+                        val currentPaletteForLyrics = paletteColors
+                        if (currentPaletteForLyrics != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .drawBehind {
+                                        // Soft radial gradient from album dominant color
+                                        drawCircle(
+                                            brush = Brush.radialGradient(
+                                                colors = listOf(
+                                                    currentPaletteForLyrics.dominant.copy(alpha = 0.08f),
+                                                    Color.Transparent
+                                                ),
+                                                center = Offset(size.width * 0.5f, size.height * 0.3f),
+                                                radius = size.width * 0.8f
+                                            )
+                                        )
+                                    }
+                            )
+                        }
+                        
                         if (isLoadingLyrics) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -344,6 +369,8 @@ fun PlayerScreen(
                                 fontSizeMultiplier = lyricsFontSize,
                                 showTranslation = showTranslation,
                                 isCentered = lyricsDisplayStyle == 0,
+                                enableGlow = enableGlow,
+                                enableKaraoke = enableKaraoke,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

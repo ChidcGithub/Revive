@@ -3,6 +3,7 @@ package com.music.revive.data.lyric
 import com.music.revive.domain.model.LyricLine
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricSource
+import com.music.revive.domain.model.WordSegment
 
 /**
  * Parser for LRC format lyrics
@@ -109,7 +110,7 @@ object LrcParser {
     /**
      * Parse a single LRC line
      * Supports multiple time tags for the same line: [00:12.00][00:45.30]Same lyrics
-     * Supports word-by-word format: [00:01.00]<00:01.00>This><00:01.50> is>
+     * Supports word-by-word format: [00:01.00]<00:01.00>This <00:01.50>is <00:02.00>word-by-word
      */
     private fun parseLyricLine(line: String, offsetMs: Long = 0L): List<LyricLine> {
         val timeTags = timeTagRegex.findAll(line).toList()
@@ -124,14 +125,45 @@ object LrcParser {
         // Check for word-by-word format
         val wordMatches = wordTimeTagRegex.findAll(rawText).toList()
         if (wordMatches.isNotEmpty()) {
-            // Word-by-word format - create a single line with the full text
-            // but we could also expand this to support word-level timing
-            val fullText = wordMatches.joinToString("") { it.groupValues[4] }.trim()
+            // Build word segments with timing
+            val wordSegments = mutableListOf<WordSegment>()
+            for (i in wordMatches.indices) {
+                val match = wordMatches[i]
+                val (minutes, seconds, milliseconds) = match.destructured
+                val wordText = match.groupValues[4]
+                val startMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
+                
+                // End time is the start of the next word, or estimated
+                val endMs = if (i + 1 < wordMatches.size) {
+                    val nextMatch = wordMatches[i + 1]
+                    parseTimeMs(
+                        nextMatch.groupValues[1],
+                        nextMatch.groupValues[2],
+                        nextMatch.groupValues[3]
+                    ) + offsetMs
+                } else {
+                    startMs + 500L // Default 500ms for last word
+                }
+                
+                if (wordText.isNotEmpty()) {
+                    wordSegments.add(WordSegment(
+                        text = wordText,
+                        startTimeMs = startMs,
+                        endTimeMs = endMs
+                    ))
+                }
+            }
+            
+            val fullText = wordSegments.joinToString("") { it.text }.trim()
             if (fullText.isNotEmpty()) {
                 return timeTags.map { match ->
                     val (minutes, seconds, milliseconds) = match.destructured
                     val timeMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
-                    LyricLine(timeMs = timeMs, text = fullText)
+                    LyricLine(
+                        timeMs = timeMs,
+                        text = fullText,
+                        words = wordSegments
+                    )
                 }
             }
         }

@@ -192,6 +192,34 @@ fun SettingsScreen(
                             viewModel.setLyricsDisplayStyle(if (uiState.lyricsDisplayStyle == 0) 1 else 0) 
                         }
                     )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.enable_glow_effect)) },
+                        supportingContent = { Text(stringResource(R.string.glow_effect_description)) },
+                        leadingContent = {
+                            Icon(Icons.Rounded.AutoFixHigh, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableGlow,
+                                onCheckedChange = { viewModel.setEnableGlow(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.enable_karaoke_effect)) },
+                        supportingContent = { Text(stringResource(R.string.karaoke_effect_description)) },
+                        leadingContent = {
+                            Icon(Icons.Rounded.MusicNote, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableKaraoke,
+                                onCheckedChange = { viewModel.setEnableKaraoke(it) }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -987,6 +1015,8 @@ data class SettingsUiState(
     val showTranslation: Boolean = true,
     val autoScroll: Boolean = true,
     val lyricsDisplayStyle: Int = 0,
+    val enableGlow: Boolean = true,
+    val enableKaraoke: Boolean = true,
     // Playback
     val fadeInOut: Boolean = false,
     val gaplessPlayback: Boolean = true,
@@ -1096,6 +1126,16 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(lyricsDisplayStyle = style)
             }
         }
+        viewModelScope.launch {
+            lyricsPreferences.enableGlow.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableGlow = enabled)
+            }
+        }
+        viewModelScope.launch {
+            lyricsPreferences.enableKaraoke.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableKaraoke = enabled)
+            }
+        }
     }
 
     private fun loadPlaybackSettings() {
@@ -1195,6 +1235,18 @@ class SettingsViewModel @Inject constructor(
     fun setLyricsDisplayStyle(style: Int) {
         viewModelScope.launch {
             lyricsPreferences.setLyricsDisplayStyle(style)
+        }
+    }
+
+    fun setEnableGlow(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setEnableGlow(enabled)
+        }
+    }
+
+    fun setEnableKaraoke(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setEnableKaraoke(enabled)
         }
     }
 
