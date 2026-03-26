@@ -46,6 +46,7 @@ android {
         buildConfigField("String", "BUILD_NUMBER", "\"$buildNumber\"")
         buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
         buildConfigField("String", "BUILD_TYPE", "\"$buildType\"")
+        buildConfigField("String", "VERSION_CODENAME", "\"$versionCodename\"")
     }
 
     buildTypes {

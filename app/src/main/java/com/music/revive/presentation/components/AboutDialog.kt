@@ -130,7 +130,7 @@ fun AboutDialog(
                 
                 // Codename
                 Text(
-                    text = "\"${getVersionCodename()}\"",
+                    text = "\"${BuildConfig.VERSION_CODENAME}\"",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary,
@@ -176,6 +176,18 @@ fun AboutDialog(
                             icon = Icons.Rounded.Code,
                             label = "Git SHA",
                             value = BuildConfig.GIT_SHA
+                        )
+                        
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        
+                        InfoRow(
+                            icon = Icons.Rounded.Version,
+                            label = "完整版本",
+                            value = getFullVersionString()
                         )
                     }
                 }
@@ -406,21 +418,23 @@ private fun LinkItem(
 }
 
 /**
- * Get build info string
+ * Get build info string matching workflow format
+ * Format: type + number (e.g., "b45" or "r12")
  */
 private fun getBuildInfo(): String {
-    return when (BuildConfig.BUILD_TYPE) {
-        "r" -> "Release #${BuildConfig.BUILD_NUMBER}"
-        "b" -> "Beta #${BuildConfig.BUILD_NUMBER}"
-        else -> BuildConfig.BUILD_NUMBER
+    val typeLetter = when (BuildConfig.BUILD_TYPE) {
+        "r" -> "r"  // Release
+        "b" -> "b"  // Beta
+        else -> BuildConfig.BUILD_TYPE.take(1).lowercase()
     }
+    return "$typeLetter${BuildConfig.BUILD_NUMBER}"
 }
 
 /**
- * Get version codename from BuildConfig or default
+ * Get full version string matching workflow format
+ * Format: versionName.buildType+buildNumber-gitSha
+ * Example: 0.1.1.b45-a1b2c3d
  */
-private fun getVersionCodename(): String {
-    // This would need to be added to BuildConfig in build.gradle.kts
-    // For now, return a default value
-    return System.getenv("APP_VERSION_CODENAME") ?: "Plain"
+private fun getFullVersionString(): String {
+    return "${BuildConfig.VERSION_NAME}.${getBuildInfo()}-${BuildConfig.GIT_SHA}"
 }
