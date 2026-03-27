@@ -64,6 +64,8 @@ object LrcParser {
         val translationMap = mutableMapOf<Long, String>()
         var offsetMs = 0L
         
+        android.util.Log.d("LrcParser", "Parsing LRC content: ${lrcContent.length} chars, ${lrcContent.lines().size} lines")
+        
         lrcContent.lines().forEach { line ->
             val trimmedLine = line.trim()
             if (trimmedLine.isEmpty()) return@forEach
@@ -72,6 +74,7 @@ object LrcParser {
             metadataTagRegex.find(trimmedLine)?.let { match ->
                 if (match.groupValues[1].lowercase() == "offset") {
                     offsetMs = match.groupValues[2].toLongOrNull() ?: 0L
+                    android.util.Log.d("LrcParser", "Found offset: $offsetMs ms")
                 }
                 return@forEach
             }
@@ -92,6 +95,8 @@ object LrcParser {
                 lines.addAll(lyricLines)
             }
         }
+        
+        android.util.Log.d("LrcParser", "Parsed ${lines.size} lyric lines")
         
         // Merge translations into main lines
         val mergedLines = lines.map { line ->
@@ -171,6 +176,7 @@ object LrcParser {
                     )
                 }
             }
+            // Word-by-word parsing failed (empty text), fall through to standard parsing
         }
         
         // Standard format - create a lyric line for each time tag

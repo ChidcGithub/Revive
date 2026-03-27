@@ -234,14 +234,19 @@ class EmbeddedLyricExtractor @Inject constructor(
         // Remove common BOM markers
         val cleaned = removeBom(trimmed)
         
+        Log.d(TAG, "Processing raw lyrics: ${cleaned.length} chars, first 100: ${cleaned.take(100)}")
+        Log.d(TAG, "Is LRC format: ${LrcParser.isLrcFormat(cleaned)}")
+        
         // Check if it's LRC format with timestamps
         if (LrcParser.isLrcFormat(cleaned)) {
+            Log.d(TAG, "Parsing as LRC format")
             return LrcParser.parse(cleaned, songId, LyricSource.EMBEDDED)
         }
         
+        Log.d(TAG, "Falling back to plain text parsing")
         // Plain text - create lines with time 0
-        val lines = cleaned.lines()
-            .filter { it.isNotBlank() }
+        // Use splitlines() equivalent which handles all newline types correctly
+        val lines = cleaned.split("\n", "\r\n", "\r").filter { it.isNotBlank() }
             .map { LyricLine(timeMs = 0, text = it.trim()) }
         
         return if (lines.isNotEmpty()) {
@@ -901,7 +906,7 @@ class EmbeddedLyricExtractor @Inject constructor(
                     val key = comment.substring(0, eqIndex).uppercase()
                     val value = comment.substring(eqIndex + 1)
                     
-                    Log.v(TAG, "Vorbis Comment field: $key = ${value.take(50)}...")
+                    Log.d(TAG, "Vorbis Comment field: $key = ${value.take(100)}... (${value.length} chars)")
                     
                     // Check for synced lyrics first (higher priority)
                     if (key.contains("SYNC") || key.contains("LRC") || key.contains("TIMED")) {
@@ -914,6 +919,10 @@ class EmbeddedLyricExtractor @Inject constructor(
                     else if (key in VORBIS_LYRIC_FIELDS) {
                         if (foundPlainLyrics.isNullOrBlank() && value.isNotBlank()) {
                             Log.d(TAG, "Found plain lyrics in field: $key (${value.length} chars)")
+                            Log.d(TAG, "Lyrics preview (first 200 chars): ${value.take(200)}")
+                            // Count lines
+                            val lineCount = value.split("\n", "\r\n", "\r").size
+                            Log.d(TAG, "Lyrics has approximately $lineCount lines")
                             foundPlainLyrics = value
                         }
                     }
