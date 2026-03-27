@@ -129,7 +129,7 @@ class CarBluetoothLyrics(private val context: Context) {
         val sb = StringBuilder()
         
         for (line in lyrics.lines) {
-            val timestamp = formatTimestamp(line.startTimeMs)
+            val timestamp = formatTimestamp(line.timeMs)
             sb.append("[$timestamp]${line.text}\n")
         }
         

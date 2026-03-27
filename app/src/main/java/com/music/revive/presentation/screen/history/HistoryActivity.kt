@@ -1,5 +1,7 @@
 package com.music.revive.presentation.screen.history
 
+import android.content.Context
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,7 +39,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class HistoryActivity : ComponentActivity() {
@@ -254,7 +257,16 @@ private fun HistoryListItem(
                 
                 val result = imageLoader.execute(request)
                 if (result is SuccessResult) {
-                    albumArtBitmap = result.drawable.toBitmap()
+                    val drawable = result.drawable
+                    albumArtBitmap = android.graphics.Bitmap.createBitmap(
+                        drawable.intrinsicWidth,
+                        drawable.intrinsicHeight,
+                        android.graphics.Bitmap.Config.ARGB_8888
+                    ).also { bitmap ->
+                        val canvas = android.graphics.Canvas(bitmap)
+                        drawable.setBounds(0, 0, canvas.width, canvas.height)
+                        drawable.draw(canvas)
+                    }
                 }
             } catch (e: Exception) {
                 // Ignore errors
@@ -279,8 +291,8 @@ private fun HistoryListItem(
         ) {
             // Album art or placeholder
             if (albumArtBitmap != null) {
-                Image(
-                    bitmap = androidx.compose.ui.graphics.asImageBitmap(albumArtBitmap!!),
+                androidx.compose.foundation.Image(
+                    bitmap = albumArtBitmap!!.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier
                         .size(48.dp)

@@ -61,7 +61,7 @@ class HistoryPreferences @Inject constructor(
      * Add a song to listening history
      */
     suspend fun addToHistory(songId: Long, title: String, artist: String, album: String, albumArtUri: String?) {
-        val currentHistory = historyItems.value.toMutableList()
+        val currentHistory = getRecentHistory(500).toMutableList()
         
         // Remove if already exists (to update position)
         currentHistory.removeAll { it.songId == songId }
@@ -80,7 +80,9 @@ class HistoryPreferences @Inject constructor(
         currentHistory.add(0, newItem)
         
         // Limit size
-        val maxSize = maxHistorySize.value
+        val maxSize = getRecentHistory(500).size.let { 
+            context.historyDataStore.data.firstOrNull()?.get(MAX_HISTORY_SIZE) ?: 100 
+        }
         while (currentHistory.size > maxSize) {
             currentHistory.removeAt(currentHistory.size - 1)
         }
@@ -96,7 +98,7 @@ class HistoryPreferences @Inject constructor(
      * Update play count for existing song
      */
     suspend fun updatePlayCount(songId: Long) {
-        val currentHistory = historyItems.value.toMutableList()
+        val currentHistory = getRecentHistory(500).toMutableList()
         val index = currentHistory.indexOfFirst { it.songId == songId }
         
         if (index >= 0) {
@@ -122,7 +124,7 @@ class HistoryPreferences @Inject constructor(
         }
         
         // Trim history if needed
-        val currentHistory = historyItems.value
+        val currentHistory = getRecentHistory(500)
         if (currentHistory.size > size) {
             val trimmed = currentHistory.take(size)
             context.historyDataStore.edit { preferences ->
@@ -145,7 +147,7 @@ class HistoryPreferences @Inject constructor(
      * Remove specific item from history
      */
     suspend fun removeFromHistory(songId: Long) {
-        val currentHistory = historyItems.value.toMutableList()
+        val currentHistory = getRecentHistory(500).toMutableList()
         currentHistory.removeAll { it.songId == songId }
         
         context.historyDataStore.edit { preferences ->
@@ -157,7 +159,19 @@ class HistoryPreferences @Inject constructor(
      * Get recent history (last N items)
      */
     suspend fun getRecentHistory(limit: Int = 10): List<HistoryItem> {
-        return historyItems.value.take(limit)
+        return context.historyDataStore.data
+            .firstOrNull()
+            ?.let { prefs ->
+                val jsonString = prefs[HISTORY_LIST] ?: ""
+                if (jsonString.isEmpty()) emptyList()
+                else {
+                    try {
+                        json.decodeFromString<List<HistoryItem>>(jsonString).take(limit)
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                }
+            } ?: emptyList()
     }
 }
 

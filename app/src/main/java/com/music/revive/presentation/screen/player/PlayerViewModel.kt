@@ -2,6 +2,7 @@ package com.music.revive.presentation.screen.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.music.revive.data.lyric.LyricRepository
 import com.music.revive.data.local.LyricsPreferences
 import com.music.revive.data.repository.MusicRepository
@@ -11,6 +12,7 @@ import com.music.revive.service.MusicPlayer
 import com.music.revive.data.local.PlayerPreferences
 import com.music.revive.domain.utils.CarBluetoothLyrics
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +28,8 @@ class PlayerViewModel @Inject constructor(
     private val repository: MusicRepository,
     private val lyricRepository: LyricRepository,
     private val lyricsPreferences: LyricsPreferences,
-    private val playerPreferences: PlayerPreferences
+    private val playerPreferences: PlayerPreferences,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = musicPlayer.playerState
@@ -76,7 +79,7 @@ class PlayerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
     
     // Car Bluetooth Lyrics helper
-    private val carBluetoothLyrics = CarBluetoothLyrics(musicPlayer.getApplicationContext())
+    private val carBluetoothLyrics = CarBluetoothLyrics(context.applicationContext)
 
     private var favoriteJob: Job? = null
 

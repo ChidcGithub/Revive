@@ -108,7 +108,6 @@ class FullScreenLyricsViewModel(
     val enableKaraoke = lyricsPreferences.enableKaraoke
     val enableBlur = lyricsPreferences.enableBlur
     val enableShaderEffect = playerPreferences.enableShaderEffect
-    val enableShaderEffect = playerPreferences.enableShaderEffect
     
     init {
         viewModelScope.launch {
