@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.semantics.semantics
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -102,11 +101,7 @@ fun SongItem(
             ) {
                 AlbumArtWithFallback(
                     albumArtUri = song.albumArtUri,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .semantics {
-                            contentDescription = "Album art for ${song.title} by ${song.artist}"
-                        }
+                    modifier = Modifier.fillMaxSize()
                 )
                 if (isPlaying) {
                     Surface(
@@ -194,11 +189,7 @@ fun SongItemWithFavorite(
             ) {
                 AlbumArtWithFallback(
                     albumArtUri = song.albumArtUri,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .semantics {
-                            contentDescription = "Album art for ${song.title}"
-                        }
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         },
