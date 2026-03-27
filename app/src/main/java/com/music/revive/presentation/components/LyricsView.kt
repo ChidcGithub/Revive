@@ -441,24 +441,52 @@ private fun KaraokeLyricLine(
     val density = LocalDensity.current
     
     // Balanced line mode: adjust line width and spacing based on content length
+    // Enhanced with smart detection for Chinese/English mix and better visual balance
     val lineWidthFraction = if (enableBalancedLines) {
         val lineLength = line.text.length
+        val hasChinese = line.text.any { it in '\u4e00'..'\u9fff' }
+        val hasEnglish = line.text.any { it.isLetter() }
+        
         when {
-            lineLength < 10 -> 0.6f  // Short lines: narrower width for better appearance
-            lineLength < 20 -> 0.8f  // Medium lines
-            else -> 1.0f             // Long lines: full width
+            // Very short lines (1-5 chars): center with narrow width
+            lineLength <= 5 -> 0.5f
+            // Short lines (6-12 chars): moderate width
+            lineLength <= 12 -> {
+                if (hasChinese && !hasEnglish) 0.65f else 0.75f
+            }
+            // Medium lines (13-25 chars): wider width
+            lineLength <= 25 -> {
+                if (hasChinese && !hasEnglish) 0.85f else 0.95f
+            }
+            // Long lines: full width
+            else -> 1.0f
         }
     } else {
         1.0f
     }
     
-    // Adjust vertical spacing based on line length
+    // Animate line width changes for smooth transitions
+    val animatedLineWidthFraction by animateFloatAsState(
+        targetValue = lineWidthFraction,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "lineWidthFraction"
+    )
+    
+    // Adjust vertical spacing based on line length and content
     val verticalPadding = if (enableBalancedLines) {
         val lineLength = line.text.length
+        val hasChinese = line.text.any { it in '\u4e00'..'\u9fff' }
+        
         when {
-            lineLength < 10 -> 12.dp  // More spacing for short lines
-            lineLength < 20 -> 10.dp
-            else -> 8.dp              // Less spacing for long lines
+            // More spacing for short lines to improve visual balance
+            lineLength < 8 -> if (hasChinese) 14.dp else 12.dp
+            lineLength < 15 -> if (hasChinese) 12.dp else 10.dp
+            lineLength < 25 -> if (hasChinese) 10.dp else 8.dp
+            // Less spacing for very long lines
+            else -> 6.dp
         }
     } else {
         8.dp
@@ -549,7 +577,7 @@ private fun KaraokeLyricLine(
                 onHapticFeedback = performLineHaptic,
                 enableHapticFeedback = enableHapticFeedback,
                 vibrator = vibrator,
-                modifier = Modifier.fillMaxWidth(lineWidthFraction)
+                modifier = Modifier.fillMaxWidth(animatedLineWidthFraction)
             )
         } else {
             // Standard text rendering

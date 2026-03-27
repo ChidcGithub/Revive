@@ -278,8 +278,8 @@ fun SettingsScreen(
                     )
                     
                     ListItem(
-                        headlineContent = { Text("平衡歌词行模式") },
-                        supportingContent = { Text("根据歌词长度自动调整行宽和间距") },
+                        headlineContent = { Text("智能平衡歌词行") },
+                        supportingContent = { Text("根据歌词内容和语言自动优化行宽与间距，提升视觉美感") },
                         leadingContent = {
                             Icon(Icons.Rounded.FormatAlignCenter, contentDescription = null)
                         },
