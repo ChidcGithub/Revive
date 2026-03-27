@@ -33,6 +33,8 @@ class LyricsPreferences @Inject constructor(
         private val ENABLE_BLUR = booleanPreferencesKey("enable_blur")
         private val ENABLE_FULL_SCREEN_LYRICS = booleanPreferencesKey("enable_full_screen_lyrics")
         private val ENABLE_BALANCED_LINES = booleanPreferencesKey("enable_balanced_lines")
+        private val BLUR_RADIUS = floatPreferencesKey("blur_radius")
+        private val BLUR_TRANSITION_DISTANCE = intPreferencesKey("blur_transition_distance")
     }
     
     // Font size multiplier (0.8 to 1.5)
@@ -70,6 +72,14 @@ class LyricsPreferences @Inject constructor(
     // Enable balanced lyrics lines mode
     val enableBalancedLines: Flow<Boolean> = context.lyricsDataStore.data
         .map { preferences -> preferences[ENABLE_BALANCED_LINES] ?: false }
+    
+    // Blur radius (2.0 to 15.0)
+    val blurRadius: Flow<Float> = context.lyricsDataStore.data
+        .map { preferences -> preferences[BLUR_RADIUS] ?: 5f }
+    
+    // Blur transition distance (2 to 5 lines)
+    val blurTransitionDistance: Flow<Int> = context.lyricsDataStore.data
+        .map { preferences -> preferences[BLUR_TRANSITION_DISTANCE] ?: 3 }
     
     suspend fun setLyricsFontSize(size: Float) {
         context.lyricsDataStore.edit { preferences ->
@@ -122,6 +132,18 @@ class LyricsPreferences @Inject constructor(
     suspend fun setEnableBalancedLines(enabled: Boolean) {
         context.lyricsDataStore.edit { preferences ->
             preferences[ENABLE_BALANCED_LINES] = enabled
+        }
+    }
+    
+    suspend fun setBlurRadius(radius: Float) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[BLUR_RADIUS] = radius.coerceIn(2f, 15f)
+        }
+    }
+    
+    suspend fun setBlurTransitionDistance(distance: Int) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[BLUR_TRANSITION_DISTANCE] = distance.coerceIn(2, 5)
         }
     }
 }

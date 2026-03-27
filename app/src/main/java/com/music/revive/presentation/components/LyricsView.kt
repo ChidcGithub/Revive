@@ -86,6 +86,7 @@ fun LyricsView(
     enableShader: Boolean = false,
     enableBalancedLines: Boolean = false,
     blurRadius: Float = 5f,
+    blurTransitionDistance: Int = 3,
     modifier: Modifier = Modifier
 ) {
     if (lyric.isEmpty) {
@@ -104,6 +105,7 @@ fun LyricsView(
             enableShader = enableShader,
             enableBalancedLines = enableBalancedLines,
             blurRadius = blurRadius,
+            blurTransitionDistance = blurTransitionDistance,
             modifier = modifier
         )
     } else {
@@ -168,6 +170,7 @@ private fun SyncedLyricsView(
     enableShader: Boolean,
     enableBalancedLines: Boolean,
     blurRadius: Float,
+    blurTransitionDistance: Int,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -288,6 +291,7 @@ private fun SyncedLyricsView(
                     enableShader = enableShader,
                     enableBalancedLines = enableBalancedLines,
                     blurRadius = blurRadius,
+                    blurTransitionDistance = blurTransitionDistance,
                     vibrator = vibrator,
                     primaryColor = primaryColor,
                     onBackgroundColor = onBackgroundColor,
@@ -342,6 +346,7 @@ private fun KaraokeLyricLine(
     enableShader: Boolean,
     enableBalancedLines: Boolean,
     blurRadius: Float,
+    blurTransitionDistance: Int,
     vibrator: Vibrator?,
     primaryColor: Color,
     onBackgroundColor: Color,
@@ -351,11 +356,15 @@ private fun KaraokeLyricLine(
     val textMeasurer = rememberTextMeasurer()
     val context = LocalContext.current
     
-    // Calculate blur alpha based on distance from active line
+    // Calculate blur alpha based on distance from active line with enhanced transition
     val blurAlpha by animateFloatAsState(
         targetValue = when {
             isActive -> 0f
-            enableBlur && distance <= 3 -> (distance - 1) / 3f
+            enableBlur && distance <= blurTransitionDistance -> {
+                // Enhanced smooth transition curve
+                val normalizedDistance = (distance - 1).toFloat() / (blurTransitionDistance - 1)
+                normalizedDistance.coerceIn(0f, 1f)
+            }
             else -> 1f
         },
         animationSpec = spring(
