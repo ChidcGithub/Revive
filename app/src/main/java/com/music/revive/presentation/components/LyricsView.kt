@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -228,7 +229,8 @@ private fun SyncedLyricsView(
                 top = 120.dp,
                 bottom = 120.dp
             ),
-            horizontalAlignment = if (isCentered) Alignment.CenterHorizontally else Alignment.Start
+            horizontalAlignment = if (isCentered) Alignment.CenterHorizontally else Alignment.Start,
+            userScrollEnabled = true
         ) {
             itemsIndexed(
                 items = lyric.lines,
@@ -315,7 +317,7 @@ private fun KaraokeLyricLine(
     
     // Spring-based scale animation (more organic than tween)
     val scale by animateFloatAsState(
-        targetValue = if (isActive) 1.08f else 1f,
+        targetValue = if (isActive) 1.12f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -353,7 +355,7 @@ private fun KaraokeLyricLine(
     val animatedLineProgress by animateFloatAsState(
         targetValue = lineProgress,
         animationSpec = if (isActive) {
-            tween(durationMillis = 80)
+            tween(durationMillis = 120, easing = FastOutSlowInEasing)
         } else {
             spring(stiffness = Spring.StiffnessHigh)
         },
@@ -381,6 +383,7 @@ private fun KaraokeLyricLine(
                 scaleY = scale
                 this.alpha = alpha
             }
+            .padding(vertical = 8.dp)
             .then(
                 if (glowAlpha > 0.01f) {
                     Modifier.drawBehind {

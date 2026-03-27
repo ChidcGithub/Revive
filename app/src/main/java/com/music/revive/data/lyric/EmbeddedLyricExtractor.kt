@@ -142,10 +142,12 @@ class EmbeddedLyricExtractor @Inject constructor(
             Log.d(TAG, "Extracting lyrics from ${file.name} (format: $extension)")
             
             // Method 1: Try MediaMetadataRetriever first (most reliable for common formats)
-            extractWithMediaMetadataRetriever(song)?.let { 
-                Log.d(TAG, "Found lyrics via MediaMetadataRetriever")
-                return@withContext it 
-            }
+            // TEMPORARILY DISABLED - causes issues with some FLAC files returning wrong data
+            // extractWithMediaMetadataRetriever(song)?.let { 
+            //     Log.d(TAG, "Found lyrics via MediaMetadataRetriever")
+            //     return@withContext it 
+            // }
+            Log.d(TAG, "Skipping MediaMetadataRetriever, using manual extraction")
             
             // Method 2: Manual parsing based on file extension
             when (extension) {
@@ -199,16 +201,21 @@ class EmbeddedLyricExtractor @Inject constructor(
             // METADATA_KEY_LYRICS = 20
             val lyrics = retriever.extractMetadata(20)
             
-            Log.d(TAG, "MediaMetadataRetriever lyrics result: ${if (lyrics.isNullOrBlank()) "null/blank" else "${lyrics.length} chars"}")
+            Log.d(TAG, "MediaMetadataRetriever: API returned ${if (lyrics == null) "null" else "${lyrics.length} chars"}")
+            if (lyrics != null) {
+                Log.d(TAG, "MediaMetadataRetriever: First 200 chars: '${lyrics.take(200)}'")
+            }
             
             if (!lyrics.isNullOrBlank()) {
                 val result = processRawLyrics(lyrics, song.id)
                 if (result != null && !result.isEmpty) {
-                    Log.d(TAG, "Successfully parsed lyrics from MediaMetadataRetriever")
+                    Log.d(TAG, "Successfully parsed lyrics from MediaMetadataRetriever - ${result.lines.size} lines")
                     return result
                 } else {
                     Log.d(TAG, "Failed to parse MediaMetadataRetriever lyrics, falling back to manual")
                 }
+            } else {
+                Log.d(TAG, "MediaMetadataRetriever returned no lyrics, trying manual extraction")
             }
         } catch (e: Exception) {
             Log.d(TAG, "MediaMetadataRetriever failed: ${e.message}")
@@ -698,17 +705,23 @@ class EmbeddedLyricExtractor @Inject constructor(
             
             // Return first found lyrics (priority: vorbis > application)
             // Note: CUESHEET is NOT used as lyrics - it contains CD track index info, not lyrics
-            return when {
+            val result = when {
                 vorbisLyrics != null && !vorbisLyrics.isEmpty -> {
-                    Log.d(TAG, "Found lyrics in FLAC Vorbis Comment")
+                    Log.d(TAG, "RETURNING: Found lyrics in FLAC Vorbis Comment - ${vorbisLyrics.lines.size} lines")
+                    Log.d(TAG, "First line text: '${vorbisLyrics.lines.firstOrNull()?.text?.take(50)}'")
                     vorbisLyrics
                 }
                 appLyrics != null && !appLyrics.isEmpty -> {
                     Log.d(TAG, "Found lyrics in FLAC APPLICATION block")
                     appLyrics
                 }
-                else -> null
+                else -> {
+                    Log.d(TAG, "No lyrics found in FLAC file")
+                    null
+                }
             }
+            Log.d(TAG, "extractFromFlac returning: ${result?.lines?.size ?: 0} lines")
+            return result
         }
     }
     
