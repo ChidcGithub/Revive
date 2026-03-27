@@ -47,24 +47,18 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-          cache-read-only: ${{ github.ref != 'refs/heads/beta' && github.ref != 'refs/heads/main' }}
-          generate-job-summary: false
+          cache: 'gradle'
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
+      - name: Build Debug APK with Gradle Wrapper
         env:
           APP_VERSION_NAME: ${{ steps.version.outputs.version_name }}
           GITHUB_RUN_NUMBER: ${{ steps.version.outputs.build_number }}
           GIT_SHA: ${{ steps.version.outputs.git_sha }}
           BUILD_TYPE: ${{ steps.version.outputs.build_type }}
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --build-cache
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
