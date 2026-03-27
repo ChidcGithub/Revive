@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -35,12 +36,31 @@ import com.music.revive.data.local.HistoryItem
 import com.music.revive.data.local.HistoryPreferences
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.theme.ReviveTheme
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+
+/**
+ * Convert Android Bitmap to Compose ImageBitmap
+ */
+fun android.graphics.Bitmap.asImageBitmap(): androidx.compose.ui.graphics.ImageBitmap {
+    val bytes = ByteArray(byteCount)
+    val buffer = java.nio.ByteBuffer.allocate(byteCount)
+    copyPixelsToBuffer(buffer)
+    return androidx.compose.ui.graphics.ImageBitmap(
+        width = width,
+        height = height,
+        colors = IntArray(width * height).also { 
+            buffer.rewind()
+            buffer.asIntBuffer().get(it) 
+        }
+    )
+}
 
 @AndroidEntryPoint
 class HistoryActivity : ComponentActivity() {
@@ -291,7 +311,7 @@ private fun HistoryListItem(
         ) {
             // Album art or placeholder
             if (albumArtBitmap != null) {
-                androidx.compose.foundation.Image(
+                Image(
                     bitmap = albumArtBitmap!!.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier

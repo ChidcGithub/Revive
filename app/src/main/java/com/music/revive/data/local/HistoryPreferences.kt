@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -81,7 +82,7 @@ class HistoryPreferences @Inject constructor(
         
         // Limit size
         val maxSize = getRecentHistory(500).size.let { 
-            context.historyDataStore.data.firstOrNull()?.get(MAX_HISTORY_SIZE) ?: 100 
+            context.historyDataStore.data.first().get(MAX_HISTORY_SIZE) ?: 100 
         }
         while (currentHistory.size > maxSize) {
             currentHistory.removeAt(currentHistory.size - 1)
@@ -160,8 +161,8 @@ class HistoryPreferences @Inject constructor(
      */
     suspend fun getRecentHistory(limit: Int = 10): List<HistoryItem> {
         return context.historyDataStore.data
-            .firstOrNull()
-            ?.let { prefs ->
+            .first()
+            .let { prefs ->
                 val jsonString = prefs[HISTORY_LIST] ?: ""
                 if (jsonString.isEmpty()) emptyList()
                 else {
@@ -171,7 +172,7 @@ class HistoryPreferences @Inject constructor(
                         emptyList()
                     }
                 }
-            } ?: emptyList()
+            }
     }
 }
 
