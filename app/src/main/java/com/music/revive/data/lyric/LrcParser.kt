@@ -125,10 +125,14 @@ object LrcParser {
         val textStart = timeTags.last().range.last + 1
         val rawText = if (textStart < line.length) line.substring(textStart).trim() else ""
         
+        android.util.Log.d("LrcParser", "Parsing line: '${line.take(50)}...' -> rawText: '${rawText.take(30)}...'")
+        
         if (rawText.isEmpty()) return emptyList()
         
         // Check for word-by-word format
         val wordMatches = wordTimeTagRegex.findAll(rawText).toList()
+        android.util.Log.d("LrcParser", "Word matches: ${wordMatches.size}")
+        
         if (wordMatches.isNotEmpty()) {
             // Build word segments with timing
             val wordSegments = mutableListOf<WordSegment>()
@@ -138,6 +142,8 @@ object LrcParser {
                 val seconds = match.groupValues[2]
                 val milliseconds = match.groupValues[3]
                 val wordText = match.groupValues[4]
+                
+                android.util.Log.d("LrcParser", "  Word $i: <$minutes:$seconds.$milliseconds> text='${wordText.take(20)}...'")
                 
                 val startMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
                 
@@ -163,6 +169,8 @@ object LrcParser {
             }
             
             val fullText = wordSegments.joinToString("") { it.text }.trim()
+            android.util.Log.d("LrcParser", "Full text from words: '${fullText.take(50)}...'")
+            
             if (fullText.isNotEmpty()) {
                 return timeTags.map { match ->
                     val minutes = match.groupValues[1]
@@ -177,6 +185,7 @@ object LrcParser {
                 }
             }
             // Word-by-word parsing failed (empty text), fall through to standard parsing
+            android.util.Log.d("LrcParser", "Word-by-word produced empty text, falling back to standard")
         }
         
         // Standard format - create a lyric line for each time tag
@@ -185,6 +194,7 @@ object LrcParser {
             val seconds = match.groupValues[2]
             val milliseconds = match.groupValues[3]
             val timeMs = parseTimeMs(minutes, seconds, milliseconds) + offsetMs
+            android.util.Log.d("LrcParser", "Standard parse: time=$timeMs, text='${rawText.take(30)}...'")
             LyricLine(timeMs = timeMs, text = rawText)
         }
     }
