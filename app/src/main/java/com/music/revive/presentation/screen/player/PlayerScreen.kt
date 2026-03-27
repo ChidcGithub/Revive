@@ -116,6 +116,7 @@ fun PlayerScreen(
     val enableHapticFeedback by viewModel.enableHapticFeedback.collectAsState()
     val enableBlur by viewModel.enableBlur.collectAsState()
     val enableFullScreenLyricsButton by viewModel.enableFullScreenLyricsButton.collectAsState()
+    val enableShaderEffect by viewModel.enableShaderEffect.collectAsState()
 
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -391,6 +392,7 @@ fun PlayerScreen(
                                 enableKaraoke = enableKaraoke,
                                 enableHapticFeedback = enableHapticFeedback,
                                 enableBlur = enableBlur,
+                                enableShader = enableShaderEffect,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

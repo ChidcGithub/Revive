@@ -64,6 +64,9 @@ class PlayerViewModel @Inject constructor(
     
     val enableFullScreenLyricsButton: StateFlow<Boolean> = lyricsPreferences.enableFullScreenLyrics
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
+    
+    val enableShaderEffect: StateFlow<Boolean> = playerPreferences.enableShaderEffect
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private var favoriteJob: Job? = null
 

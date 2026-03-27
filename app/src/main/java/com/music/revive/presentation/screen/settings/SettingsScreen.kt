@@ -262,6 +262,20 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    
+                    ListItem(
+                        headlineContent = { Text("Shader 渲染效果") },
+                        supportingContent = { Text("为活跃歌词行添加流光渐变效果") },
+                        leadingContent = {
+                            Icon(Icons.Rounded.AutoFixHigh, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableShaderEffect,
+                                onCheckedChange = { viewModel.setEnableShaderEffect(it) }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -1062,6 +1076,7 @@ data class SettingsUiState(
     val enableHapticFeedback: Boolean = true,
     val enableBlur: Boolean = false,
     val enableFullScreenLyricsButton: Boolean = true,
+    val enableShaderEffect: Boolean = false,
     // Playback
     val fadeInOut: Boolean = false,
     val gaplessPlayback: Boolean = true,
@@ -1199,6 +1214,12 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(enableFullScreenLyricsButton = enabled)
             }
         }
+        // Shader effect setting is stored in player preferences
+        viewModelScope.launch {
+            playerPreferences.enableShaderEffect.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableShaderEffect = enabled)
+            }
+        }
     }
 
     private fun loadPlaybackSettings() {
@@ -1328,6 +1349,12 @@ class SettingsViewModel @Inject constructor(
     fun setEnableFullScreenLyricsButton(enabled: Boolean) {
         viewModelScope.launch {
             lyricsPreferences.setEnableFullScreenLyrics(enabled)
+        }
+    }
+    
+    fun setEnableShaderEffect(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setEnableShaderEffect(enabled)
         }
     }
 

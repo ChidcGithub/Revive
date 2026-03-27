@@ -37,6 +37,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -80,6 +83,7 @@ fun LyricsView(
     enableKaraoke: Boolean = true,
     enableHapticFeedback: Boolean = true,
     enableBlur: Boolean = false,
+    enableShader: Boolean = false,
     blurRadius: Float = 5f,
     modifier: Modifier = Modifier
 ) {
@@ -96,6 +100,7 @@ fun LyricsView(
             enableKaraoke = enableKaraoke,
             enableHapticFeedback = enableHapticFeedback,
             enableBlur = enableBlur,
+            enableShader = enableShader,
             blurRadius = blurRadius,
             modifier = modifier
         )
@@ -158,6 +163,7 @@ private fun SyncedLyricsView(
     enableKaraoke: Boolean,
     enableHapticFeedback: Boolean,
     enableBlur: Boolean,
+    enableShader: Boolean,
     blurRadius: Float,
     modifier: Modifier = Modifier
 ) {
@@ -276,6 +282,7 @@ private fun SyncedLyricsView(
                     enableKaraoke = enableKaraoke,
                     enableHapticFeedback = enableHapticFeedback,
                     enableBlur = enableBlur,
+                    enableShader = enableShader,
                     blurRadius = blurRadius,
                     vibrator = vibrator,
                     primaryColor = primaryColor,
@@ -328,6 +335,7 @@ private fun KaraokeLyricLine(
     enableKaraoke: Boolean,
     enableHapticFeedback: Boolean,
     enableBlur: Boolean,
+    enableShader: Boolean,
     blurRadius: Float,
     vibrator: Vibrator?,
     primaryColor: Color,
@@ -420,6 +428,16 @@ private fun KaraokeLyricLine(
     val dimmedColor = onBackgroundColor.copy(alpha = 0.5f)
     val density = LocalDensity.current
     
+    // Shader effect for active line - creates gradient shimmer effect
+    val shaderAlpha by animateFloatAsState(
+        targetValue = if (isActive && enableShader) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "shaderAlpha"
+    )
+    
     Column(
         modifier = modifier
             .graphicsLayer {
@@ -441,6 +459,19 @@ private fun KaraokeLyricLine(
                         drawGlowEffect(
                             glowColor = glowColor,
                             glowAlpha = glowAlpha,
+                            cornerRadius = 16.dp.toPx()
+                        )
+                    }
+                } else {
+                    Modifier
+                }
+            )
+            .then(
+                if (shaderAlpha > 0.01f && enableShader) {
+                    Modifier.drawBehind {
+                        drawShaderEffect(
+                            primaryColor = primaryColor,
+                            shaderAlpha = shaderAlpha,
                             cornerRadius = 16.dp.toPx()
                         )
                     }
@@ -674,6 +705,80 @@ private fun DrawScope.drawGlowEffect(
             cornerRadius,
             glowPaint.asFrameworkPaint()
         )
+    }
+}
+
+/**
+ * Draw a shader-based shimmer effect for active lyric line.
+ * Creates a gradient overlay with animated shimmer that flows across the text.
+ */
+private fun DrawScope.drawShaderEffect(
+    primaryColor: Color,
+    shaderAlpha: Float,
+    cornerRadius: Float
+) {
+    // Animated shimmer offset
+    val shimmerOffset = (System.currentTimeMillis() / 1000f) % 2f - 1f
+    
+    // Create gradient shader with multiple colors for shimmer effect
+    val shimmerColors = listOf(
+        primaryColor.copy(alpha = 0f),
+        primaryColor.copy(alpha = 0.3f * shaderAlpha),
+        primaryColor.copy(alpha = 0.6f * shaderAlpha),
+        primaryColor.copy(alpha = 0.3f * shaderAlpha),
+        primaryColor.copy(alpha = 0f)
+    )
+    
+    val shaderBrush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset(shimmerOffset * size.width, 0f),
+        end = Offset((shimmerOffset + 2f) * size.width, size.height),
+        tileMode = TileMode.Clamp
+    )
+    
+    drawIntoCanvas { canvas ->
+        val shaderPaint = Paint().asFrameworkPaint().apply {
+            this.alpha = (shaderAlpha * 255).toInt()
+            isAntiAlias = true
+        }
+        
+        // Draw rounded rectangle background with shader
+        val rect = android.graphics.RectF(
+            0f, 0f, size.width, size.height
+        )
+        
+        canvas.nativeCanvas.saveLayer(rect, shaderPaint)
+        
+        // Draw the shader gradient
+        shaderBrush.apply {
+            val frameworkPaint = android.graphics.Paint().apply {
+                isAntiAlias = true
+                alpha = (shaderAlpha * 255).toInt()
+            }
+            // Create linear gradient directly
+            val colors = shimmerColors.map { it.toArgb() }.toIntArray()
+            val positions = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
+            
+            val gradient = android.graphics.LinearGradient(
+                shimmerOffset * size.width,
+                0f,
+                (shimmerOffset + 2f) * size.width,
+                size.height,
+                colors,
+                positions,
+                android.graphics.Shader.TileMode.CLAMP
+            )
+            
+            frameworkPaint.shader = gradient
+            canvas.nativeCanvas.drawRoundRect(
+                rect,
+                cornerRadius,
+                cornerRadius,
+                frameworkPaint
+            )
+        }
+        
+        canvas.nativeCanvas.restore()
     }
 }
 

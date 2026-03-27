@@ -52,6 +52,7 @@ class FullScreenLyricsActivity : ComponentActivity() {
 
     @Inject lateinit var musicPlayer: MusicPlayer
     @Inject lateinit var lyricsPreferences: LyricsPreferences
+    @Inject lateinit var playerPreferences: com.music.revive.data.local.PlayerPreferences
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +72,7 @@ class FullScreenLyricsActivity : ComponentActivity() {
                 FullScreenLyricsScreen(
                     musicPlayer = musicPlayer,
                     lyricsPreferences = lyricsPreferences,
+                    playerPreferences = playerPreferences,
                     onNavigateBack = { finish() }
                 )
             }
@@ -86,7 +88,8 @@ class FullScreenLyricsActivity : ComponentActivity() {
 
 class FullScreenLyricsViewModel(
     private val musicPlayer: MusicPlayer,
-    private val lyricsPreferences: LyricsPreferences
+    private val lyricsPreferences: LyricsPreferences,
+    private val playerPreferences: com.music.revive.data.local.PlayerPreferences
 ) : ViewModel() {
 
     val playerState = musicPlayer.playerState
@@ -104,6 +107,8 @@ class FullScreenLyricsViewModel(
     val enableGlow = lyricsPreferences.enableGlow
     val enableKaraoke = lyricsPreferences.enableKaraoke
     val enableBlur = lyricsPreferences.enableBlur
+    val enableShaderEffect = playerPreferences.enableShaderEffect
+    val enableShaderEffect = playerPreferences.enableShaderEffect
     
     init {
         viewModelScope.launch {
@@ -122,14 +127,14 @@ class FullScreenLyricsViewModel(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullScreenLyricsScreen(
     musicPlayer: MusicPlayer,
     lyricsPreferences: LyricsPreferences,
+    playerPreferences: com.music.revive.data.local.PlayerPreferences,
     onNavigateBack: () -> Unit
 ) {
-    val viewModel = remember { FullScreenLyricsViewModel(musicPlayer, lyricsPreferences) }
+    val viewModel = remember { FullScreenLyricsViewModel(musicPlayer, lyricsPreferences, playerPreferences) }
     
     val playerState by viewModel.playerState.collectAsState()
     val currentLyrics by viewModel.currentLyrics.collectAsState()
@@ -140,6 +145,7 @@ fun FullScreenLyricsScreen(
     val enableGlow by viewModel.enableGlow.collectAsState(initial = true)
     val enableKaraoke by viewModel.enableKaraoke.collectAsState(initial = true)
     val enableBlur by viewModel.enableBlur.collectAsState(initial = false)
+    val enableShaderEffect by viewModel.enableShaderEffect.collectAsState(initial = false)
     
     val song = playerState.currentSong
     
@@ -244,6 +250,7 @@ fun FullScreenLyricsScreen(
                         enableKaraoke = enableKaraoke,
                         enableHapticFeedback = false,
                         enableBlur = enableBlur,
+                        enableShader = enableShaderEffect,
                         blurRadius = 8f,
                         modifier = Modifier.fillMaxSize()
                     )
