@@ -1,18 +1,15 @@
 package com.music.revive.presentation.screen.history
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ClearAll
@@ -28,21 +25,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.ImageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
-import coil.size.Scale
+import coil.compose.rememberImagePainter
 import com.music.revive.data.local.HistoryItem
 import com.music.revive.data.local.HistoryPreferences
-import com.music.revive.domain.model.Song
 import com.music.revive.presentation.theme.ReviveTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -245,37 +236,6 @@ private fun HistoryListItem(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var albumArtBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    
-    LaunchedEffect(item.albumArtUri) {
-        if (!item.albumArtUri.isNullOrEmpty()) {
-            try {
-                val imageLoader = ImageLoader(context)
-                val request = ImageRequest.Builder(context)
-                    .data(item.albumArtUri)
-                    .size(128)
-                    .scale(Scale.FILL)
-                    .allowHardware(false)
-                    .build()
-                
-                val result = imageLoader.execute(request)
-                if (result is SuccessResult) {
-                    val drawable = result.drawable
-                    albumArtBitmap = android.graphics.Bitmap.createBitmap(
-                        drawable.intrinsicWidth,
-                        drawable.intrinsicHeight,
-                        android.graphics.Bitmap.Config.ARGB_8888
-                    ).also { bitmap ->
-                        val canvas = android.graphics.Canvas(bitmap)
-                        drawable.setBounds(0, 0, canvas.width, canvas.height)
-                        drawable.draw(canvas)
-                    }
-                }
-            } catch (e: Exception) {
-                // Ignore errors
-            }
-        }
-    }
     
     Card(
         modifier = modifier
@@ -292,25 +252,18 @@ private fun HistoryListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Album art or placeholder
-            if (albumArtBitmap != null) {
-                val imageBitmap = android.graphics.Bitmap.createBitmap(
-                    albumArtBitmap!!.width,
-                    albumArtBitmap!!.height,
-                    android.graphics.Bitmap.Config.ARGB_8888
-                ).apply {
-                    val canvas = android.graphics.Canvas(this)
-                    canvas.drawBitmap(albumArtBitmap!!, 0f, 0f, null)
-                }.let { bitmap ->
-                    val pixels = IntArray(bitmap.width * bitmap.height)
-                    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-                    androidx.compose.ui.graphics.ImageBitmap(bitmap.width, bitmap.height).apply {
-                        writePixels(pixels)
+            // Album art or placeholder using Coil
+            if (!item.albumArtUri.isNullOrEmpty()) {
+                val painter = rememberImagePainter(
+                    data = item.albumArtUri,
+                    builder = {
+                        crossfade(true)
+                        size(128)
                     }
-                }
+                )
                 
-                Image(
-                    bitmap = imageBitmap,
+                androidx.compose.foundation.Image(
+                    painter = painter,
                     contentDescription = null,
                     modifier = Modifier
                         .size(48.dp)
