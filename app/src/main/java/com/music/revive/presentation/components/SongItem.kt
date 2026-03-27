@@ -101,7 +101,11 @@ fun SongItem(
             ) {
                 AlbumArtWithFallback(
                     albumArtUri = song.albumArtUri,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics {
+                            contentDescription = "Album art for ${song.title} by ${song.artist}"
+                        }
                 )
                 if (isPlaying) {
                     Surface(
@@ -189,7 +193,11 @@ fun SongItemWithFavorite(
             ) {
                 AlbumArtWithFallback(
                     albumArtUri = song.albumArtUri,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics {
+                            contentDescription = "Album art for ${song.title}"
+                        }
                 )
             }
         },

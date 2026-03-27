@@ -409,7 +409,9 @@ fun SongDetailScreen(
                             leadingContent = {
                                 Icon(Icons.Default.Album, contentDescription = null)
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onAlbumClick(song.albumId!!) },
                             colors = ListItemDefaults.colors(
                                 containerColor = Color.Transparent
                             )
@@ -421,7 +423,9 @@ fun SongDetailScreen(
                             leadingContent = {
                                 Icon(Icons.Default.Person, contentDescription = null)
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onArtistClick(song.artistId!!) },
                             colors = ListItemDefaults.colors(
                                 containerColor = Color.Transparent
                             )
@@ -432,7 +436,18 @@ fun SongDetailScreen(
                         leadingContent = {
                             Icon(Icons.Default.Share, contentDescription = null)
                         },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "audio/*"
+                                    putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(song.path))
+                                    putExtra(Intent.EXTRA_SUBJECT, song.title)
+                                    putExtra(Intent.EXTRA_TEXT, "${song.title} - ${song.artist}")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share)))
+                            },
                         colors = ListItemDefaults.colors(
                             containerColor = Color.Transparent
                         )

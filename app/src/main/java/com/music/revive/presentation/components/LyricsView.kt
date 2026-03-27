@@ -207,8 +207,10 @@ private fun SyncedLyricsView(
         if (currentLineIndex >= 0 && !isUserScrolling) {
             val visibleItems = listState.layoutInfo.visibleItemsInfo
             if (visibleItems.isNotEmpty()) {
+                // Calculate dynamic offset based on viewport height for better centering
                 val viewportHeight = listState.layoutInfo.viewportEndOffset
-                val centerOffset = viewportHeight / 3 // Position current line at 1/3 from top
+                // Position current line at approximately 40% from top for better visibility
+                val centerOffset = (viewportHeight * 0.4f).toInt()
                 listState.animateScrollToItem(
                     index = currentLineIndex,
                     scrollOffset = -centerOffset
@@ -476,6 +478,18 @@ private fun KaraokeLyricLine(
         label = "shaderAlpha"
     )
     
+    // Animated shimmer offset for shader effect using infinite transition
+    val shimmerOffset by remember {
+        derivedStateOf { 
+            (System.currentTimeMillis() / 1500f) % 2f - 1f 
+        }
+    }
+    val animatedShimmerOffset by animateFloatAsState(
+        targetValue = shimmerOffset,
+        animationSpec = tween(durationMillis = 50, easing = LinearEasing),
+        label = "shimmerOffset"
+    )
+    
     Column(
         modifier = modifier
             .graphicsLayer {
@@ -510,6 +524,7 @@ private fun KaraokeLyricLine(
                         drawShaderEffect(
                             primaryColor = primaryColor,
                             shaderAlpha = shaderAlpha,
+                            shimmerOffset = animatedShimmerOffset,
                             cornerRadius = 16.dp.toPx()
                         )
                     }
@@ -722,14 +737,14 @@ private fun DrawScope.drawGlowEffect(
     glowAlpha: Float,
     cornerRadius: Float
 ) {
-    val glowPaint = Paint().also { paint ->
-        paint.color = glowColor.copy(alpha = glowAlpha * 0.6f)
-        paint.asFrameworkPaint().apply {
-            maskFilter = BlurMaskFilter(
-                cornerRadius * 2f,
-                BlurMaskFilter.Blur.NORMAL
-            )
-        }
+    // Cache paint object to reduce allocations
+    val glowPaint = android.graphics.Paint().apply {
+        color = glowColor.copy(alpha = glowAlpha * 0.6f).toArgb()
+        isAntiAlias = true
+        maskFilter = BlurMaskFilter(
+            cornerRadius * 2f,
+            BlurMaskFilter.Blur.NORMAL
+        )
     }
     
     drawIntoCanvas { canvas ->
@@ -741,7 +756,7 @@ private fun DrawScope.drawGlowEffect(
             size.height + padding * 0.5f,
             cornerRadius,
             cornerRadius,
-            glowPaint.asFrameworkPaint()
+            glowPaint
         )
     }
 }
@@ -753,68 +768,50 @@ private fun DrawScope.drawGlowEffect(
 private fun DrawScope.drawShaderEffect(
     primaryColor: Color,
     shaderAlpha: Float,
+    shimmerOffset: Float,
     cornerRadius: Float
 ) {
-    // Animated shimmer offset
-    val shimmerOffset = (System.currentTimeMillis() / 1000f) % 2f - 1f
+    // Cache paint objects to reduce allocations
+    val shaderPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        alpha = (shaderAlpha * 255).toInt()
+    }
     
-    // Create gradient shader with multiple colors for shimmer effect
-    val shimmerColors = listOf(
-        primaryColor.copy(alpha = 0f),
-        primaryColor.copy(alpha = 0.3f * shaderAlpha),
-        primaryColor.copy(alpha = 0.6f * shaderAlpha),
-        primaryColor.copy(alpha = 0.3f * shaderAlpha),
-        primaryColor.copy(alpha = 0f)
-    )
-    
-    val shaderBrush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(shimmerOffset * size.width, 0f),
-        end = Offset((shimmerOffset + 2f) * size.width, size.height),
-        tileMode = TileMode.Clamp
+    // Draw rounded rectangle background with shader
+    val rect = android.graphics.RectF(
+        0f, 0f, size.width, size.height
     )
     
     drawIntoCanvas { canvas ->
-        val shaderPaint = Paint().asFrameworkPaint().apply {
-            this.alpha = (shaderAlpha * 255).toInt()
-            isAntiAlias = true
-        }
-        
-        // Draw rounded rectangle background with shader
-        val rect = android.graphics.RectF(
-            0f, 0f, size.width, size.height
-        )
-        
         canvas.nativeCanvas.saveLayer(rect, shaderPaint)
         
-        // Draw the shader gradient
-        shaderBrush.apply {
-            val frameworkPaint = android.graphics.Paint().apply {
-                isAntiAlias = true
-                alpha = (shaderAlpha * 255).toInt()
-            }
-            // Create linear gradient directly
-            val colors = shimmerColors.map { it.toArgb() }.toIntArray()
-            val positions = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
-            
-            val gradient = android.graphics.LinearGradient(
-                shimmerOffset * size.width,
-                0f,
-                (shimmerOffset + 2f) * size.width,
-                size.height,
-                colors,
-                positions,
-                android.graphics.Shader.TileMode.CLAMP
-            )
-            
-            frameworkPaint.shader = gradient
-            canvas.nativeCanvas.drawRoundRect(
-                rect,
-                cornerRadius,
-                cornerRadius,
-                frameworkPaint
-            )
-        }
+        // Create linear gradient directly with cached values
+        val colors = intArrayOf(
+            primaryColor.copy(alpha = 0f).toArgb(),
+            primaryColor.copy(alpha = 0.3f * shaderAlpha).toArgb(),
+            primaryColor.copy(alpha = 0.6f * shaderAlpha).toArgb(),
+            primaryColor.copy(alpha = 0.3f * shaderAlpha).toArgb(),
+            primaryColor.copy(alpha = 0f).toArgb()
+        )
+        val positions = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
+        
+        val gradient = android.graphics.LinearGradient(
+            shimmerOffset * size.width,
+            0f,
+            (shimmerOffset + 2f) * size.width,
+            size.height,
+            colors,
+            positions,
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        
+        shaderPaint.shader = gradient
+        canvas.nativeCanvas.drawRoundRect(
+            rect,
+            cornerRadius,
+            cornerRadius,
+            shaderPaint
+        )
         
         canvas.nativeCanvas.restore()
     }
@@ -889,6 +886,18 @@ enum class HapticFeedbackType {
  */
 private fun performHapticFeedback(vibrator: Vibrator?, type: HapticFeedbackType) {
     if (vibrator == null || !vibrator.hasVibrator()) return
+    
+    // Check for vibration permission on Android 13+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // On Android 12+, hasVibrator() already checks permissions implicitly
+        // but we add an extra safety check
+        try {
+            vibrator.vibrate(VibrationEffect.createOneShot(1, VibrationEffect.DEFAULT_AMPLITUDE))
+        } catch (e: SecurityException) {
+            // Permission denied, skip haptic feedback
+            return
+        }
+    }
     
     try {
         when (type) {

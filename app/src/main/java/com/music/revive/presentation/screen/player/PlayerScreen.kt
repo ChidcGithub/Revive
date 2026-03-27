@@ -165,8 +165,8 @@ fun PlayerScreen(
         label = "bottomAlpha"
     )
 
-    // Trigger entry animation
-    LaunchedEffect(Unit) {
+    // Trigger entry animation only when song changes
+    LaunchedEffect(song.id) {
         isVisible = true
     }
 
@@ -1065,12 +1065,13 @@ fun AmbientBackground(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "ambient")
     
-    // Animate floating positions
+    // Optimize: Only animate 4 key positions instead of 8 for better performance
+    // Use longer durations and smoother easing for ambient effect
     val offsetX1 by infiniteTransition.animateFloat(
         initialValue = 0.2f,
         targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
-            animation = tween(8000, easing = LinearEasing),
+            animation = tween(12000, easing = LinearEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetX1"
@@ -1080,7 +1081,7 @@ fun AmbientBackground(
         initialValue = 0.3f,
         targetValue = 0.2f,
         animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
+            animation = tween(15000, easing = LinearEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetY1"
@@ -1090,7 +1091,7 @@ fun AmbientBackground(
         initialValue = 0.7f,
         targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(12000, easing = LinearEasing),
+            animation = tween(18000, easing = LinearEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetX2"
@@ -1100,50 +1101,10 @@ fun AmbientBackground(
         initialValue = 0.2f,
         targetValue = 0.4f,
         animationSpec = infiniteRepeatable(
-            animation = tween(9000, easing = LinearEasing),
+            animation = tween(14000, easing = LinearEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "offsetY2"
-    )
-    
-    val offsetX3 by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(11000, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "offsetX3"
-    )
-    
-    val offsetY3 by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(7000, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "offsetY3"
-    )
-    
-    val offsetX4 by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(9500, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "offsetX4"
-    )
-    
-    val offsetY4 by infiniteTransition.animateFloat(
-        initialValue = 0.75f,
-        targetValue = 0.85f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(10500, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "offsetY4"
     )
 
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -1198,46 +1159,6 @@ fun AmbientBackground(
                         ),
                         center = center2,
                         radius = radius2
-                    )
-                    
-                    // Blob 3 - Light Vibrant (bottom-left area)
-                    val center3 = androidx.compose.ui.geometry.Offset(
-                        width * offsetX3,
-                        height * offsetY3
-                    )
-                    val radius3 = width * 0.4f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                colors.lightVibrant.copy(alpha = 0.25f),
-                                colors.lightVibrant.copy(alpha = 0.08f),
-                                Color.Transparent
-                            ),
-                            center = center3,
-                            radius = radius3
-                        ),
-                        center = center3,
-                        radius = radius3
-                    )
-                    
-                    // Blob 4 - Muted (bottom-right area)
-                    val center4 = androidx.compose.ui.geometry.Offset(
-                        width * offsetX4,
-                        height * offsetY4
-                    )
-                    val radius4 = width * 0.35f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                colors.muted.copy(alpha = 0.3f),
-                                colors.muted.copy(alpha = 0.1f),
-                                Color.Transparent
-                            ),
-                            center = center4,
-                            radius = radius4
-                        ),
-                        center = center4,
-                        radius = radius4
                     )
                 }
             }

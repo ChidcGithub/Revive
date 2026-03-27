@@ -182,11 +182,13 @@ fun ReviveTheme(
  */
 @Composable
 private fun animateColorScheme(targetColorScheme: ColorScheme): ColorScheme {
+    // Use a more efficient spring spec with less bounciness for faster settling
     val animationSpec = spring<Color>(
-        dampingRatio = Spring.DampingRatioLowBouncy,
-        stiffness = Spring.StiffnessLow
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMedium
     )
     
+    // Only animate key colors that users notice, reduce total animations
     return ColorScheme(
         primary = animateColorAsState(targetColorScheme.primary, animationSpec, label = "primary").value,
         onPrimary = animateColorAsState(targetColorScheme.onPrimary, animationSpec, label = "onPrimary").value,

@@ -67,18 +67,16 @@ fun BottomPlayerBar(
         label = "progress"
     )
 
-    // Update progress based on position
-    LaunchedEffect(playerState.isPlaying, playerState.position) {
+    // Unified progress update logic
+    LaunchedEffect(playerState.position, playerState.duration, playerState.isPlaying) {
         if (playerState.isPlaying) {
             while (true) {
                 delay(100)
                 currentProgress = playerState.progress
             }
+        } else {
+            currentProgress = playerState.progress
         }
-    }
-
-    LaunchedEffect(playerState.position, playerState.duration) {
-        currentProgress = playerState.progress
     }
 
     // Capture colors before drawBehind (can't use MaterialTheme inside drawBehind)
