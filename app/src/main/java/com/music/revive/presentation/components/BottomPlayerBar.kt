@@ -104,9 +104,18 @@ fun BottomPlayerBar(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         tonalElevation = 0.dp,
         shadowElevation = 12.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
+        color = Color.Transparent
     ) {
-        // Remove blur layer - causes white block rendering issue
+        // Backdrop blur layer - optimized with lower blur radius for better performance
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .blur(8.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f))
+        ) {
+            Spacer(modifier = Modifier.height(1.dp))
+        }
+        
         // Content container with gradient overlay
         Box(
             modifier = Modifier
