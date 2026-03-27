@@ -45,23 +45,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-/**
- * Convert Android Bitmap to Compose ImageBitmap
- */
-fun android.graphics.Bitmap.asImageBitmap(): androidx.compose.ui.graphics.ImageBitmap {
-    val bytes = ByteArray(byteCount)
-    val buffer = java.nio.ByteBuffer.allocate(byteCount)
-    copyPixelsToBuffer(buffer)
-    return androidx.compose.ui.graphics.ImageBitmap(
-        width = width,
-        height = height,
-        colors = IntArray(width * height).also { 
-            buffer.rewind()
-            buffer.asIntBuffer().get(it) 
-        }
-    )
-}
-
 @AndroidEntryPoint
 class HistoryActivity : ComponentActivity() {
     
@@ -311,8 +294,23 @@ private fun HistoryListItem(
         ) {
             // Album art or placeholder
             if (albumArtBitmap != null) {
+                val imageBitmap = android.graphics.Bitmap.createBitmap(
+                    albumArtBitmap!!.width,
+                    albumArtBitmap!!.height,
+                    android.graphics.Bitmap.Config.ARGB_8888
+                ).apply {
+                    val canvas = android.graphics.Canvas(this)
+                    canvas.drawBitmap(albumArtBitmap!!, 0f, 0f, null)
+                }.let { bitmap ->
+                    val pixels = IntArray(bitmap.width * bitmap.height)
+                    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+                    androidx.compose.ui.graphics.ImageBitmap(bitmap.width, bitmap.height).apply {
+                        writePixels(pixels)
+                    }
+                }
+                
                 Image(
-                    bitmap = albumArtBitmap!!.asImageBitmap(),
+                    bitmap = imageBitmap,
                     contentDescription = null,
                     modifier = Modifier
                         .size(48.dp)
