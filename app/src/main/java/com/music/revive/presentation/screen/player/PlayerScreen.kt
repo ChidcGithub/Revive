@@ -250,26 +250,23 @@ fun PlayerScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                // Toggle lyrics/album art button
-                IconButton(onClick = { showLyrics = !showLyrics }) {
+                // Toggle lyrics/album art button - click to open full screen lyrics
+                IconButton(onClick = { 
+                    if (showLyrics) {
+                        // Open full screen lyrics directly
+                        val intent = FullScreenLyricsActivity.newIntent(context)
+                        context.startActivity(intent)
+                    } else {
+                        // Show lyrics view
+                        showLyrics = !showLyrics
+                    }
+                }) {
                     Icon(
                         imageVector = if (showLyrics) Icons.Rounded.Album else Icons.Rounded.Lyrics,
                         contentDescription = if (showLyrics) stringResource(R.string.show_album_art) else stringResource(R.string.show_lyrics)
                     )
                 }
-                // Full screen lyrics button
-                if (enableFullScreenLyricsButton && showLyrics) {
-                    IconButton(onClick = {
-                        val intent = FullScreenLyricsActivity.newIntent(context)
-                        context.startActivity(intent)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Fullscreen,
-                            contentDescription = "全屏歌词",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+                // Remove separate full screen button - integrated into toggle button above
                 IconButton(onClick = onQueueClick) {
                     Icon(
                         imageVector = Icons.Rounded.QueueMusic,

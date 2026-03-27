@@ -561,7 +561,6 @@ private fun AnimatedSongListItem(
         modifier = Modifier
             .combinedClickable(
                 onClick = {
-                    isPressed = true
                     onPlayClick()
                 },
                 onLongClick = onLongClick

@@ -308,10 +308,17 @@ fun ReviveNavigation(
                                 )
                             },
                             label = {
-                                Text(
-                                    text = stringResource(R.string.songs),
-                                    fontWeight = if (currentRoute.contains("Songs")) FontWeight.Medium else FontWeight.Normal
-                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = stringResource(R.string.songs),
+                                        fontWeight = if (currentRoute.contains("Songs")) FontWeight.Medium else FontWeight.Normal
+                                    )
+                                    Text(
+                                        text = homeUiState.songs.size.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         )
                         NavigationBarItem(
