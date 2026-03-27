@@ -84,6 +84,7 @@ fun LyricsView(
     enableHapticFeedback: Boolean = true,
     enableBlur: Boolean = false,
     enableShader: Boolean = false,
+    enableBalancedLines: Boolean = false,
     blurRadius: Float = 5f,
     modifier: Modifier = Modifier
 ) {
@@ -101,6 +102,7 @@ fun LyricsView(
             enableHapticFeedback = enableHapticFeedback,
             enableBlur = enableBlur,
             enableShader = enableShader,
+            enableBalancedLines = enableBalancedLines,
             blurRadius = blurRadius,
             modifier = modifier
         )
@@ -164,6 +166,7 @@ private fun SyncedLyricsView(
     enableHapticFeedback: Boolean,
     enableBlur: Boolean,
     enableShader: Boolean,
+    enableBalancedLines: Boolean,
     blurRadius: Float,
     modifier: Modifier = Modifier
 ) {
@@ -283,6 +286,7 @@ private fun SyncedLyricsView(
                     enableHapticFeedback = enableHapticFeedback,
                     enableBlur = enableBlur,
                     enableShader = enableShader,
+                    enableBalancedLines = enableBalancedLines,
                     blurRadius = blurRadius,
                     vibrator = vibrator,
                     primaryColor = primaryColor,
@@ -336,6 +340,7 @@ private fun KaraokeLyricLine(
     enableHapticFeedback: Boolean,
     enableBlur: Boolean,
     enableShader: Boolean,
+    enableBalancedLines: Boolean,
     blurRadius: Float,
     vibrator: Vibrator?,
     primaryColor: Color,
@@ -428,6 +433,30 @@ private fun KaraokeLyricLine(
     val dimmedColor = onBackgroundColor.copy(alpha = 0.5f)
     val density = LocalDensity.current
     
+    // Balanced line mode: adjust line width and spacing based on content length
+    val lineWidthFraction = if (enableBalancedLines) {
+        val lineLength = line.text.length
+        when {
+            lineLength < 10 -> 0.6f  // Short lines: narrower width for better appearance
+            lineLength < 20 -> 0.8f  // Medium lines
+            else -> 1.0f             // Long lines: full width
+        }
+    } else {
+        1.0f
+    }
+    
+    // Adjust vertical spacing based on line length
+    val verticalPadding = if (enableBalancedLines) {
+        val lineLength = line.text.length
+        when {
+            lineLength < 10 -> 12.dp  // More spacing for short lines
+            lineLength < 20 -> 10.dp
+            else -> 8.dp              // Less spacing for long lines
+        }
+    } else {
+        8.dp
+    }
+    
     // Shader effect for active line - creates gradient shimmer effect
     val shaderAlpha by animateFloatAsState(
         targetValue = if (isActive && enableShader) 1f else 0f,
@@ -452,7 +481,7 @@ private fun KaraokeLyricLine(
                     Modifier
                 }
             )
-            .padding(vertical = 8.dp)
+            .padding(vertical = verticalPadding)
             .then(
                 if (glowAlpha > 0.01f) {
                     Modifier.drawBehind {
@@ -500,7 +529,7 @@ private fun KaraokeLyricLine(
                 onHapticFeedback = performLineHaptic,
                 enableHapticFeedback = enableHapticFeedback,
                 vibrator = vibrator,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(lineWidthFraction)
             )
         } else {
             // Standard text rendering
@@ -510,7 +539,7 @@ private fun KaraokeLyricLine(
                 color = if (isActive) primaryColor else onBackgroundColor,
                 textAlign = textAlign,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(lineWidthFraction)
                     .clickable { performLineHaptic() }
             )
         }

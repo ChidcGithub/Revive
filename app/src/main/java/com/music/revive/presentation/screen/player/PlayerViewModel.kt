@@ -67,6 +67,9 @@ class PlayerViewModel @Inject constructor(
     
     val enableShaderEffect: StateFlow<Boolean> = playerPreferences.enableShaderEffect
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    
+    val enableBalancedLines: StateFlow<Boolean> = lyricsPreferences.enableBalancedLines
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private var favoriteJob: Job? = null
 

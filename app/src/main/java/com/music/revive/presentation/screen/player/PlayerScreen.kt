@@ -117,6 +117,7 @@ fun PlayerScreen(
     val enableBlur by viewModel.enableBlur.collectAsState()
     val enableFullScreenLyricsButton by viewModel.enableFullScreenLyricsButton.collectAsState()
     val enableShaderEffect by viewModel.enableShaderEffect.collectAsState()
+    val enableBalancedLines by viewModel.enableBalancedLines.collectAsState()
 
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -393,6 +394,7 @@ fun PlayerScreen(
                                 enableHapticFeedback = enableHapticFeedback,
                                 enableBlur = enableBlur,
                                 enableShader = enableShaderEffect,
+                                enableBalancedLines = enableBalancedLines,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

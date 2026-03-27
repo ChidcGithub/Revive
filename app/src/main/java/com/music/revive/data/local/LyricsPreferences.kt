@@ -32,6 +32,7 @@ class LyricsPreferences @Inject constructor(
         private val ENABLE_KARAOKE = booleanPreferencesKey("enable_karaoke")
         private val ENABLE_BLUR = booleanPreferencesKey("enable_blur")
         private val ENABLE_FULL_SCREEN_LYRICS = booleanPreferencesKey("enable_full_screen_lyrics")
+        private val ENABLE_BALANCED_LINES = booleanPreferencesKey("enable_balanced_lines")
     }
     
     // Font size multiplier (0.8 to 1.5)
@@ -65,6 +66,10 @@ class LyricsPreferences @Inject constructor(
     // Enable full screen lyrics button
     val enableFullScreenLyrics: Flow<Boolean> = context.lyricsDataStore.data
         .map { preferences -> preferences[ENABLE_FULL_SCREEN_LYRICS] ?: true }
+    
+    // Enable balanced lyrics lines mode
+    val enableBalancedLines: Flow<Boolean> = context.lyricsDataStore.data
+        .map { preferences -> preferences[ENABLE_BALANCED_LINES] ?: false }
     
     suspend fun setLyricsFontSize(size: Float) {
         context.lyricsDataStore.edit { preferences ->
@@ -111,6 +116,12 @@ class LyricsPreferences @Inject constructor(
     suspend fun setEnableFullScreenLyrics(enabled: Boolean) {
         context.lyricsDataStore.edit { preferences ->
             preferences[ENABLE_FULL_SCREEN_LYRICS] = enabled
+        }
+    }
+    
+    suspend fun setEnableBalancedLines(enabled: Boolean) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[ENABLE_BALANCED_LINES] = enabled
         }
     }
 }

@@ -276,6 +276,20 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    
+                    ListItem(
+                        headlineContent = { Text("平衡歌词行模式") },
+                        supportingContent = { Text("根据歌词长度自动调整行宽和间距") },
+                        leadingContent = {
+                            Icon(Icons.Rounded.FormatAlignCenter, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableBalancedLines,
+                                onCheckedChange = { viewModel.setEnableBalancedLines(it) }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -1077,6 +1091,7 @@ data class SettingsUiState(
     val enableBlur: Boolean = false,
     val enableFullScreenLyricsButton: Boolean = true,
     val enableShaderEffect: Boolean = false,
+    val enableBalancedLines: Boolean = false,
     // Playback
     val fadeInOut: Boolean = false,
     val gaplessPlayback: Boolean = true,
@@ -1220,6 +1235,12 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(enableShaderEffect = enabled)
             }
         }
+        // Balanced lines setting is stored in lyrics preferences
+        viewModelScope.launch {
+            lyricsPreferences.enableBalancedLines.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableBalancedLines = enabled)
+            }
+        }
     }
 
     private fun loadPlaybackSettings() {
@@ -1355,6 +1376,12 @@ class SettingsViewModel @Inject constructor(
     fun setEnableShaderEffect(enabled: Boolean) {
         viewModelScope.launch {
             playerPreferences.setEnableShaderEffect(enabled)
+        }
+    }
+    
+    fun setEnableBalancedLines(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setEnableBalancedLines(enabled)
         }
     }
 
