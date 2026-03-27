@@ -389,7 +389,7 @@ class MusicRepository @Inject constructor(
     suspend fun removeFromListeningHistory(songId: Long) {
         historyPreferences.removeFromHistory(songId)
     }
-}
+    
     // ==================== Private Helpers ====================
     
     private fun filterExcludedFolders(songs: List<Song>, excludedFolders: Set<String>): List<Song> {

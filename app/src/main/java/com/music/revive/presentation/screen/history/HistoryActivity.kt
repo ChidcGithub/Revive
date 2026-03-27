@@ -23,7 +23,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
@@ -34,7 +33,6 @@ import com.music.revive.data.local.HistoryItem
 import com.music.revive.data.local.HistoryPreferences
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.theme.ReviveTheme
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +51,7 @@ class HistoryActivity : ComponentActivity() {
         setContent {
             ReviveTheme {
                 HistoryScreen(
-                    viewModel = hiltViewModel(),
+                    viewModel = HistoryViewModel(historyPreferences),
                     onNavigateBack = { finish() }
                 )
             }
@@ -67,8 +65,7 @@ class HistoryActivity : ComponentActivity() {
     }
 }
 
-@HiltViewModel
-class HistoryViewModel @Inject constructor(
+class HistoryViewModel(
     private val historyPreferences: HistoryPreferences
 ) : ViewModel() {
     
