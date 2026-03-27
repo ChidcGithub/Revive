@@ -220,6 +220,20 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    
+                    ListItem(
+                        headlineContent = { Text("启用触感反馈") },
+                        supportingContent = { Text("歌词切换和点击时提供振动反馈") },
+                        leadingContent = {
+                            Icon(Icons.Rounded.Vibration, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableHapticFeedback,
+                                onCheckedChange = { viewModel.setEnableHapticFeedback(it) }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -1017,6 +1031,7 @@ data class SettingsUiState(
     val lyricsDisplayStyle: Int = 0,
     val enableGlow: Boolean = true,
     val enableKaraoke: Boolean = true,
+    val enableHapticFeedback: Boolean = true,
     // Playback
     val fadeInOut: Boolean = false,
     val gaplessPlayback: Boolean = true,
@@ -1136,6 +1151,12 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(enableKaraoke = enabled)
             }
         }
+        // Haptic feedback setting is stored in player preferences
+        viewModelScope.launch {
+            playerPreferences.enableHapticFeedback.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableHapticFeedback = enabled)
+            }
+        }
     }
 
     private fun loadPlaybackSettings() {
@@ -1247,6 +1268,12 @@ class SettingsViewModel @Inject constructor(
     fun setEnableKaraoke(enabled: Boolean) {
         viewModelScope.launch {
             lyricsPreferences.setEnableKaraoke(enabled)
+        }
+    }
+
+    fun setEnableHapticFeedback(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setEnableHapticFeedback(enabled)
         }
     }
 

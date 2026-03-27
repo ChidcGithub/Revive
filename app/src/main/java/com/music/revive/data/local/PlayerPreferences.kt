@@ -28,6 +28,7 @@ class PlayerPreferences @Inject constructor(
         private val VOLUME_NORMALIZATION = booleanPreferencesKey("volume_normalization")
         private val PLAYBACK_SPEED = floatPreferencesKey("playback_speed")
         private val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
+        private val ENABLE_HAPTIC_FEEDBACK = booleanPreferencesKey("enable_haptic_feedback")
     }
     
     // Fade in/out effect
@@ -49,6 +50,10 @@ class PlayerPreferences @Inject constructor(
     // Skip silence
     val skipSilence: Flow<Boolean> = context.playerDataStore.data
         .map { preferences -> preferences[SKIP_SILENCE] ?: false }
+    
+    // Haptic feedback
+    val enableHapticFeedback: Flow<Boolean> = context.playerDataStore.data
+        .map { preferences -> preferences[ENABLE_HAPTIC_FEEDBACK] ?: true }
     
     suspend fun setFadeInOut(enabled: Boolean) {
         context.playerDataStore.edit { preferences ->
@@ -77,6 +82,12 @@ class PlayerPreferences @Inject constructor(
     suspend fun setSkipSilence(enabled: Boolean) {
         context.playerDataStore.edit { preferences ->
             preferences[SKIP_SILENCE] = enabled
+        }
+    }
+    
+    suspend fun setEnableHapticFeedback(enabled: Boolean) {
+        context.playerDataStore.edit { preferences ->
+            preferences[ENABLE_HAPTIC_FEEDBACK] = enabled
         }
     }
 }

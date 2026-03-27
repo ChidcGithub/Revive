@@ -1,6 +1,11 @@
 package com.music.revive.presentation.components
 
+import android.content.Context
 import android.graphics.BlurMaskFilter
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -10,6 +15,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +43,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextLayoutResult
@@ -70,6 +77,7 @@ fun LyricsView(
     isCentered: Boolean = true,
     enableGlow: Boolean = true,
     enableKaraoke: Boolean = true,
+    enableHapticFeedback: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     if (lyric.isEmpty) {
@@ -83,6 +91,7 @@ fun LyricsView(
             isCentered = isCentered,
             enableGlow = enableGlow,
             enableKaraoke = enableKaraoke,
+            enableHapticFeedback = enableHapticFeedback,
             modifier = modifier
         )
     } else {
@@ -142,19 +151,31 @@ private fun SyncedLyricsView(
     isCentered: Boolean,
     enableGlow: Boolean,
     enableKaraoke: Boolean,
+    enableHapticFeedback: Boolean,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     
     // Track user scrolling to prevent auto-scroll interference
     var isUserScrolling by remember { mutableStateOf(false) }
     var lastUserScrollTime by remember { mutableLongStateOf(0L) }
+    var previousLineIndex by remember { mutableStateOf(-1) }
     
     // Find current line index
     val currentLineIndex = remember(currentPositionMs, lyric.lines) {
         lyric.findCurrentLineIndex(currentPositionMs)
+    }
+    
+    // Haptic feedback when line changes
+    LaunchedEffect(currentLineIndex) {
+        if (enableHapticFeedback && currentLineIndex != previousLineIndex && currentLineIndex >= 0) {
+            performHapticFeedback(vibrator, HapticFeedbackType.LINE_CHANGE)
+        }
+        previousLineIndex = currentLineIndex
     }
     
     // Calculate line progress for karaoke effect
@@ -246,6 +267,8 @@ private fun SyncedLyricsView(
                     textAlign = if (isCentered) TextAlign.Center else TextAlign.Start,
                     enableGlow = enableGlow,
                     enableKaraoke = enableKaraoke,
+                    enableHapticFeedback = enableHapticFeedback,
+                    vibrator = vibrator,
                     primaryColor = primaryColor,
                     onBackgroundColor = onBackgroundColor,
                     glowColor = glowColor,
@@ -294,12 +317,22 @@ private fun KaraokeLyricLine(
     textAlign: TextAlign,
     enableGlow: Boolean,
     enableKaraoke: Boolean,
+    enableHapticFeedback: Boolean,
+    vibrator: Vibrator?,
     primaryColor: Color,
     onBackgroundColor: Color,
     glowColor: Color,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val context = LocalContext.current
+    
+    // Haptic feedback on line click
+    val performLineHaptic = {
+        if (enableHapticFeedback) {
+            performHapticFeedback(vibrator, HapticFeedbackType.LINE_CLICK)
+        }
+    }
     
     // Spring-based scale animation (more organic than tween)
     val scale by animateFloatAsState(
@@ -401,6 +434,9 @@ private fun KaraokeLyricLine(
                 inactiveColor = dimmedColor,
                 textMeasurer = textMeasurer,
                 textAlign = textAlign,
+                onHapticFeedback = performLineHaptic,
+                enableHapticFeedback = enableHapticFeedback,
+                vibrator = vibrator,
                 modifier = Modifier.fillMaxWidth()
             )
         } else {
@@ -410,7 +446,9 @@ private fun KaraokeLyricLine(
                 style = textStyle,
                 color = if (isActive) primaryColor else onBackgroundColor,
                 textAlign = textAlign,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { performLineHaptic() }
             )
         }
         
@@ -457,6 +495,9 @@ private fun KaraokeText(
     inactiveColor: Color,
     textMeasurer: TextMeasurer,
     textAlign: TextAlign,
+    onHapticFeedback: () -> Unit,
+    enableHapticFeedback: Boolean,
+    vibrator: Vibrator?,
     modifier: Modifier = Modifier
 ) {
     val measuredText = remember(text, textStyle) {
@@ -480,7 +521,13 @@ private fun KaraokeText(
     }
     
     androidx.compose.foundation.Canvas(
-        modifier = modifier.height(with(LocalDensity.current) { textHeight.toDp() })
+        modifier = modifier
+            .height(with(LocalDensity.current) { textHeight.toDp() })
+            .clickable { 
+                if (enableHapticFeedback) {
+                    onHapticFeedback()
+                }
+            }
     ) {
         val canvasWidth = size.width
         
@@ -651,4 +698,54 @@ private fun GradientOverlay(
     Box(
         modifier = modifier.background(backgroundGradient)
     )
+}
+
+/**
+ * Haptic feedback types for lyrics interaction
+ */
+enum class HapticFeedbackType {
+    LINE_CHANGE,      // Light tap when current line changes
+    LINE_CLICK,       // Medium click when user taps a line
+    SCROLL_EDGE,      // Stronger feedback when reaching edge while scrolling
+}
+
+/**
+ * Perform haptic feedback based on type and Android version
+ */
+private fun performHapticFeedback(vibrator: Vibrator?, type: HapticFeedbackType) {
+    if (vibrator == null || !vibrator.hasVibrator()) return
+    
+    try {
+        when (type) {
+            HapticFeedbackType.LINE_CHANGE -> {
+                // Light, quick tap for line change
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(15)
+                }
+            }
+            HapticFeedbackType.LINE_CLICK -> {
+                // Medium click for user interaction
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(30)
+                }
+            }
+            HapticFeedbackType.SCROLL_EDGE -> {
+                // Stronger feedback for edge detection
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(50)
+                }
+            }
+        }
+    } catch (e: Exception) {
+        // Ignore haptic feedback errors
+    }
 }

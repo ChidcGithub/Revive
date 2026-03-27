@@ -111,6 +111,7 @@ fun PlayerScreen(
     val lyricsDisplayStyle by viewModel.lyricsDisplayStyle.collectAsState()
     val enableGlow by viewModel.enableGlow.collectAsState()
     val enableKaraoke by viewModel.enableKaraoke.collectAsState()
+    val enableHapticFeedback by viewModel.enableHapticFeedback.collectAsState()
 
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -371,6 +372,7 @@ fun PlayerScreen(
                                 isCentered = lyricsDisplayStyle == 0,
                                 enableGlow = enableGlow,
                                 enableKaraoke = enableKaraoke,
+                                enableHapticFeedback = enableHapticFeedback,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

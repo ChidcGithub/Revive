@@ -8,6 +8,7 @@ import com.music.revive.data.repository.MusicRepository
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.PlayerState
 import com.music.revive.service.MusicPlayer
+import com.music.revive.data.local.PlayerPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,8 @@ class PlayerViewModel @Inject constructor(
     internal val musicPlayer: MusicPlayer,
     private val repository: MusicRepository,
     private val lyricRepository: LyricRepository,
-    private val lyricsPreferences: LyricsPreferences
+    private val lyricsPreferences: LyricsPreferences,
+    private val playerPreferences: PlayerPreferences
 ) : ViewModel() {
 
     val playerState: StateFlow<PlayerState> = musicPlayer.playerState
@@ -52,6 +54,9 @@ class PlayerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
     val enableKaraoke: StateFlow<Boolean> = lyricsPreferences.enableKaraoke
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
+    val enableHapticFeedback: StateFlow<Boolean> = playerPreferences.enableHapticFeedback
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
     private var favoriteJob: Job? = null
