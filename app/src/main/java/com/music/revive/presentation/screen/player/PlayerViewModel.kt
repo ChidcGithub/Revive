@@ -59,6 +59,12 @@ class PlayerViewModel @Inject constructor(
     val enableHapticFeedback: StateFlow<Boolean> = playerPreferences.enableHapticFeedback
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
+    val enableBlur: StateFlow<Boolean> = lyricsPreferences.enableBlur
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    
+    val enableFullScreenLyricsButton: StateFlow<Boolean> = lyricsPreferences.enableFullScreenLyrics
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
     private var favoriteJob: Job? = null
 
     init {

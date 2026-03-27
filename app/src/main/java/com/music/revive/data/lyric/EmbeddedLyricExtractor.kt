@@ -2,6 +2,7 @@ package com.music.revive.data.lyric
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
+import android.util.Log
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
 import com.music.revive.domain.model.LyricSource
@@ -133,7 +134,7 @@ class EmbeddedLyricExtractor @Inject constructor(
         try {
             val file = File(song.path)
             if (!file.exists()) {
-    return@withContext null
+                return@withContext null
             }
             
             val extension = file.extension.lowercase()
@@ -162,10 +163,11 @@ class EmbeddedLyricExtractor @Inject constructor(
                     Log.d(TAG, "Unsupported format: $extension")
                     null
                 }
-            }?.let { return@withContext it }
-            null
+            } ?: run {
+                null
+            }
         } catch (e: Exception) {
-
+            null
         }
     }
     

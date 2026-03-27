@@ -234,6 +234,34 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    
+                    ListItem(
+                        headlineContent = { Text("启用模糊效果") },
+                        supportingContent = { Text("非活跃歌词行将显示模糊效果") },
+                        leadingContent = {
+                            Icon(Icons.Rounded.BlurOn, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableBlur,
+                                onCheckedChange = { viewModel.setEnableBlur(it) }
+                            )
+                        }
+                    )
+                    
+                    ListItem(
+                        headlineContent = { Text("全屏歌词按钮") },
+                        supportingContent = { Text("在播放器界面显示全屏歌词切换按钮") },
+                        leadingContent = {
+                            Icon(Icons.Rounded.Fullscreen, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableFullScreenLyricsButton,
+                                onCheckedChange = { viewModel.setEnableFullScreenLyricsButton(it) }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -1032,6 +1060,8 @@ data class SettingsUiState(
     val enableGlow: Boolean = true,
     val enableKaraoke: Boolean = true,
     val enableHapticFeedback: Boolean = true,
+    val enableBlur: Boolean = false,
+    val enableFullScreenLyricsButton: Boolean = true,
     // Playback
     val fadeInOut: Boolean = false,
     val gaplessPlayback: Boolean = true,
@@ -1157,6 +1187,18 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(enableHapticFeedback = enabled)
             }
         }
+        // Blur effect setting is stored in lyrics preferences
+        viewModelScope.launch {
+            lyricsPreferences.enableBlur.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableBlur = enabled)
+            }
+        }
+        // Full screen lyrics button setting
+        viewModelScope.launch {
+            lyricsPreferences.enableFullScreenLyrics.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableFullScreenLyricsButton = enabled)
+            }
+        }
     }
 
     private fun loadPlaybackSettings() {
@@ -1274,6 +1316,18 @@ class SettingsViewModel @Inject constructor(
     fun setEnableHapticFeedback(enabled: Boolean) {
         viewModelScope.launch {
             playerPreferences.setEnableHapticFeedback(enabled)
+        }
+    }
+
+    fun setEnableBlur(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setEnableBlur(enabled)
+        }
+    }
+
+    fun setEnableFullScreenLyricsButton(enabled: Boolean) {
+        viewModelScope.launch {
+            lyricsPreferences.setEnableFullScreenLyrics(enabled)
         }
     }
 

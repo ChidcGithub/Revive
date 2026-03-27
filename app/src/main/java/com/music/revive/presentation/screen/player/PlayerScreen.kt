@@ -2,6 +2,7 @@ package com.music.revive.presentation.screen.player
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateColorAsState
@@ -57,6 +58,7 @@ import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.AddToPlaylistDialog
 import com.music.revive.presentation.components.CreatePlaylistDialog
 import com.music.revive.presentation.components.LyricsView
+import com.music.revive.presentation.screen.fullscreenlyrics.FullScreenLyricsActivity
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -112,6 +114,8 @@ fun PlayerScreen(
     val enableGlow by viewModel.enableGlow.collectAsState()
     val enableKaraoke by viewModel.enableKaraoke.collectAsState()
     val enableHapticFeedback by viewModel.enableHapticFeedback.collectAsState()
+    val enableBlur by viewModel.enableBlur.collectAsState()
+    val enableFullScreenLyricsButton by viewModel.enableFullScreenLyricsButton.collectAsState()
 
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -251,6 +255,19 @@ fun PlayerScreen(
                         contentDescription = if (showLyrics) stringResource(R.string.show_album_art) else stringResource(R.string.show_lyrics)
                     )
                 }
+                // Full screen lyrics button
+                if (enableFullScreenLyricsButton && showLyrics) {
+                    IconButton(onClick = {
+                        val intent = FullScreenLyricsActivity.newIntent(context)
+                        context.startActivity(intent)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Fullscreen,
+                            contentDescription = "全屏歌词",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 IconButton(onClick = onQueueClick) {
                     Icon(
                         imageVector = Icons.Rounded.QueueMusic,
@@ -373,6 +390,7 @@ fun PlayerScreen(
                                 enableGlow = enableGlow,
                                 enableKaraoke = enableKaraoke,
                                 enableHapticFeedback = enableHapticFeedback,
+                                enableBlur = enableBlur,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

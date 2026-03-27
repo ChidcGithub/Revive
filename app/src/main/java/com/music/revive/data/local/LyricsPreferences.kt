@@ -27,9 +27,11 @@ class LyricsPreferences @Inject constructor(
         private val LYRICS_FONT_SIZE = floatPreferencesKey("lyrics_font_size")
         private val SHOW_TRANSLATION = booleanPreferencesKey("show_translation")
         private val AUTO_SCROLL = booleanPreferencesKey("auto_scroll")
-        private val LYRICS_DISPLAY_STYLE = intPreferencesKey("lyrics_display_style") // 0: centered, 1: left-aligned
+        private val LYRICS_DISPLAY_STYLE = intPreferencesKey("lyrics_display_style")
         private val ENABLE_GLOW = booleanPreferencesKey("enable_glow")
         private val ENABLE_KARAOKE = booleanPreferencesKey("enable_karaoke")
+        private val ENABLE_BLUR = booleanPreferencesKey("enable_blur")
+        private val ENABLE_FULL_SCREEN_LYRICS = booleanPreferencesKey("enable_full_screen_lyrics")
     }
     
     // Font size multiplier (0.8 to 1.5)
@@ -55,6 +57,14 @@ class LyricsPreferences @Inject constructor(
     // Enable karaoke gradient sweep effect
     val enableKaraoke: Flow<Boolean> = context.lyricsDataStore.data
         .map { preferences -> preferences[ENABLE_KARAOKE] ?: true }
+    
+    // Enable blur effect on inactive lines
+    val enableBlur: Flow<Boolean> = context.lyricsDataStore.data
+        .map { preferences -> preferences[ENABLE_BLUR] ?: false }
+    
+    // Enable full screen lyrics button
+    val enableFullScreenLyrics: Flow<Boolean> = context.lyricsDataStore.data
+        .map { preferences -> preferences[ENABLE_FULL_SCREEN_LYRICS] ?: true }
     
     suspend fun setLyricsFontSize(size: Float) {
         context.lyricsDataStore.edit { preferences ->
@@ -89,6 +99,18 @@ class LyricsPreferences @Inject constructor(
     suspend fun setEnableKaraoke(enabled: Boolean) {
         context.lyricsDataStore.edit { preferences ->
             preferences[ENABLE_KARAOKE] = enabled
+        }
+    }
+    
+    suspend fun setEnableBlur(enabled: Boolean) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[ENABLE_BLUR] = enabled
+        }
+    }
+    
+    suspend fun setEnableFullScreenLyrics(enabled: Boolean) {
+        context.lyricsDataStore.edit { preferences ->
+            preferences[ENABLE_FULL_SCREEN_LYRICS] = enabled
         }
     }
 }

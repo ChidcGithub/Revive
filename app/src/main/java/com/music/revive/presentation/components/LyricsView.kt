@@ -28,6 +28,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -78,6 +79,8 @@ fun LyricsView(
     enableGlow: Boolean = true,
     enableKaraoke: Boolean = true,
     enableHapticFeedback: Boolean = true,
+    enableBlur: Boolean = false,
+    blurRadius: Float = 5f,
     modifier: Modifier = Modifier
 ) {
     if (lyric.isEmpty) {
@@ -92,6 +95,8 @@ fun LyricsView(
             enableGlow = enableGlow,
             enableKaraoke = enableKaraoke,
             enableHapticFeedback = enableHapticFeedback,
+            enableBlur = enableBlur,
+            blurRadius = blurRadius,
             modifier = modifier
         )
     } else {
@@ -152,6 +157,8 @@ private fun SyncedLyricsView(
     enableGlow: Boolean,
     enableKaraoke: Boolean,
     enableHapticFeedback: Boolean,
+    enableBlur: Boolean,
+    blurRadius: Float,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -268,6 +275,8 @@ private fun SyncedLyricsView(
                     enableGlow = enableGlow,
                     enableKaraoke = enableKaraoke,
                     enableHapticFeedback = enableHapticFeedback,
+                    enableBlur = enableBlur,
+                    blurRadius = blurRadius,
                     vibrator = vibrator,
                     primaryColor = primaryColor,
                     onBackgroundColor = onBackgroundColor,
@@ -318,6 +327,8 @@ private fun KaraokeLyricLine(
     enableGlow: Boolean,
     enableKaraoke: Boolean,
     enableHapticFeedback: Boolean,
+    enableBlur: Boolean,
+    blurRadius: Float,
     vibrator: Vibrator?,
     primaryColor: Color,
     onBackgroundColor: Color,
@@ -326,6 +337,20 @@ private fun KaraokeLyricLine(
 ) {
     val textMeasurer = rememberTextMeasurer()
     val context = LocalContext.current
+    
+    // Calculate blur alpha based on distance from active line
+    val blurAlpha by animateFloatAsState(
+        targetValue = when {
+            isActive -> 0f
+            enableBlur && distance <= 3 -> (distance - 1) / 3f
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "blurAlpha"
+    )
     
     // Haptic feedback on line click
     val performLineHaptic = {
@@ -402,6 +427,13 @@ private fun KaraokeLyricLine(
                 scaleY = scale
                 this.alpha = alpha
             }
+            .then(
+                if (enableBlur && blurAlpha > 0.01f) {
+                    Modifier.blur((blurRadius * blurAlpha).dp)
+                } else {
+                    Modifier
+                }
+            )
             .padding(vertical = 8.dp)
             .then(
                 if (glowAlpha > 0.01f) {
