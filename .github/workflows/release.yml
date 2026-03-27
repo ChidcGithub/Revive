@@ -101,12 +101,10 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-          gradle-home-cache-cleanup: true
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
       - name: Decode keystore
         if: github.event_name != 'pull_request'
@@ -124,7 +122,7 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ steps.version.outputs.build_number }}
           GIT_SHA: ${{ steps.version.outputs.git_sha }}
           BUILD_TYPE: ${{ steps.version.outputs.build_type }}
-        run: gradle assembleDebug
+        run: ./gradlew assembleDebug --no-daemon --build-cache
 
       - name: Build Release APK
         if: github.event_name != 'pull_request'
@@ -137,7 +135,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle assembleRelease
+        run: ./gradlew assembleRelease --no-daemon --build-cache
 
       - name: Build Release Bundle
         if: github.event_name != 'pull_request' && github.event.inputs.version_name != '' && steps.version.outputs.build_type == 'r'
@@ -150,7 +148,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle bundleRelease
+        run: ./gradlew bundleRelease --no-daemon --build-cache
 
       - name: Rename APK with version
         if: github.event_name != 'pull_request'
