@@ -72,20 +72,6 @@ fun LyricsView(
     enableKaraoke: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    // Debug info - show parsed lyrics info
-    android.util.Log.d("LyricsView", "Rendering lyrics: isEmpty=${lyric.isEmpty}, isSynced=${lyric.isSynced}, lines=${lyric.lines.size}")
-    if (lyric.lines.isNotEmpty()) {
-        android.util.Log.d("LyricsView", "First line: timeMs=${lyric.lines.first().timeMs}, text='${lyric.lines.first().text.take(50)}...'")
-        // Check for numeric-only text
-        val numericLines = lyric.lines.filter { it.text.trim().all { c -> c.isDigit() } }
-        if (numericLines.isNotEmpty()) {
-            android.util.Log.e("LyricsView", "WARNING: ${numericLines.size} lines have numeric-only text!")
-            numericLines.forEach { line ->
-                android.util.Log.e("LyricsView", "  Numeric line: timeMs=${line.timeMs}, text='${line.text}'")
-            }
-        }
-    }
-    
     if (lyric.isEmpty) {
         EmptyLyricsView(modifier = modifier)
     } else if (lyric.isSynced) {

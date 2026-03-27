@@ -2,7 +2,6 @@ package com.music.revive.data.lyric
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
-import android.util.Log
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
 import com.music.revive.domain.model.LyricSource
@@ -134,20 +133,13 @@ class EmbeddedLyricExtractor @Inject constructor(
         try {
             val file = File(song.path)
             if (!file.exists()) {
-                Log.d(TAG, "File not found: ${song.path}")
-                return@withContext null
+    return@withContext null
             }
             
             val extension = file.extension.lowercase()
-            Log.d(TAG, "Extracting lyrics from ${file.name} (format: $extension)")
-            
             // Method 1: Try MediaMetadataRetriever first (most reliable for common formats)
-            // TEMPORARILY DISABLED - causes issues with some FLAC files returning wrong data
-            // extractWithMediaMetadataRetriever(song)?.let { 
-            //     Log.d(TAG, "Found lyrics via MediaMetadataRetriever")
-            //     return@withContext it 
-            // }
-            Log.d(TAG, "Skipping MediaMetadataRetriever, using manual extraction")
+            // DISABLED - causes issues with some FLAC files returning wrong data
+            // extractWithMediaMetadataRetriever(song)?.let { return@withContext it }
             
             // Method 2: Manual parsing based on file extension
             when (extension) {
@@ -170,16 +162,10 @@ class EmbeddedLyricExtractor @Inject constructor(
                     Log.d(TAG, "Unsupported format: $extension")
                     null
                 }
-            }?.let { 
-                Log.d(TAG, "Found lyrics via manual parsing for $extension")
-                return@withContext it 
-            }
-            
-            Log.d(TAG, "No lyrics found in ${file.name}")
+            }?.let { return@withContext it }
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Error extracting lyrics from ${song.path}", e)
-            null
+
         }
     }
     
@@ -190,7 +176,6 @@ class EmbeddedLyricExtractor @Inject constructor(
      */
     private fun extractWithMediaMetadataRetriever(song: Song): Lyric? {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
-            Log.d(TAG, "API < 29, skipping MediaMetadataRetriever")
             return null
         }
         
@@ -201,24 +186,13 @@ class EmbeddedLyricExtractor @Inject constructor(
             // METADATA_KEY_LYRICS = 20
             val lyrics = retriever.extractMetadata(20)
             
-            Log.d(TAG, "MediaMetadataRetriever: API returned ${if (lyrics == null) "null" else "${lyrics.length} chars"}")
-            if (lyrics != null) {
-                Log.d(TAG, "MediaMetadataRetriever: First 200 chars: '${lyrics.take(200)}'")
-            }
-            
             if (!lyrics.isNullOrBlank()) {
                 val result = processRawLyrics(lyrics, song.id)
                 if (result != null && !result.isEmpty) {
-                    Log.d(TAG, "Successfully parsed lyrics from MediaMetadataRetriever - ${result.lines.size} lines")
                     return result
-                } else {
-                    Log.d(TAG, "Failed to parse MediaMetadataRetriever lyrics, falling back to manual")
                 }
-            } else {
-                Log.d(TAG, "MediaMetadataRetriever returned no lyrics, trying manual extraction")
             }
         } catch (e: Exception) {
-            Log.d(TAG, "MediaMetadataRetriever failed: ${e.message}")
             // Fallback to manual parsing
         } finally {
             try {
@@ -241,16 +215,10 @@ class EmbeddedLyricExtractor @Inject constructor(
         // Remove common BOM markers
         val cleaned = removeBom(trimmed)
         
-        Log.d(TAG, "Processing raw lyrics: ${cleaned.length} chars, first 100: ${cleaned.take(100)}")
-        Log.d(TAG, "Is LRC format: ${LrcParser.isLrcFormat(cleaned)}")
-        
         // Check if it's LRC format with timestamps
         if (LrcParser.isLrcFormat(cleaned)) {
-            Log.d(TAG, "Parsing as LRC format")
             return LrcParser.parse(cleaned, songId, LyricSource.EMBEDDED)
         }
-        
-        Log.d(TAG, "Falling back to plain text parsing")
         // Plain text - create lines with time 0
         // Use splitlines() equivalent which handles all newline types correctly
         val lines = cleaned.split("\n", "\r\n", "\r").filter { it.isNotBlank() }
@@ -642,7 +610,6 @@ class EmbeddedLyricExtractor @Inject constructor(
                 raf.seek(0)
                 val id3Lyrics = extractId3FromStart(file, songId)
                 if (id3Lyrics != null && !id3Lyrics.isEmpty) {
-                    Log.d(TAG, "Found lyrics in FLAC ID3v2 tag")
                     return id3Lyrics
                 }
                 // Reset to after ID3
@@ -673,8 +640,6 @@ class EmbeddedLyricExtractor @Inject constructor(
                 val blockType = (header ushr 24) and 0x7F
                 val blockSize = header and 0xFFFFFF
                 
-                Log.d(TAG, "FLAC block type: $blockType, size: $blockSize, last: $isLast")
-                
                 when (blockType) {
                     FLAC_VORBIS_COMMENT -> {
                         val data = ByteArray(blockSize)
@@ -698,30 +663,16 @@ class EmbeddedLyricExtractor @Inject constructor(
             if (vorbisLyrics == null) {
                 val id3v1Lyrics = extractId3v1FromEnd(raf, songId)
                 if (id3v1Lyrics != null && !id3v1Lyrics.isEmpty) {
-                    Log.d(TAG, "Found lyrics in FLAC ID3v1 tag")
                     return id3v1Lyrics
                 }
             }
             
             // Return first found lyrics (priority: vorbis > application)
-            // Note: CUESHEET is NOT used as lyrics - it contains CD track index info, not lyrics
-            val result = when {
-                vorbisLyrics != null && !vorbisLyrics.isEmpty -> {
-                    Log.d(TAG, "RETURNING: Found lyrics in FLAC Vorbis Comment - ${vorbisLyrics.lines.size} lines")
-                    Log.d(TAG, "First line text: '${vorbisLyrics.lines.firstOrNull()?.text?.take(50)}'")
-                    vorbisLyrics
-                }
-                appLyrics != null && !appLyrics.isEmpty -> {
-                    Log.d(TAG, "Found lyrics in FLAC APPLICATION block")
-                    appLyrics
-                }
-                else -> {
-                    Log.d(TAG, "No lyrics found in FLAC file")
-                    null
-                }
+            return when {
+                vorbisLyrics != null && !vorbisLyrics.isEmpty -> vorbisLyrics
+                appLyrics != null && !appLyrics.isEmpty -> appLyrics
+                else -> null
             }
-            Log.d(TAG, "extractFromFlac returning: ${result?.lines?.size ?: 0} lines")
-            return result
         }
     }
     
@@ -885,14 +836,12 @@ class EmbeddedLyricExtractor @Inject constructor(
             offset += 4 + vendorLen
             
             if (offset + 4 > data.size) {
-                Log.d(TAG, "Vorbis Comment: data too short after vendor string")
                 return null
             }
             
             // Number of comments
             val numComments = readLittleEndianInt(data, offset)
             offset += 4
-            Log.d(TAG, "Vorbis Comment: $numComments comments to parse")
             
             var foundLyrics: String? = null
             var foundSyncedLyrics: String? = null
@@ -919,30 +868,21 @@ class EmbeddedLyricExtractor @Inject constructor(
                     val key = comment.substring(0, eqIndex).uppercase()
                     val value = comment.substring(eqIndex + 1)
                     
-                    Log.d(TAG, "Vorbis Comment field: $key = ${value.take(100)}... (${value.length} chars)")
-                    
                     // Check for synced lyrics first (higher priority)
                     if (key.contains("SYNC") || key.contains("LRC") || key.contains("TIMED")) {
                         if (foundSyncedLyrics.isNullOrBlank() && value.isNotBlank()) {
-                            Log.d(TAG, "Found synced lyrics in field: $key")
                             foundSyncedLyrics = value
                         }
                     }
                     // Then check for any lyrics field
                     else if (key in VORBIS_LYRIC_FIELDS) {
                         if (foundPlainLyrics.isNullOrBlank() && value.isNotBlank()) {
-                            Log.d(TAG, "Found plain lyrics in field: $key (${value.length} chars)")
-                            Log.d(TAG, "Lyrics preview (first 200 chars): ${value.take(200)}")
-                            // Count lines
-                            val lineCount = value.split("\n", "\r\n", "\r").size
-                            Log.d(TAG, "Lyrics has approximately $lineCount lines")
                             foundPlainLyrics = value
                         }
                     }
                     // Check DESCRIPTION/COMMENT fields for lyrics content
                     else if ((key == "DESCRIPTION" || key == "COMMENT") && value.isNotBlank()) {
                         if (looksLikeLyrics(value) && foundPlainLyrics.isNullOrBlank()) {
-                            Log.d(TAG, "Found lyrics-like content in field: $key")
                             foundPlainLyrics = value
                         }
                     }
@@ -953,14 +893,11 @@ class EmbeddedLyricExtractor @Inject constructor(
             foundLyrics = foundSyncedLyrics ?: foundPlainLyrics
             
             if (foundLyrics.isNullOrBlank()) {
-                Log.d(TAG, "No lyrics found in Vorbis Comment")
                 return null
             }
             
-            Log.d(TAG, "Processing lyrics: ${foundLyrics.length} chars, first 100: ${foundLyrics.take(100)}")
             return foundLyrics.let { processRawLyrics(it, songId) }
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing Vorbis Comment", e)
             return null
         }
     }

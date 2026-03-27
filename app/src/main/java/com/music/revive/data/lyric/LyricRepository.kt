@@ -1,7 +1,6 @@
 package com.music.revive.data.lyric
 
 import android.content.Context
-import android.util.Log
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,13 +46,8 @@ class LyricRepository @Inject constructor(
      * Load lyrics for a song from all available sources
      */
     suspend fun loadLyrics(song: Song): Lyric {
-        Log.d("LyricRepo", "=== START LOAD LYRICS ===")
-        Log.d("LyricRepo", "Song: ${song.title} by ${song.artist}")
-        Log.d("LyricRepo", "Song path: ${song.path}")
-        
         // Check cache first
         lyricsCache[song.id]?.let { 
-            Log.d("LyricRepo", "Returning cached lyrics: ${it.lines.size} lines")
             _currentLyrics.value = it
             return it 
         }
@@ -62,38 +56,27 @@ class LyricRepository @Inject constructor(
         
         try {
             // 1. Try embedded lyrics first
-            Log.d("LyricRepo", "Trying embedded lyrics extraction...")
             val embeddedLyrics = embeddedLyricExtractor.extractLyrics(song)
             if (embeddedLyrics != null && !embeddedLyrics.isEmpty) {
-                Log.d("LyricRepo", "SUCCESS: Found embedded lyrics - ${embeddedLyrics.lines.size} lines")
-                Log.d("LyricRepo", "First line text: '${embeddedLyrics.lines.firstOrNull()?.text?.take(50)}'")
                 cacheAndReturn(song.id, embeddedLyrics)
                 return embeddedLyrics
             }
-            Log.d("LyricRepo", "Embedded lyrics: ${if (embeddedLyrics == null) "null" else "empty"}")
             
             // 2. Try local .lrc file
-            Log.d("LyricRepo", "Trying local .lrc file...")
             val localLyrics = loadFromLocalFile(song)
             if (localLyrics != null && !localLyrics.isEmpty) {
-                Log.d("LyricRepo", "SUCCESS: Found local file lyrics - ${localLyrics.lines.size} lines")
-                Log.d("LyricRepo", "First line text: '${localLyrics.lines.firstOrNull()?.text?.take(50)}'")
                 cacheAndReturn(song.id, localLyrics)
                 return localLyrics
             }
-            Log.d("LyricRepo", "Local file lyrics: not found")
             
             // No lyrics found
-            Log.d("LyricRepo", "No lyrics found for: ${song.title}")
             _currentLyrics.value = Lyric.Empty
             return Lyric.Empty
         } catch (e: Exception) {
-            Log.e("LyricRepo", "ERROR loading lyrics: ${e.message}", e)
             _currentLyrics.value = Lyric.Empty
             return Lyric.Empty
         } finally {
             _isLoading.value = false
-            Log.d("LyricRepo", "=== END LOAD LYRICS ===")
         }
     }
     
@@ -165,7 +148,6 @@ class LyricRepository @Inject constructor(
             
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading local file lyrics", e)
             null
         }
     }
