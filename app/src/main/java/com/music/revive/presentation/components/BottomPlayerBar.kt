@@ -106,11 +106,11 @@ fun BottomPlayerBar(
         shadowElevation = 12.dp,
         color = Color.Transparent
     ) {
-        // Backdrop blur layer
+        // Backdrop blur layer - optimized with lower blur radius for better performance
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .blur(15.dp)
+                .blur(8.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
         ) {
             Spacer(modifier = Modifier.height(1.dp))

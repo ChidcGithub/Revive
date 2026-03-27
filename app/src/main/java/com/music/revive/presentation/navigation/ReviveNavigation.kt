@@ -252,11 +252,11 @@ fun ReviveNavigation(
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    // Backdrop blur layer
+                    // Backdrop blur layer - optimized with lower blur radius for better performance
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .blur(12.dp)
+                            .blur(6.dp)
                             .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.7f))
                     ) {
                         Spacer(modifier = Modifier.height(1.dp))

@@ -478,15 +478,15 @@ private fun KaraokeLyricLine(
         label = "shaderAlpha"
     )
     
-    // Animated shimmer offset for shader effect using infinite transition
-    val shimmerOffset by remember {
-        derivedStateOf { 
-            (System.currentTimeMillis() / 1500f) % 2f - 1f 
-        }
-    }
-    val animatedShimmerOffset by animateFloatAsState(
-        targetValue = shimmerOffset,
-        animationSpec = tween(durationMillis = 50, easing = LinearEasing),
+    // Animated shimmer offset using InfiniteTransition for smooth continuous animation
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val animatedShimmerOffset by infiniteTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
         label = "shimmerOffset"
     )
     
