@@ -9,6 +9,7 @@ import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.PlayerState
 import com.music.revive.service.MusicPlayer
 import com.music.revive.data.local.PlayerPreferences
+import com.music.revive.domain.utils.CarBluetoothLyrics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,10 +71,23 @@ class PlayerViewModel @Inject constructor(
     
     val enableBalancedLines: StateFlow<Boolean> = lyricsPreferences.enableBalancedLines
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    
+    val enableCarBluetoothLyrics: StateFlow<Boolean> = playerPreferences.enableCarBluetoothLyrics
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    
+    // Car Bluetooth Lyrics helper
+    private val carBluetoothLyrics = CarBluetoothLyrics(musicPlayer.getApplicationContext())
 
     private var favoriteJob: Job? = null
 
     init {
+        // Initialize car Bluetooth lyrics
+        viewModelScope.launch {
+            enableCarBluetoothLyrics.collect { enabled ->
+                carBluetoothLyrics.setCarModeEnabled(enabled)
+            }
+        }
+        
         viewModelScope.launch {
             musicPlayer.currentSong.collect { song ->
                 favoriteJob?.cancel()
@@ -103,6 +117,9 @@ class PlayerViewModel @Inject constructor(
             val lyrics = lyricRepository.loadLyrics(song)
             _currentLyrics.value = lyrics
             _isLoadingLyrics.value = false
+            
+            // Send lyrics to car Bluetooth system
+            carBluetoothLyrics.updateLyrics(lyrics)
         }
     }
 
@@ -154,5 +171,19 @@ class PlayerViewModel @Inject constructor(
 
     fun updatePosition() {
         musicPlayer.updatePosition()
+        
+        // Update car Bluetooth lyrics current line
+        viewModelScope.launch {
+            carBluetoothLyrics.updateCurrentLine(musicPlayer.playerState.value.position)
+        }
+    }
+    
+    /**
+     * Set car Bluetooth lyrics mode
+     */
+    fun setCarBluetoothLyricsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setEnableCarBluetoothLyrics(enabled)
+        }
     }
 }

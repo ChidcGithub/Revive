@@ -30,6 +30,7 @@ class PlayerPreferences @Inject constructor(
         private val SKIP_SILENCE = booleanPreferencesKey("skip_silence")
         private val ENABLE_HAPTIC_FEEDBACK = booleanPreferencesKey("enable_haptic_feedback")
         private val ENABLE_SHADER_EFFECT = booleanPreferencesKey("enable_shader_effect")
+        private val ENABLE_CAR_BLUETOOTH_LYRICS = booleanPreferencesKey("enable_car_bluetooth_lyrics")
     }
     
     // Fade in/out effect
@@ -59,6 +60,10 @@ class PlayerPreferences @Inject constructor(
     // Shader effect for lyrics
     val enableShaderEffect: Flow<Boolean> = context.playerDataStore.data
         .map { preferences -> preferences[ENABLE_SHADER_EFFECT] ?: false }
+    
+    // Car Bluetooth lyrics display
+    val enableCarBluetoothLyrics: Flow<Boolean> = context.playerDataStore.data
+        .map { preferences -> preferences[ENABLE_CAR_BLUETOOTH_LYRICS] ?: false }
     
     suspend fun setFadeInOut(enabled: Boolean) {
         context.playerDataStore.edit { preferences ->
@@ -99,6 +104,12 @@ class PlayerPreferences @Inject constructor(
     suspend fun setEnableShaderEffect(enabled: Boolean) {
         context.playerDataStore.edit { preferences ->
             preferences[ENABLE_SHADER_EFFECT] = enabled
+        }
+    }
+    
+    suspend fun setEnableCarBluetoothLyrics(enabled: Boolean) {
+        context.playerDataStore.edit { preferences ->
+            preferences[ENABLE_CAR_BLUETOOTH_LYRICS] = enabled
         }
     }
 }

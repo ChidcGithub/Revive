@@ -292,6 +292,29 @@ fun SettingsScreen(
                     )
                 }
             }
+            
+            // Car Bluetooth section (collapsible)
+            item {
+                CollapsibleSettingsSection(
+                    title = "车载蓝牙",
+                    icon = Icons.Rounded.DirectionsCar,
+                    initiallyExpanded = false
+                ) {
+                    ListItem(
+                        headlineContent = { Text("车载蓝牙歌词显示") },
+                        supportingContent = { Text("通过蓝牙向车载系统发送同步歌词") },
+                        leadingContent = {
+                            Icon(Icons.Rounded.BluetoothAudio, contentDescription = null)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.enableCarBluetoothLyrics,
+                                onCheckedChange = { viewModel.setEnableCarBluetoothLyrics(it) }
+                            )
+                        }
+                    )
+                }
+            }
 
             // Playback section (collapsible)
             item {
@@ -1092,6 +1115,7 @@ data class SettingsUiState(
     val enableFullScreenLyricsButton: Boolean = true,
     val enableShaderEffect: Boolean = false,
     val enableBalancedLines: Boolean = false,
+    val enableCarBluetoothLyrics: Boolean = false,
     // Playback
     val fadeInOut: Boolean = false,
     val gaplessPlayback: Boolean = true,
@@ -1241,6 +1265,12 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(enableBalancedLines = enabled)
             }
         }
+        // Car Bluetooth lyrics setting is stored in player preferences
+        viewModelScope.launch {
+            playerPreferences.enableCarBluetoothLyrics.collect { enabled ->
+                _uiState.value = _uiState.value.copy(enableCarBluetoothLyrics = enabled)
+            }
+        }
     }
 
     private fun loadPlaybackSettings() {
@@ -1382,6 +1412,12 @@ class SettingsViewModel @Inject constructor(
     fun setEnableBalancedLines(enabled: Boolean) {
         viewModelScope.launch {
             lyricsPreferences.setEnableBalancedLines(enabled)
+        }
+    }
+    
+    fun setEnableCarBluetoothLyrics(enabled: Boolean) {
+        viewModelScope.launch {
+            playerPreferences.setEnableCarBluetoothLyrics(enabled)
         }
     }
 
