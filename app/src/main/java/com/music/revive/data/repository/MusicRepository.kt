@@ -9,6 +9,7 @@ import com.music.revive.data.local.dao.PlaylistDao
 import com.music.revive.data.local.dao.RecentSongDao
 import com.music.revive.data.local.dao.SongCacheDao
 import com.music.revive.data.local.dao.ArtistCacheDao
+import com.music.revive.data.local.HistoryPreferences
 import com.music.revive.data.local.entity.ArtistCacheEntity
 import com.music.revive.data.local.entity.FavoriteEntity
 import com.music.revive.data.local.entity.PlaylistEntity
@@ -35,7 +36,8 @@ class MusicRepository @Inject constructor(
     private val recentSongDao: RecentSongDao,
     private val folderPreferences: FolderPreferences,
     private val songCacheDao: SongCacheDao,
-    private val artistCacheDao: ArtistCacheDao
+    private val artistCacheDao: ArtistCacheDao,
+    private val historyPreferences: HistoryPreferences
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("music_repo", Context.MODE_PRIVATE)
     
@@ -345,6 +347,49 @@ class MusicRepository @Inject constructor(
         val isValid: Boolean
     )
     
+    // ==================== Listening History ====================
+    
+    /**
+     * Add song to listening history
+     */
+    suspend fun addToListeningHistory(song: Song) {
+        historyPreferences.addToHistory(
+            songId = song.id,
+            title = song.title,
+            artist = song.artist,
+            album = song.album,
+            albumArtUri = song.albumArtUri
+        )
+    }
+    
+    /**
+     * Update play count for song in history
+     */
+    suspend fun updateHistoryPlayCount(songId: Long) {
+        historyPreferences.updatePlayCount(songId)
+    }
+    
+    /**
+     * Get listening history flow
+     */
+    fun getListeningHistory(): Flow<List<com.music.revive.data.local.HistoryItem>> {
+        return historyPreferences.historyItems
+    }
+    
+    /**
+     * Clear all listening history
+     */
+    suspend fun clearListeningHistory() {
+        historyPreferences.clearAllHistory()
+    }
+    
+    /**
+     * Remove song from history
+     */
+    suspend fun removeFromListeningHistory(songId: Long) {
+        historyPreferences.removeFromHistory(songId)
+    }
+}
     // ==================== Private Helpers ====================
     
     private fun filterExcludedFolders(songs: List<Song>, excludedFolders: Set<String>): List<Song> {

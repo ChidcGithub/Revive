@@ -16,6 +16,7 @@ import androidx.media3.session.SessionCommand
 import com.music.revive.domain.model.PlayerState
 import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
+import com.music.revive.data.repository.MusicRepository
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -113,7 +114,8 @@ class MusicService : MediaSessionService() {
 @Singleton
 class MusicPlayer @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val notificationManager: MusicNotificationManager
+    private val notificationManager: MusicNotificationManager,
+    private val musicRepository: MusicRepository
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -472,6 +474,13 @@ class MusicPlayer @Inject constructor(
         val songs = _queue.value
         if (currentIndex in songs.indices) {
             _currentSong.value = songs[currentIndex]
+            
+            // Add to listening history
+            scope.launch(Dispatchers.IO) {
+                songs[currentIndex].let { song ->
+                    musicRepository.addToListeningHistory(song)
+                }
+            }
         }
     }
 
