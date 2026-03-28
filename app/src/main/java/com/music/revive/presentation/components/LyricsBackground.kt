@@ -4,14 +4,21 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.music.revive.presentation.theme.AlbumColors
 
 /**
  * Apple Music Style Lyrics Background
@@ -24,7 +31,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun AppleMusicLyricsBackground(
-    colors: PaletteColors?,
+    colors: AlbumColors?,
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "lyrics")
@@ -99,8 +106,8 @@ fun AppleMusicLyricsBackground(
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                colors.dominant.copy(alpha = 0.12f),
-                                colors.muted.copy(alpha = 0.06f),
+                                colors.primary.copy(alpha = 0.12f),
+                                colors.secondary.copy(alpha = 0.06f),
                                 Color.Black
                             ),
                             center = Offset(offsetX1 * 1000f, offsetY1 * 1000f),
@@ -117,8 +124,8 @@ fun AppleMusicLyricsBackground(
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                colors.vibrant.copy(alpha = 0.35f),
-                                colors.vibrant.copy(alpha = 0.12f),
+                                colors.primary.copy(alpha = 0.35f),
+                                colors.primary.copy(alpha = 0.12f),
                                 Color.Transparent
                             ),
                             center = Offset(offsetX1 * 1000f, offsetY1 * 1000f),
@@ -127,7 +134,7 @@ fun AppleMusicLyricsBackground(
                     )
             )
             
-            // Light vibrant orb (right area)
+            // Secondary color orb (right area)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -135,8 +142,8 @@ fun AppleMusicLyricsBackground(
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                colors.lightVibrant.copy(alpha = 0.25f),
-                                colors.lightVibrant.copy(alpha = 0.08f),
+                                colors.secondary.copy(alpha = 0.25f),
+                                colors.secondary.copy(alpha = 0.08f),
                                 Color.Transparent
                             ),
                             center = Offset(offsetX2 * 1000f, offsetY2 * 1000f),
@@ -145,7 +152,7 @@ fun AppleMusicLyricsBackground(
                     )
             )
             
-            // Dark vibrant orb (bottom area)
+            // Tertiary color orb (bottom area)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -153,8 +160,8 @@ fun AppleMusicLyricsBackground(
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                colors.darkVibrant.copy(alpha = 0.2f),
-                                colors.muted.copy(alpha = 0.06f),
+                                colors.tertiary.copy(alpha = 0.2f),
+                                colors.secondary.copy(alpha = 0.06f),
                                 Color.Transparent
                             ),
                             center = Offset(offsetX3 * 1000f, offsetY3 * 1000f),

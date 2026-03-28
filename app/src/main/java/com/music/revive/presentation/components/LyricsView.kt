@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
@@ -426,13 +427,13 @@ private fun AppleMusicLyricLine(
                         drawRoundRect(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    accentColor.copy(alpha = glowAlpha), // Use accent color for glow
+                                    accentColor.copy(alpha = glowAlpha),
                                     Color.Transparent
                                 ),
                                 center = Offset(size.width / 2, size.height / 2),
                                 radius = size.width * 0.6f
                             ),
-                            cornerRadius = 16.dp.toPx()
+                            cornerRadius = CornerRadius(16.dp.toPx())
                         )
                     }
                 } else {
@@ -704,7 +705,7 @@ fun GradientOverlay(isTop: Boolean, color: Color, modifier: Modifier = Modifier)
 }
 
 fun DrawScope.drawGlowEffect(glowColor: Color, glowAlpha: Float, cornerRadius: Float) {
-    drawRoundRect(color = glowColor.copy(alpha = glowAlpha), cornerRadius = cornerRadius)
+    drawRoundRect(color = glowColor.copy(alpha = glowAlpha), cornerRadius = CornerRadius(cornerRadius))
 }
 
 fun DrawScope.drawShaderEffect(primaryColor: Color, shaderAlpha: Float, shimmerOffset: Float, cornerRadius: Float) {
@@ -716,6 +717,6 @@ fun DrawScope.drawShaderEffect(primaryColor: Color, shaderAlpha: Float, shimmerO
                 Color.Transparent
             )
         ),
-        cornerRadius = cornerRadius
+        cornerRadius = CornerRadius(cornerRadius)
     )
 }

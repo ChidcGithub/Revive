@@ -39,6 +39,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -703,12 +705,7 @@ private fun DynamicProgressSlider(
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .offset { 
-                            IntOffset(
-                                (progress * (size.width - 24.dp.toPx())).toInt(),
-                                0
-                            )
-                        }
+                        .padding(start = (progress * 100).dp - 8.dp)
                         .size(16.dp)
                         .clip(CircleShape)
                         .background(Color.White)
