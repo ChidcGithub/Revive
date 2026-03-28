@@ -54,6 +54,7 @@ import coil.ImageLoader
 import coil.request.ImageRequest
 import androidx.core.graphics.drawable.toBitmap
 import com.music.revive.data.local.LyricsPreferences
+import com.music.revive.data.lyric.LyricRepository
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
 import com.music.revive.presentation.components.AppleMusicLyricsBackground
@@ -76,6 +77,7 @@ class FullScreenLyricsActivity : ComponentActivity() {
     @Inject lateinit var musicPlayer: MusicPlayer
     @Inject lateinit var lyricsPreferences: LyricsPreferences
     @Inject lateinit var playerPreferences: com.music.revive.data.local.PlayerPreferences
+    @Inject lateinit var lyricRepository: LyricRepository
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +98,7 @@ class FullScreenLyricsActivity : ComponentActivity() {
                     musicPlayer = musicPlayer,
                     lyricsPreferences = lyricsPreferences,
                     playerPreferences = playerPreferences,
+                    lyricRepository = lyricRepository,
                     onNavigateBack = { finish() }
                 )
             }
@@ -112,7 +115,8 @@ class FullScreenLyricsActivity : ComponentActivity() {
 class FullScreenLyricsViewModel(
     private val musicPlayer: MusicPlayer,
     private val lyricsPreferences: LyricsPreferences,
-    private val playerPreferences: com.music.revive.data.local.PlayerPreferences
+    private val playerPreferences: com.music.revive.data.local.PlayerPreferences,
+    private val lyricRepository: LyricRepository
 ) : ViewModel() {
 
     val playerState = musicPlayer.playerState
@@ -135,7 +139,25 @@ class FullScreenLyricsViewModel(
     init {
         viewModelScope.launch {
             currentSong.collect { song ->
+                if (song != null) {
+                    loadLyrics(song)
+                } else {
+                    _currentLyrics.value = Lyric.Empty
+                }
+            }
+        }
+    }
+    
+    private fun loadLyrics(song: com.music.revive.domain.model.Song) {
+        viewModelScope.launch {
+            _isLoadingLyrics.value = true
+            try {
+                val lyrics = lyricRepository.loadLyrics(song)
+                _currentLyrics.value = lyrics
+            } catch (e: Exception) {
                 _currentLyrics.value = Lyric.Empty
+            } finally {
+                _isLoadingLyrics.value = false
             }
         }
     }
@@ -154,9 +176,10 @@ fun FullScreenLyricsScreen(
     musicPlayer: MusicPlayer,
     lyricsPreferences: LyricsPreferences,
     playerPreferences: com.music.revive.data.local.PlayerPreferences,
+    lyricRepository: LyricRepository,
     onNavigateBack: () -> Unit
 ) {
-    val viewModel = remember { FullScreenLyricsViewModel(musicPlayer, lyricsPreferences, playerPreferences) }
+    val viewModel = remember { FullScreenLyricsViewModel(musicPlayer, lyricsPreferences, playerPreferences, lyricRepository) }
     
     val playerState by viewModel.playerState.collectAsState()
     val currentLyrics by viewModel.currentLyrics.collectAsState()
