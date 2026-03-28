@@ -74,9 +74,8 @@ class SleepTimerManager @Inject constructor(
                 )
                 
                 // Apply fade out effect in last 30 seconds
-                if (shouldFadeOut && playerPreferences.fadeInOut == false) {
-                    // TODO: Implement volume fade-out when integrated with MusicPlayer
-                }
+                // Note: fadeInOut is a Flow, checking if fade-out feature is enabled
+                // The actual fade logic would be implemented here when integrated with MusicPlayer
             }
             
             override fun onFinish() {
