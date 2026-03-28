@@ -30,30 +30,23 @@ import coil.request.ImageRequest
 import com.music.revive.R
 import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
-import com.music.revive.presentation.theme.AppleMusicPrimary
+import com.music.revive.presentation.theme.AlbumColors
 
 /**
- * Apple Music Style Immersive Album Art Display
- * 
- * Features:
- * - Full-bleed blurred background
- * - Foreground album art with shadow
- * - Animated gradient orbs behind
+ * Apple Music Style Immersive Album Art Display with Dynamic Colors
  */
 @Composable
 fun ImmersiveAlbumArt(
     song: Song,
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
-    onAlbumClick: () -> Unit = {}
+    onAlbumClick: () -> Unit = {},
+    albumColors: AlbumColors? = null
 ) {
     var isVisible by remember { mutableStateOf(false) }
     
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
+    LaunchedEffect(Unit) { isVisible = true }
     
-    // Animation states
     val albumScale by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0.9f,
         animationSpec = spring(
@@ -69,11 +62,23 @@ fun ImmersiveAlbumArt(
         label = "albumAlpha"
     )
     
-    // Playing state scale
     val playingScale by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0.98f,
         animationSpec = tween(300),
         label = "playingScale"
+    )
+    
+    // Use album colors for orbs
+    val orbColors = albumColors?.let {
+        listOf(
+            it.primary.copy(alpha = 0.3f),
+            it.secondary.copy(alpha = 0.25f),
+            it.tertiary.copy(alpha = 0.2f)
+        )
+    } ?: listOf(
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f),
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
     )
     
     Box(
@@ -95,9 +100,7 @@ fun ImmersiveAlbumArt(
                     .fillMaxSize()
                     .blur(50.dp)
                     .scale(1.3f)
-                    .graphicsLayer {
-                        alpha = albumAlpha * 0.5f
-                    },
+                    .graphicsLayer { alpha = albumAlpha * 0.5f },
                 contentScale = ContentScale.Crop
             )
         }
@@ -115,21 +118,13 @@ fun ImmersiveAlbumArt(
                         )
                     )
                 )
-                .graphicsLayer {
-                    alpha = albumAlpha
-                }
+                .graphicsLayer { alpha = albumAlpha }
         )
         
-        // Gradient orbs
+        // Gradient orbs with dynamic colors
         GradientOrbsLayer(
-            colors = listOf(
-                AppleMusicPrimary.copy(alpha = 0.3f),
-                Color(0xFF007AFF).copy(alpha = 0.25f),
-                Color(0xFFAF52DE).copy(alpha = 0.2f)
-            ),
-            modifier = Modifier.graphicsLayer {
-                alpha = albumAlpha * 0.4f
-            }
+            colors = orbColors,
+            modifier = Modifier.graphicsLayer { alpha = albumAlpha * 0.4f }
         )
         
         // Foreground album art
@@ -176,13 +171,14 @@ fun ImmersiveAlbumArt(
 }
 
 /**
- * Apple Music Style Song Information Display
+ * Song Information Display with Dynamic Accent Color
  */
 @Composable
 fun NowPlayingInfo(
     song: Song,
     modifier: Modifier = Modifier,
-    onArtistClick: () -> Unit = {}
+    onArtistClick: () -> Unit = {},
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Column(
         modifier = modifier
@@ -190,7 +186,6 @@ fun NowPlayingInfo(
             .padding(horizontal = 24.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Title
         Text(
             text = song.title,
             style = MaterialTheme.typography.headlineSmall.copy(
@@ -201,7 +196,6 @@ fun NowPlayingInfo(
             color = MaterialTheme.colorScheme.onBackground
         )
         
-        // Artist with chevron
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -214,18 +208,17 @@ fun NowPlayingInfo(
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.primary
+                color = accentColor // Dynamic accent color
             )
             
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = accentColor
             )
         }
         
-        // Album name
         if (song.album != song.title && song.album.isNotBlank()) {
             Text(
                 text = song.album,
@@ -239,14 +232,15 @@ fun NowPlayingInfo(
 }
 
 /**
- * Apple Music Style Progress Slider
+ * Progress Slider with Dynamic Accent Color
  */
 @Composable
 fun AppleMusicProgressSlider(
     position: Long,
     duration: Long,
     onSeek: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     var isDragging by remember { mutableStateOf(false) }
     var dragPosition by remember { mutableLongStateOf(position) }
@@ -256,7 +250,6 @@ fun AppleMusicProgressSlider(
     } else 0f
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Custom slider track
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -272,16 +265,16 @@ fun AppleMusicProgressSlider(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
             ) {}
             
-            // Active progress
+            // Active progress with dynamic accent color
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(progress)
                     .height(3.dp),
                 shape = RoundedCornerShape(1.5.dp),
-                color = MaterialTheme.colorScheme.primary
+                color = accentColor // Dynamic accent color
             ) {}
             
-            // Thumb (visible when dragging)
+            // Thumb when dragging
             if (isDragging) {
                 Surface(
                     modifier = Modifier
@@ -319,7 +312,7 @@ fun AppleMusicProgressSlider(
 }
 
 /**
- * Apple Music Style Playback Controls
+ * Playback Controls with Dynamic Accent Color
  */
 @Composable
 fun AppleMusicPlaybackControls(
@@ -331,7 +324,8 @@ fun AppleMusicPlaybackControls(
     onNext: () -> Unit,
     onToggleShuffle: () -> Unit,
     onCycleRepeat: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         modifier = modifier,
@@ -339,9 +333,10 @@ fun AppleMusicPlaybackControls(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Shuffle button
-        AppleMusicSmallControlButton(
+        DynamicSmallControlButton(
             icon = Icons.Rounded.Shuffle,
             isActive = isShuffleEnabled,
+            accentColor = accentColor,
             onClick = onToggleShuffle
         )
         
@@ -358,17 +353,15 @@ fun AppleMusicPlaybackControls(
             )
         }
         
-        // Play/Pause button (large, prominent)
+        // Play/Pause with dynamic accent color
         FilledIconButton(
             onClick = onPlayPause,
             modifier = Modifier
                 .size(72.dp)
-                .graphicsLayer {
-                    shadowElevation = 8.dp.toPx()
-                },
+                .graphicsLayer { shadowElevation = 8.dp.toPx() },
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = AppleMusicPrimary,
+                containerColor = accentColor, // Dynamic accent color
                 contentColor = Color.White
             )
         ) {
@@ -393,29 +386,31 @@ fun AppleMusicPlaybackControls(
         }
         
         // Repeat button
-        AppleMusicSmallControlButton(
+        DynamicSmallControlButton(
             icon = when (repeatMode) {
                 RepeatMode.ONE -> Icons.Rounded.RepeatOne
                 else -> Icons.Rounded.Repeat
             },
             isActive = repeatMode != RepeatMode.OFF,
+            accentColor = accentColor,
             onClick = onCycleRepeat
         )
     }
 }
 
 /**
- * Small control button (shuffle/repeat)
+ * Small control button with dynamic accent color
  */
 @Composable
-private fun AppleMusicSmallControlButton(
+private fun DynamicSmallControlButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isActive: Boolean,
+    accentColor: Color,
     onClick: () -> Unit
 ) {
     val containerColor by animateColorAsState(
         targetValue = if (isActive) {
-            MaterialTheme.colorScheme.primary
+            accentColor // Dynamic accent when active
         } else {
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         },

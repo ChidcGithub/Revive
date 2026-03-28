@@ -48,6 +48,7 @@ import com.music.revive.data.local.PlayerPreferences
 import com.music.revive.data.lyric.LyricRepository
 import com.music.revive.domain.model.Lyric
 import com.music.revive.presentation.components.LyricsView
+import com.music.revive.presentation.theme.rememberAlbumColors
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -60,14 +61,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * Apple Music Style Full Screen Lyrics Activity
- * 
- * Design Principles:
- * - Immersive full-screen experience
- * - Dynamic blurred album art background
- * - Large, elegant lyrics display
- * - Minimal controls that fade when not in use
- * - Tap anywhere to show/hide controls
+ * Apple Music Style Full Screen Lyrics Activity with Dynamic Colors
  */
 @AndroidEntryPoint
 class FullScreenLyricsActivity : ComponentActivity() {
@@ -82,19 +76,17 @@ class FullScreenLyricsActivity : ComponentActivity() {
         
         enableEdgeToEdge()
         
-        // Full immersive mode
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
         windowInsetsController.systemBarsBehavior = 
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         windowInsetsController.hide(android.view.WindowInsets.Type.systemBars())
         
-        // Keep screen on while viewing lyrics
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         
         setContent {
             MaterialTheme {
-                AppleMusicFullScreenLyrics(
+                DynamicFullScreenLyrics(
                     musicPlayer = musicPlayer,
                     lyricsPreferences = lyricsPreferences,
                     playerPreferences = playerPreferences,
@@ -112,9 +104,6 @@ class FullScreenLyricsActivity : ComponentActivity() {
     }
 }
 
-/**
- * View model for full screen lyrics
- */
 class FullScreenLyricsViewModel(
     private val musicPlayer: MusicPlayer,
     private val lyricsPreferences: LyricsPreferences,
@@ -166,11 +155,8 @@ class FullScreenLyricsViewModel(
     }
 }
 
-/**
- * Apple Music-style full screen lyrics screen
- */
 @Composable
-private fun AppleMusicFullScreenLyrics(
+private fun DynamicFullScreenLyrics(
     musicPlayer: MusicPlayer,
     lyricsPreferences: LyricsPreferences,
     playerPreferences: PlayerPreferences,
@@ -194,22 +180,15 @@ private fun AppleMusicFullScreenLyrics(
     
     val song = playerState.currentSong
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     
-    // Controls visibility state
+    // Extract dynamic colors from album art
+    val isSystemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+    val albumColors = rememberAlbumColors(song?.albumArtUri, isSystemInDarkTheme)
+    val accentColor = albumColors.primary
+    
     var showControls by remember { mutableStateOf(false) }
     var isExiting by remember { mutableStateOf(false) }
     
-    // Extract palette colors for background
-    var paletteColors by remember { mutableStateOf<PaletteColors?>(null) }
-    
-    LaunchedEffect(song?.albumArtUri) {
-        song?.albumArtUri?.let { uri ->
-            paletteColors = extractPaletteColors(context, uri)
-        }
-    }
-    
-    // Auto-hide controls after delay
     LaunchedEffect(showControls) {
         if (showControls) {
             delay(4000)
@@ -217,7 +196,6 @@ private fun AppleMusicFullScreenLyrics(
         }
     }
     
-    // Animation states
     val smoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
     
     val controlsAlpha by animateFloatAsState(
@@ -232,9 +210,7 @@ private fun AppleMusicFullScreenLyrics(
             .background(Color.Black)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = {
-                        showControls = !showControls
-                    },
+                    onTap = { showControls = !showControls },
                     onDoubleTap = { 
                         isExiting = true
                         onNavigateBack()
@@ -242,14 +218,14 @@ private fun AppleMusicFullScreenLyrics(
                 )
             }
     ) {
-        // Dynamic blurred background
-        AppleMusicLyricsBackground(
-            song = song,
-            colors = paletteColors,
+        // Dynamic background with album colors
+        DynamicLyricsBackground(
+            albumArtUri = song?.albumArtUri,
+            albumColors = albumColors,
             modifier = Modifier.fillMaxSize()
         )
         
-        // Main lyrics content
+        // Lyrics content
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -257,22 +233,20 @@ private fun AppleMusicFullScreenLyrics(
                 .navigationBarsPadding()
         ) {
             if (isLoadingLyrics) {
-                // Loading state
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color = accentColor, // Dynamic accent
                         modifier = Modifier.size(48.dp)
                     )
                 }
             } else {
-                // Lyrics view
                 LyricsView(
                     lyric = currentLyrics,
                     currentPositionMs = playerState.position,
-                    fontSizeMultiplier = lyricsFontSize * 1.15f, // Slightly larger in full screen
+                    fontSizeMultiplier = lyricsFontSize * 1.15f,
                     showTranslation = showTranslation,
                     isCentered = lyricsDisplayStyle == 0,
                     enableGlow = enableGlow,
@@ -281,12 +255,13 @@ private fun AppleMusicFullScreenLyrics(
                     enableBlur = enableBlur,
                     enableShader = enableShaderEffect,
                     blurRadius = 6f,
+                    accentColor = accentColor, // Dynamic accent color
                     modifier = Modifier.fillMaxSize()
                 )
             }
         }
         
-        // Top bar - Song info and back button
+        // Top bar
         AnimatedVisibility(
             visible = showControls && !isExiting,
             enter = fadeIn(tween(300)) + slideInVertically(
@@ -299,8 +274,9 @@ private fun AppleMusicFullScreenLyrics(
             ),
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            AppleMusicLyricsTopBar(
+            DynamicLyricsTopBar(
                 song = song,
+                accentColor = accentColor,
                 onBackClick = {
                     isExiting = true
                     onNavigateBack()
@@ -311,7 +287,7 @@ private fun AppleMusicFullScreenLyrics(
             )
         }
         
-        // Bottom bar - Playback controls
+        // Bottom bar with dynamic accent color
         AnimatedVisibility(
             visible = showControls && !isExiting,
             enter = fadeIn(tween(300)) + slideInVertically(
@@ -324,9 +300,10 @@ private fun AppleMusicFullScreenLyrics(
             ),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            AppleMusicLyricsBottomBar(
+            DynamicLyricsBottomBar(
                 song = song,
                 isPlaying = playerState.isPlaying,
+                accentColor = accentColor,
                 onPreviousClick = { musicPlayer.playPrevious() },
                 onPlayPauseClick = { musicPlayer.playPause() },
                 onNextClick = { musicPlayer.playNext() },
@@ -339,17 +316,16 @@ private fun AppleMusicFullScreenLyrics(
 }
 
 /**
- * Apple Music-style lyrics background with blurred album art
+ * Dynamic background with album colors
  */
 @Composable
-private fun AppleMusicLyricsBackground(
-    song: com.music.revive.domain.model.Song?,
-    colors: PaletteColors?,
+private fun DynamicLyricsBackground(
+    albumArtUri: String?,
+    albumColors: com.music.revive.presentation.theme.AlbumColors,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     
-    // Animated gradient offset for subtle movement
     val infiniteTransition = rememberInfiniteTransition(label = "background")
     
     val gradientOffset by infiniteTransition.animateFloat(
@@ -364,10 +340,10 @@ private fun AppleMusicLyricsBackground(
 
     Box(modifier = modifier) {
         // Blurred album art
-        if (song?.albumArtUri != null) {
+        if (albumArtUri != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data(song.albumArtUri)
+                    .data(albumArtUri)
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
@@ -383,7 +359,7 @@ private fun AppleMusicLyricsBackground(
             )
         }
         
-        // Dark gradient overlay for readability
+        // Dark gradient overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -400,67 +376,64 @@ private fun AppleMusicLyricsBackground(
                 )
         )
         
-        // Dynamic color orbs
-        if (colors != null) {
-            // Primary color orb
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        translationX = size.width * 0.1f * gradientOffset
-                        translationY = size.height * 0.05f * (1f - gradientOffset)
-                    }
-                    .drawBehind {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    colors.vibrant.copy(alpha = 0.2f),
-                                    colors.vibrant.copy(alpha = 0.1f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(size.width * 0.3f, size.height * 0.3f),
-                                radius = size.width * 0.5f
+        // Dynamic color orbs from album colors
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationX = size.width * 0.1f * gradientOffset
+                    translationY = size.height * 0.05f * (1f - gradientOffset)
+                }
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                albumColors.primary.copy(alpha = 0.2f),
+                                albumColors.primary.copy(alpha = 0.1f),
+                                Color.Transparent
                             ),
                             center = Offset(size.width * 0.3f, size.height * 0.3f),
                             radius = size.width * 0.5f
-                        )
-                    }
-            )
-            
-            // Secondary color orb
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        translationX = size.width * -0.1f * gradientOffset
-                        translationY = size.height * 0.05f * gradientOffset
-                    }
-                    .drawBehind {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    colors.dominant.copy(alpha = 0.15f),
-                                    colors.dominant.copy(alpha = 0.05f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(size.width * 0.7f, size.height * 0.6f),
-                                radius = size.width * 0.4f
+                        ),
+                        center = Offset(size.width * 0.3f, size.height * 0.3f),
+                        radius = size.width * 0.5f
+                    )
+                }
+        )
+        
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationX = size.width * -0.1f * gradientOffset
+                    translationY = size.height * 0.05f * gradientOffset
+                }
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                albumColors.secondary.copy(alpha = 0.15f),
+                                albumColors.secondary.copy(alpha = 0.05f),
+                                Color.Transparent
                             ),
                             center = Offset(size.width * 0.7f, size.height * 0.6f),
                             radius = size.width * 0.4f
-                        )
-                    }
-            )
-        }
+                        ),
+                        center = Offset(size.width * 0.7f, size.height * 0.6f),
+                        radius = size.width * 0.4f
+                    )
+                }
+        )
     }
 }
 
 /**
- * Apple Music-style top bar for lyrics screen
+ * Top bar with dynamic accent color
  */
 @Composable
-private fun AppleMusicLyricsTopBar(
+private fun DynamicLyricsTopBar(
     song: com.music.revive.domain.model.Song?,
+    accentColor: Color,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -474,7 +447,6 @@ private fun AppleMusicLyricsTopBar(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back button
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
@@ -484,7 +456,6 @@ private fun AppleMusicLyricsTopBar(
                 )
             }
             
-            // Song info
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -503,25 +474,25 @@ private fun AppleMusicLyricsTopBar(
                 Text(
                     text = song?.artist ?: "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = accentColor, // Dynamic accent color
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
             
-            // Spacer for balance
             Spacer(modifier = Modifier.size(48.dp))
         }
     }
 }
 
 /**
- * Apple Music-style bottom bar with playback controls
+ * Bottom bar with dynamic accent color
  */
 @Composable
-private fun AppleMusicLyricsBottomBar(
+private fun DynamicLyricsBottomBar(
     song: com.music.revive.domain.model.Song?,
     isPlaying: Boolean,
+    accentColor: Color,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
@@ -538,16 +509,13 @@ private fun AppleMusicLyricsBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Song info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = song?.artist ?: "",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
-                    color = Color.White,
+                    color = accentColor, // Dynamic accent color
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -560,12 +528,10 @@ private fun AppleMusicLyricsBottomBar(
                 )
             }
             
-            // Playback controls
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Previous
                 IconButton(onClick = onPreviousClick) {
                     Icon(
                         imageVector = Icons.Rounded.SkipPrevious,
@@ -575,14 +541,14 @@ private fun AppleMusicLyricsBottomBar(
                     )
                 }
                 
-                // Play/Pause
+                // Play/Pause with dynamic accent color
                 FilledIconButton(
                     onClick = onPlayPauseClick,
                     modifier = Modifier.size(56.dp),
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
+                        containerColor = accentColor, // Dynamic accent color
+                        contentColor = Color.White
                     )
                 ) {
                     Icon(
@@ -592,7 +558,6 @@ private fun AppleMusicLyricsBottomBar(
                     )
                 }
                 
-                // Next
                 IconButton(onClick = onNextClick) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
@@ -602,52 +567,6 @@ private fun AppleMusicLyricsBottomBar(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * Palette colors data class
- */
-data class PaletteColors(
-    val dominant: Color,
-    val vibrant: Color,
-    val lightVibrant: Color,
-    val darkVibrant: Color,
-    val muted: Color
-)
-
-/**
- * Extract colors from album art using Palette
- */
-private suspend fun extractPaletteColors(context: Context, uri: String): PaletteColors? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val imageLoader = ImageLoader(context)
-            val request = ImageRequest.Builder(context)
-                .data(uri)
-                .allowHardware(false)
-                .build()
-
-            val result = imageLoader.execute(request)
-            val drawable = result.drawable ?: return@withContext null
-            val bitmap = drawable.toBitmap()
-
-            val palette = androidx.palette.graphics.Palette.from(bitmap)
-                .maximumColorCount(24)
-                .generate()
-
-            val defaultColor = android.graphics.Color.GRAY
-            
-            PaletteColors(
-                dominant = Color(palette.dominantSwatch?.rgb ?: palette.getDominantColor(defaultColor)),
-                vibrant = Color(palette.vibrantSwatch?.rgb ?: palette.getVibrantColor(defaultColor)),
-                lightVibrant = Color(palette.lightVibrantSwatch?.rgb ?: palette.getLightVibrantColor(defaultColor)),
-                darkVibrant = Color(palette.darkVibrantSwatch?.rgb ?: palette.getDarkVibrantColor(defaultColor)),
-                muted = Color(palette.mutedSwatch?.rgb ?: palette.getMutedColor(defaultColor))
-            )
-        } catch (e: Exception) {
-            null
         }
     }
 }
