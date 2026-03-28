@@ -56,10 +56,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.music.revive.data.local.LyricsPreferences
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
-import com.music.revive.presentation.components.AnimatedPlayingIndicator
-import com.music.revive.presentation.components.AppleMusicLyricsBackground
-import com.music.revive.presentation.components.AppleMusicLyricsView
-import com.music.revive.presentation.components.EmptyLyricsView
+import com.music.revive.presentation.components.LyricsView
 import com.music.revive.presentation.screen.player.PaletteColors
 import com.music.revive.presentation.screen.player.extractPaletteColors
 import com.music.revive.service.MusicPlayer
@@ -313,58 +310,56 @@ fun FullScreenLyricsScreen(
                         )
                     }
                     
-                    AnimatedPlayingIndicator(
-                        isPlaying = playerState.isPlaying
-                    )
+                    // Simple playing indicator
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        repeat(3) { index ->
+                            PlayingBar(
+                                isActive = playerState.isPlaying,
+                                delay = index * 150
+                            )
+                        }
+                    }
                 }
             }
-        }
-    }
-    
-    // Settings bottom sheet
-    if (showSettings) {
-        ModalBottomSheet(
-            onDismissRequest = { showSettings = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ) {
-            LyricsSettingsContent(
-                lyricsPreferences = lyricsPreferences,
-                playerPreferences = playerPreferences,
-                onDismiss = { showSettings = false }
-            )
-            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }
 
 @Composable
-private fun LyricsSettingsContent(
-    lyricsPreferences: LyricsPreferences,
-    playerPreferences: com.music.revive.data.local.PlayerPreferences,
-    onDismiss: () -> Unit
+private fun PlayingBar(
+    isActive: Boolean,
+    delay: Int
 ) {
-    val scope = rememberCoroutineScope()
+    val infiniteTransition = rememberInfiniteTransition(label = "playing")
     
-    Column(
+    val height by infiniteTransition.animateFloat(
+        initialValue = 4f,
+        targetValue = if (isActive) 16f else 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 600,
+                delayMillis = delay,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "barHeight"
+    )
+    
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "歌词设置",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 这里可以添加更多设置选项
-        // 字体大小、显示样式等
-        
-        Text(
-            text = "功能开发中...",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+            .width(4.dp)
+            .height(height.dp)
+            .background(
+                color = if (isActive) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                shape = MaterialTheme.shapes.small
+            )
+    )
 }
