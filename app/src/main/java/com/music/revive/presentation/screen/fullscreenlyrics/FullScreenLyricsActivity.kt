@@ -339,11 +339,7 @@ fun FullScreenLyricsScreen(
                         }
                         
                         IconButton(onClick = { 
-                            if (playerState.isPlaying) {
-                                musicPlayer.pause()
-                            } else {
-                                musicPlayer.play()
-                            }
+                            musicPlayer.playPause()
                         }) {
                             Icon(
                                 imageVector = if (playerState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
