@@ -59,7 +59,6 @@ import com.music.revive.domain.model.LyricLine
 import com.music.revive.presentation.components.AppleMusicLyricsBackground
 import com.music.revive.presentation.components.LyricsView
 import com.music.revive.presentation.screen.player.PaletteColors
-import com.music.revive.presentation.screen.player.extractPaletteColors
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -171,6 +170,7 @@ fun FullScreenLyricsScreen(
     val enableShaderEffect by viewModel.enableShaderEffect.collectAsState(initial = false)
     
     val song = playerState.currentSong
+    val context = LocalContext.current
     
     var showControls by remember { mutableStateOf(true) }
     var isExiting by remember { mutableStateOf(false) }
@@ -339,7 +339,11 @@ fun FullScreenLyricsScreen(
                         }
                         
                         IconButton(onClick = { 
-                            musicPlayer.togglePlayPause()
+                            if (playerState.isPlaying) {
+                                musicPlayer.pause()
+                            } else {
+                                musicPlayer.play()
+                            }
                         }) {
                             Icon(
                                 imageVector = if (playerState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -361,6 +365,41 @@ fun FullScreenLyricsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Extract multiple colors from image URI using Palette
+ */
+private suspend fun extractPaletteColors(context: android.content.Context, uri: String): PaletteColors? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val imageLoader = coil.ImageLoader(context)
+            val request = coil.request.ImageRequest.Builder(context)
+                .data(uri)
+                .allowHardware(false)
+                .build()
+
+            val result = imageLoader.execute(request)
+            val drawable = result.drawable ?: return@withContext null
+            val bitmap = drawable.toBitmap()
+
+            val palette = androidx.palette.graphics.Palette.from(bitmap)
+                .maximumColorCount(24)
+                .generate()
+
+            val defaultColor = android.graphics.Color.GRAY
+            
+            PaletteColors(
+                dominant = Color(palette.dominantSwatch?.rgb ?: palette.getDominantColor(defaultColor)),
+                vibrant = Color(palette.vibrantSwatch?.rgb ?: palette.getVibrantColor(defaultColor)),
+                lightVibrant = Color(palette.lightVibrantSwatch?.rgb ?: palette.getLightVibrantColor(defaultColor)),
+                darkVibrant = Color(palette.darkVibrantSwatch?.rgb ?: palette.getDarkVibrantColor(defaultColor)),
+                muted = Color(palette.mutedSwatch?.rgb ?: palette.getMutedColor(defaultColor))
+            )
+        } catch (e: Exception) {
+            null
         }
     }
 }

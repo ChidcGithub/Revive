@@ -328,7 +328,7 @@ fun PlayerScreen(
                                 .graphicsLayer {
                                     scaleX = albumScale * playingScale
                                     scaleY = albumScale * playingScale
-                                    shadowElevation = (albumShadow.toPx() * 1.5)
+                                    shadowElevation = (albumShadow.toPx() * 1.5).toFloat()
                                     clip = true
                                     shape = albumShape
                                     alpha = albumAlpha
