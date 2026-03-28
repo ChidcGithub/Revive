@@ -419,7 +419,7 @@ private fun DynamicAlbumBackground(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "gradientOffset"
     )
