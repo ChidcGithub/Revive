@@ -1,17 +1,17 @@
+@file:OptIn(ExperimentalAnimationApi::class)
+
 package com.music.revive.presentation.screen.player
 
 import android.content.Intent
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -27,33 +27,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.palette.graphics.Palette
-import coil.ImageLoader
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import com.music.revive.presentation.theme.AlbumColors
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.music.revive.R
 import com.music.revive.data.repository.MusicRepository
-import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.Playlist
 import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
@@ -63,7 +72,6 @@ import com.music.revive.presentation.screen.fullscreenlyrics.FullScreenLyricsAct
 import com.music.revive.presentation.theme.rememberAlbumColors
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -72,8 +80,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+private val AppleMusicColorFlowSpec: AnimationSpec<Color> = tween(720, easing = FastOutSlowInEasing)
+private val AppleMusicTapSpring: AnimationSpec<Float> = spring(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessHigh
+)
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(
@@ -111,55 +124,19 @@ fun PlayerScreen(
     val song = playerState.currentSong ?: return
 
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // Extract dynamic colors from album art
     val isSystemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     val albumColors = rememberAlbumColors(song.albumArtUri, isSystemInDarkTheme)
-    
-    // Use album's primary color for accents
-    val accentColor = albumColors.primary
-    val accentContainerColor = albumColors.primaryContainer
-    val onAccentColor = albumColors.onPrimary
-    
-    // Animation states
-    var isVisible by remember { mutableStateOf(false) }
-    val smoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
-    
-    // Staggered entry animations
-    val albumAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(500, easing = smoothEasing),
-        label = "albumAlpha"
-    )
-    
-    val albumScale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.9f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "albumScale"
-    )
-    
-    val infoAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(400, 150, easing = smoothEasing),
-        label = "infoAlpha"
-    )
-    
-    val controlsAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(400, 200, easing = smoothEasing),
-        label = "controlsAlpha"
-    )
 
-    // Trigger entry animation when song changes
+    val accentColor = albumColors.primary
+    val onAccentContent = albumColors.onPrimary
+
+    val controlsFade = remember { Animatable(1f) }
     LaunchedEffect(song.id) {
-        isVisible = true
+        controlsFade.snapTo(0.78f)
+        controlsFade.animateTo(1f, tween(420, easing = FastOutSlowInEasing))
     }
 
-    // Slider state
     var currentSliderValue by remember { mutableFloatStateOf(0f) }
     var isUserDragging by remember { mutableStateOf(false) }
 
@@ -168,8 +145,7 @@ fun PlayerScreen(
     var showMoreOptionsSheet by remember { mutableStateOf(false) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
 
-    // Update slider value
-    LaunchedEffect(playerState.position, playerState.duration) {
+    LaunchedEffect(playerState.position, playerState.duration, isUserDragging) {
         if (!isUserDragging && playerState.duration > 0) {
             currentSliderValue = playerState.position.toFloat() / playerState.duration
         }
@@ -183,134 +159,134 @@ fun PlayerScreen(
         }
     }
 
+    val chromeTint = Color.White.copy(alpha = 0.92f)
+    val chromeMuted = Color.White.copy(alpha = 0.48f)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Black)
     ) {
-        // Dynamic blurred background with album colors
-        DynamicAlbumBackground(
+        NowPlayingAmbientBackdrop(
             albumArtUri = song.albumArtUri,
             albumColors = albumColors,
+            isPlaying = playerState.isPlaying,
             modifier = Modifier.fillMaxSize()
         )
-        
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top navigation bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onNavigateBack) {
+                PlayerPressableIconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = stringResource(R.string.back),
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
+                        modifier = Modifier.size(30.dp),
+                        tint = chromeTint
                     )
                 }
-                
                 Spacer(modifier = Modifier.weight(1f))
-                
                 Text(
                     text = stringResource(R.string.playing),
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.SemiBold,
+                    color = chromeMuted,
+                    letterSpacing = 0.6.sp
                 )
-                
                 Spacer(modifier = Modifier.weight(1f))
-                
-                IconButton(onClick = { 
+                PlayerPressableIconButton(onClick = {
                     val intent = FullScreenLyricsActivity.newIntent(context)
                     context.startActivity(intent)
                 }) {
                     Icon(
                         imageVector = Icons.Rounded.Lyrics,
                         contentDescription = stringResource(R.string.show_lyrics),
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = chromeTint
                     )
                 }
-                
-                IconButton(onClick = onQueueClick) {
+                PlayerPressableIconButton(onClick = onQueueClick) {
                     Icon(
                         imageVector = Icons.Rounded.QueueMusic,
                         contentDescription = stringResource(R.string.queue),
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = chromeTint
                     )
                 }
             }
 
-            // Main content area
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Album Art with dynamic shadow
-                DynamicAlbumArt(
+                Spacer(modifier = Modifier.weight(0.15f))
+                AppleMusicNowPlayingArtwork(
                     song = song,
                     isPlaying = playerState.isPlaying,
-                    albumAlpha = albumAlpha,
-                    albumScale = albumScale,
                     accentColor = accentColor,
                     modifier = Modifier
-                        .fillMaxWidth(0.88f)
+                        .fillMaxWidth(0.92f)
                         .aspectRatio(1f)
                 )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                // Song Info
-                DynamicSongInfo(
+                Spacer(modifier = Modifier.height(28.dp))
+                AppleMusicNowPlayingMeta(
                     song = song,
-                    infoAlpha = infoAlpha,
                     accentColor = accentColor,
                     onArtistClick = { onArtistClick(song.artistId) },
                     onAlbumClick = { onAlbumClick(song.albumId) },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.weight(0.2f))
             }
 
-            // Bottom controls section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .graphicsLayer { alpha = controlsAlpha }
+                    .graphicsLayer { alpha = controlsFade.value }
                     .navigationBarsPadding()
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 20.dp)
             ) {
-                // Progress Slider with accent color
-                DynamicProgressSlider(
-                    position = playerState.position,
-                    duration = playerState.duration,
+                AppleMusicNowPlayingSlider(
                     formattedPosition = playerState.formattedPosition,
                     formattedDuration = song.formattedDuration,
                     accentColor = accentColor,
-                    onSeek = { viewModel.seekTo(it) },
+                    sliderValue = currentSliderValue,
+                    isScrubbing = isUserDragging,
+                    enabled = playerState.duration > 0,
+                    onValueChange = { v ->
+                        isUserDragging = true
+                        currentSliderValue = v
+                    },
+                    onValueChangeFinished = {
+                        isUserDragging = false
+                        val d = playerState.duration
+                        if (d > 0) {
+                            viewModel.seekTo((currentSliderValue * d).toLong().coerceIn(0L, d))
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = 20.dp)
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Main Playback Controls with dynamic accent
-                DynamicPlaybackControls(
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                AppleMusicNowPlayingTransport(
                     isPlaying = playerState.isPlaying,
                     isShuffleEnabled = playerState.isShuffleEnabled,
                     repeatMode = playerState.repeatMode,
                     accentColor = accentColor,
+                    onAccentContent = onAccentContent,
                     onPlayPause = { viewModel.playPause() },
                     onPrevious = { viewModel.playPrevious() },
                     onNext = { viewModel.playNext() },
@@ -318,20 +294,20 @@ fun PlayerScreen(
                     onCycleRepeat = { viewModel.cycleRepeatMode() },
                     modifier = Modifier.fillMaxWidth()
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Bottom Action Row
-                DynamicBottomActions(
-                    song = song,
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                AppleMusicNowPlayingSecondaryRow(
                     isFavorite = isFavorite,
                     accentColor = accentColor,
                     onToggleFavorite = { viewModel.toggleFavorite() },
                     onAddToPlaylist = { showAddToPlaylistDialog = true },
-                    onMoreOptions = { showMoreOptionsSheet = true },
+                    onMore = { showMoreOptionsSheet = true },
+                    chromeTint = chromeTint,
+                    chromeMuted = chromeMuted,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
+                        .padding(horizontal = 28.dp)
                 )
             }
         }
@@ -400,351 +376,405 @@ fun PlayerScreen(
     }
 }
 
-/**
- * Dynamic background with album art blur and color orbs
- */
 @Composable
-private fun DynamicAlbumBackground(
+private fun PlayerPressableIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.9f else 1f,
+        animationSpec = AppleMusicTapSpring,
+        label = "chromeIconPress"
+    )
+    IconButton(
+        onClick = onClick,
+        interactionSource = interaction,
+        modifier = modifier.scale(scale)
+    ) { content() }
+}
+
+@Composable
+private fun NowPlayingAmbientBackdrop(
     albumArtUri: String?,
-    albumColors: com.music.revive.presentation.theme.AlbumColors,
+    albumColors: AlbumColors,
+    isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
-    // Animated gradient positions
-    val infiniteTransition = rememberInfiniteTransition(label = "background")
-    
-    val gradientOffset by infiniteTransition.animateFloat(
+    val primaryA by animateColorAsState(
+        albumColors.primary,
+        AppleMusicColorFlowSpec,
+        label = "ambPrim"
+    )
+    val secondaryA by animateColorAsState(
+        albumColors.secondary,
+        AppleMusicColorFlowSpec,
+        label = "ambSec"
+    )
+    val tertiaryA by animateColorAsState(
+        albumColors.tertiary,
+        AppleMusicColorFlowSpec,
+        label = "ambTer"
+    )
+    val breath = rememberInfiniteTransition(label = "amb")
+    val shift by breath.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
+            animation = tween(18_000, easing = LinearEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
-        label = "gradientOffset"
+        label = "shift"
+    )
+    val kbDrift = rememberInfiniteTransition(label = "ken")
+    val kb by kbDrift.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8_000, easing = FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "kb"
+    )
+    val bgLiveScale = if (isPlaying) 1.33f + 0.06f * kb else 1.31f
+    val bgAlpha by animateFloatAsState(
+        targetValue = if (isPlaying) 0.54f else 0.48f,
+        animationSpec = tween(480, easing = FastOutSlowInEasing),
+        label = "bgAlphaEase"
     )
 
-    Box(modifier = modifier) {
-        // Blurred album art background
+    Box(modifier = modifier.background(Color.Black)) {
         if (albumArtUri != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(albumArtUri)
-                    .crossfade(true)
+                    .crossfade(520)
                     .build(),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(80.dp)
+                    .blur(100.dp)
                     .graphicsLayer {
-                        scaleX = 1.5f
-                        scaleY = 1.5f
-                        alpha = 0.4f
+                        scaleX = bgLiveScale
+                        scaleY = bgLiveScale
+                        alpha = bgAlpha
                     },
                 contentScale = ContentScale.Crop
             )
         }
-        
-        // Gradient overlay for depth
         Box(
-            modifier = Modifier
+            Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    val w = size.width
+                    val h = size.height
+                    val t = shift
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                primaryA.copy(alpha = 0.5f + 0.07f * t),
+                                secondaryA.copy(alpha = 0.32f + 0.09f * (1f - t)),
+                                tertiaryA.copy(alpha = 0.24f),
+                                Color.Black.copy(alpha = 0.82f)
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(w * (0.74f + 0.22f * t), h * 1.06f)
+                        )
+                    )
+                }
+        )
+        Box(
+            Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.3f),
-                            Color.Black.copy(alpha = 0.5f),
-                            Color.Black.copy(alpha = 0.7f),
-                            Color.Black.copy(alpha = 0.85f)
+                        colorStops = arrayOf(
+                            0f to Color.Black.copy(alpha = 0.1f),
+                            0.35f to Color.Transparent,
+                            0.72f to Color.Black.copy(alpha = 0.45f),
+                            1f to Color.Black.copy(alpha = 0.9f)
                         )
                     )
                 )
         )
-        
-        // Dynamic color orbs from album colors
-        ColorOrb(
-            color = albumColors.primary,
-            offsetX = 0.2f + gradientOffset * 0.1f,
-            offsetY = 0.3f,
-            size = 400f,
-            alpha = 0.15f,
-            modifier = Modifier.fillMaxSize()
-        )
-        
-        ColorOrb(
-            color = albumColors.secondary,
-            offsetX = 0.7f - gradientOffset * 0.1f,
-            offsetY = 0.6f,
-            size = 350f,
-            alpha = 0.12f,
-            modifier = Modifier.fillMaxSize()
-        )
     }
 }
 
-/**
- * Animated color orb
- */
 @Composable
-private fun ColorOrb(
-    color: Color,
-    offsetX: Float,
-    offsetY: Float,
-    size: Float,
-    alpha: Float,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .drawBehind {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            color.copy(alpha = alpha),
-                            color.copy(alpha = alpha * 0.5f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size * offsetX, size * offsetY),
-                        radius = size
-                    ),
-                    center = Offset(size * offsetX, size * offsetY),
-                    radius = size
-                )
-            }
-    )
-}
-
-/**
- * Album art with dynamic shadow color
- */
-@Composable
-private fun DynamicAlbumArt(
+private fun AppleMusicNowPlayingArtwork(
     song: Song,
     isPlaying: Boolean,
-    albumAlpha: Float,
-    albumScale: Float,
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val playingScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0.98f,
-        animationSpec = tween(300, easing = LinearEasing),
-        label = "playingScale"
+    val accentGlow by animateColorAsState(
+        accentColor,
+        AppleMusicColorFlowSpec,
+        label = "artAccent"
     )
-    
-    val shadowElevation by animateDpAsState(
-        targetValue = if (isPlaying) 40.dp else 24.dp,
-        animationSpec = tween(300),
-        label = "shadowElevation"
+    val playingEase by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0.988f,
+        animationSpec = tween(480, easing = FastOutSlowInEasing),
+        label = "playingEase"
     )
-    
-    Surface(
+    val breathe = rememberInfiniteTransition(label = "cover")
+    val pulse by breathe.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.012f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3_200, easing = FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    val livePulse = if (isPlaying) pulse else 1f
+    val corner = 16.dp
+    val shape = RoundedCornerShape(corner)
+    Box(
         modifier = modifier
             .graphicsLayer {
-                scaleX = albumScale * playingScale
-                scaleY = albumScale * playingScale
-                this.alpha = albumAlpha
-                this.shadowElevation = shadowElevation.toPx()
-                shape = RoundedCornerShape(12.dp)
-                clip = true
+                scaleX = playingEase * livePulse
+                scaleY = playingEase * livePulse
             },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        contentAlignment = Alignment.Center
     ) {
-        if (song.albumArtUri != null) {
-            AsyncImage(
-                model = song.albumArtUri,
-                contentDescription = song.album,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Box(
+        Box(
+            Modifier
+                .fillMaxSize(0.98f)
+                .aspectRatio(1f)
+                .drawBehind {
+                    val r = minOf(size.width, size.height) * 0.5f
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                accentGlow.copy(alpha = 0.5f),
+                                Color.Transparent
+                            ),
+                            center = center,
+                            radius = r * 1.2f
+                        )
+                    )
+                }
+        )
+        AnimatedContent(
+            targetState = song.id,
+            transitionSpec = {
+                (fadeIn(tween(380, easing = FastOutSlowInEasing)) +
+                    scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) + slideInVertically { (it * 0.06f).toInt() }) togetherWith
+                    (fadeOut(tween(260, easing = FastOutSlowInEasing)) +
+                        scaleOut(
+                            targetScale = 1.04f,
+                            animationSpec = tween(280, easing = FastOutSlowInEasing)
+                        ) +
+                        slideOutVertically { (-it * 0.04f).toInt() })
+            },
+            label = "albumArt"
+        ) { _ ->
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+                    .shadow(
+                        elevation = 28.dp,
+                        shape = shape,
+                        spotColor = accentGlow.copy(alpha = 0.55f)
+                    ),
+                shape = shape,
+                color = Color(0xFF2C2C2E)
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.MusicNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
+                if (song.albumArtUri != null) {
+                    AsyncImage(
+                        model = song.albumArtUri,
+                        contentDescription = song.album,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF2C2C2E)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(88.dp),
+                            tint = Color.White.copy(alpha = 0.28f)
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * Song info with dynamic accent color
- */
 @Composable
-private fun DynamicSongInfo(
+private fun AppleMusicNowPlayingMeta(
     song: Song,
-    infoAlpha: Float,
     accentColor: Color,
     onArtistClick: () -> Unit,
     onAlbumClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .graphicsLayer { alpha = infoAlpha }
-            .padding(horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = song.title,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        
-        Spacer(modifier = Modifier.height(6.dp))
-        
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.clickable(onClick = onArtistClick)
-        ) {
+    val titleColor = Color.White
+    val albumSubColor = Color.White.copy(alpha = 0.55f)
+    val accentLine by animateColorAsState(accentColor, AppleMusicColorFlowSpec, label = "metaAccent")
+
+    AnimatedContent(
+        targetState = song.id,
+        transitionSpec = {
+            (
+                fadeIn(tween(340, delayMillis = 40, easing = FastOutSlowInEasing)) +
+                    slideInVertically(
+                        animationSpec = tween(380, easing = FastOutSlowInEasing),
+                        initialOffsetY = { fullH -> (fullH * 0.1f).toInt() }
+                    )
+                ) togetherWith (
+                fadeOut(tween(220, easing = FastOutSlowInEasing)) +
+                    slideOutVertically(
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                        targetOffsetY = { fullH -> (-fullH * 0.06f).toInt() }
+                    )
+                )
+        },
+        modifier = modifier,
+        label = "meta"
+    ) { _ ->
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Medium
+                text = song.title,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 23.sp,
+                    lineHeight = 28.sp,
+                    letterSpacing = (-0.35).sp
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = accentColor // Dynamic accent color
+                textAlign = TextAlign.Center,
+                color = titleColor,
+                modifier = Modifier.basicMarquee(
+                    iterations = Int.MAX_VALUE,
+                    initialDelayMillis = 2_800
+                )
             )
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = accentColor
-            )
-        }
-        
-        if (song.album.isNotBlank() && song.album != song.title) {
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = song.album,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.clickable(onClick = onAlbumClick)
-            )
-        }
-        
-        // Audio quality badge
-        if (song.audioQuality != com.music.revive.domain.model.AudioQuality.UNKNOWN) {
-            Spacer(modifier = Modifier.height(12.dp))
-            AudioQualityBadge(quality = song.audioQuality)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.clickable(onClick = onArtistClick)
+            ) {
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = accentLine
+                )
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = accentLine.copy(alpha = 0.9f)
+                )
+            }
+            if (song.album.isNotBlank() && song.album != song.title) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = song.album,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    color = albumSubColor,
+                    modifier = Modifier
+                        .clickable(onClick = onAlbumClick)
+                        .padding(horizontal = 8.dp)
+                )
+            }
+            if (song.audioQuality != com.music.revive.domain.model.AudioQuality.UNKNOWN) {
+                Spacer(modifier = Modifier.height(14.dp))
+                AudioQualityBadge(quality = song.audioQuality)
+            }
         }
     }
 }
 
-/**
- * Progress slider with dynamic accent color
- */
 @Composable
-private fun DynamicProgressSlider(
-    position: Long,
-    duration: Long,
+private fun AppleMusicNowPlayingSlider(
     formattedPosition: String,
     formattedDuration: String,
     accentColor: Color,
-    onSeek: (Long) -> Unit,
+    sliderValue: Float,
+    isScrubbing: Boolean,
+    enabled: Boolean,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isDragging by remember { mutableStateOf(false) }
-    var dragPosition by remember { mutableLongStateOf(position) }
-    
-    val progress = if (duration > 0) {
-        (if (isDragging) dragPosition else position).toFloat() / duration
-    } else 0f
-
-    Column(modifier = modifier) {
-        Box(
+    val timeMuted = Color.White.copy(alpha = 0.45f)
+    val scrubLift by animateFloatAsState(
+        targetValue = if (isScrubbing) 1.045f else 1f,
+        animationSpec = AppleMusicTapSpring,
+        label = "scrubLift"
+    )
+    val trackAccent by animateColorAsState(
+        accentColor,
+        AppleMusicColorFlowSpec,
+        label = "sliderAccent"
+    )
+    Column(modifier = modifier.scale(scrubLift)) {
+        Slider(
+            value = sliderValue.coerceIn(0f, 1f),
+            onValueChange = onValueChange,
+            onValueChangeFinished = { onValueChangeFinished() },
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(24.dp)
-                .clickable { },
-            contentAlignment = Alignment.Center
-        ) {
-            val interactionSource = remember { MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            
-            // Background track
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (isPressed || isDragging) 5.dp else 3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+                .height(32.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = trackAccent,
+                inactiveTrackColor = Color.White.copy(alpha = 0.28f),
+                disabledActiveTrackColor = trackAccent.copy(alpha = 0.35f),
+                disabledInactiveTrackColor = Color.White.copy(alpha = 0.12f),
+                disabledThumbColor = Color.White.copy(alpha = 0.35f)
             )
-            
-            // Active track with accent color
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress)
-                    .height(if (isPressed || isDragging) 5.dp else 3.dp)
-                    .align(Alignment.CenterStart)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(accentColor) // Dynamic accent
-            )
-            
-            // Thumb
-            if (isPressed || isDragging) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = (progress * 100).dp - 8.dp)
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .graphicsLayer {
-                            shadowElevation = 4.dp.toPx()
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(4.dp))
-        
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = formattedPosition,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.labelMedium,
+                color = timeMuted
             )
             Text(
                 text = formattedDuration,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.labelMedium,
+                color = timeMuted
             )
         }
     }
 }
 
-/**
- * Playback controls with dynamic accent color
- */
 @Composable
-private fun DynamicPlaybackControls(
+private fun AppleMusicNowPlayingTransport(
     isPlaying: Boolean,
     isShuffleEnabled: Boolean,
     repeatMode: RepeatMode,
     accentColor: Color,
+    onAccentContent: Color,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -752,169 +782,199 @@ private fun DynamicPlaybackControls(
     onCycleRepeat: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val transportTint = Color.White.copy(alpha = 0.95f)
+    val subtleGlyph = Color.White.copy(alpha = 0.4f)
+    val playTint by animateColorAsState(accentColor, AppleMusicColorFlowSpec, label = "playFill")
+    val playContent by animateColorAsState(onAccentContent, AppleMusicColorFlowSpec, label = "playOn")
+
+    val playInteraction = remember { MutableInteractionSource() }
+    val playPressed by playInteraction.collectIsPressedAsState()
+    val playScale by animateFloatAsState(
+        targetValue = if (playPressed) 0.94f else 1f,
+        animationSpec = AppleMusicTapSpring,
+        label = "playPress"
+    )
+
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = modifier.padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Shuffle button
-        DynamicControlButton(
+        AppleMusicModeGlyph(
             icon = Icons.Rounded.Shuffle,
-            isActive = isShuffleEnabled,
+            isOn = isShuffleEnabled,
             accentColor = accentColor,
-            size = 40.dp,
+            offTint = subtleGlyph,
             onClick = onToggleShuffle
         )
-        
-        // Previous button
-        IconButton(
+        PlayerPressableIconButton(
             onClick = onPrevious,
             modifier = Modifier.size(56.dp)
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipPrevious,
                 contentDescription = stringResource(R.string.previous),
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.onBackground
+                modifier = Modifier.size(38.dp),
+                tint = transportTint
             )
         }
-        
-        // Play/Pause - uses dynamic accent color
         FilledIconButton(
             onClick = onPlayPause,
+            interactionSource = playInteraction,
             modifier = Modifier
-                .size(72.dp)
-                .graphicsLayer {
-                    shadowElevation = 8.dp.toPx()
-                    shape = CircleShape
-                },
+                .size(78.dp)
+                .scale(playScale),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = accentColor, // Dynamic accent color
-                contentColor = Color.White
+                containerColor = playTint,
+                contentColor = playContent
             )
         ) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                contentDescription = if (isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
-                modifier = Modifier.size(36.dp)
-            )
+            Crossfade(
+                targetState = isPlaying,
+                animationSpec = tween(320, easing = FastOutSlowInEasing),
+                label = "playPauseIcon"
+            ) { playing ->
+                Icon(
+                    imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (playing) {
+                        stringResource(R.string.pause)
+                    } else {
+                        stringResource(R.string.play)
+                    },
+                    modifier = Modifier.size(40.dp)
+                )
+            }
         }
-        
-        // Next button
-        IconButton(
+        PlayerPressableIconButton(
             onClick = onNext,
             modifier = Modifier.size(56.dp)
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipNext,
                 contentDescription = stringResource(R.string.next),
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.onBackground
+                modifier = Modifier.size(38.dp),
+                tint = transportTint
             )
         }
-        
-        // Repeat button
-        DynamicControlButton(
+        AppleMusicModeGlyph(
             icon = when (repeatMode) {
                 RepeatMode.ONE -> Icons.Rounded.RepeatOne
                 else -> Icons.Rounded.Repeat
             },
-            isActive = repeatMode != RepeatMode.OFF,
+            isOn = repeatMode != RepeatMode.OFF,
             accentColor = accentColor,
-            size = 40.dp,
+            offTint = subtleGlyph,
             onClick = onCycleRepeat
         )
     }
 }
 
-/**
- * Control button with dynamic accent color
- */
 @Composable
-private fun DynamicControlButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    isActive: Boolean,
+private fun AppleMusicModeGlyph(
+    icon: ImageVector,
+    isOn: Boolean,
     accentColor: Color,
-    size: Dp,
+    offTint: Color,
     onClick: () -> Unit
 ) {
-    val containerColor by animateColorAsState(
-        targetValue = if (isActive) {
-            accentColor // Dynamic accent when active
-        } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        },
-        animationSpec = tween(200),
-        label = "containerColor"
+    val tint by animateColorAsState(
+        targetValue = if (isOn) accentColor else offTint,
+        animationSpec = tween(380, easing = FastOutSlowInEasing),
+        label = "modeGlyph"
     )
-    
-    val contentColor by animateColorAsState(
-        targetValue = if (isActive) {
-            Color.White
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        animationSpec = tween(200),
-        label = "contentColor"
+    val activePulse by animateFloatAsState(
+        targetValue = if (isOn) 1.06f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "glyphPulse"
     )
-    
-    FilledIconButton(
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = AppleMusicTapSpring,
+        label = "glyphPress"
+    )
+    IconButton(
         onClick = onClick,
-        modifier = Modifier.size(size),
-        shape = CircleShape,
-        colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = containerColor,
-            contentColor = contentColor
-        )
+        interactionSource = interaction,
+        modifier = Modifier
+            .size(48.dp)
+            .scale(pressScale * activePulse)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(23.dp),
+            tint = tint
         )
     }
 }
 
-/**
- * Bottom action row
- */
 @Composable
-private fun DynamicBottomActions(
-    song: Song,
+private fun AppleMusicNowPlayingSecondaryRow(
     isFavorite: Boolean,
     accentColor: Color,
     onToggleFavorite: () -> Unit,
     onAddToPlaylist: () -> Unit,
-    onMoreOptions: () -> Unit,
+    onMore: () -> Unit,
+    chromeTint: Color,
+    chromeMuted: Color,
     modifier: Modifier = Modifier
 ) {
+    val favTint by animateColorAsState(
+        targetValue = if (isFavorite) accentColor else chromeMuted,
+        animationSpec = tween(420, easing = FastOutSlowInEasing),
+        label = "favTint"
+    )
+    val favHeart by animateFloatAsState(
+        targetValue = if (isFavorite) 1.12f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "favBeat"
+    )
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onToggleFavorite) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDescription = if (isFavorite) stringResource(R.string.remove_from_favorites) else stringResource(R.string.add_to_favorites),
-                tint = if (isFavorite) accentColor else MaterialTheme.colorScheme.onSurfaceVariant // Dynamic accent when favorited
-            )
+        PlayerPressableIconButton(
+            onClick = onToggleFavorite,
+            modifier = Modifier.scale(favHeart)
+        ) {
+            Crossfade(
+                targetState = isFavorite,
+                animationSpec = tween(280, easing = FastOutSlowInEasing),
+                label = "favIcon"
+            ) { fav ->
+                Icon(
+                    imageVector = if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = if (fav) {
+                        stringResource(R.string.remove_from_favorites)
+                    } else {
+                        stringResource(R.string.add_to_favorites)
+                    },
+                    tint = favTint
+                )
+            }
         }
-        
-        IconButton(onClick = onAddToPlaylist) {
+        PlayerPressableIconButton(onClick = onAddToPlaylist) {
             Icon(
                 imageVector = Icons.Rounded.PlaylistAdd,
                 contentDescription = stringResource(R.string.add_to_playlist),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = chromeTint.copy(alpha = 0.88f)
             )
         }
-        
-        IconButton(onClick = onMoreOptions) {
+        PlayerPressableIconButton(onClick = onMore) {
             Icon(
                 imageVector = Icons.Rounded.MoreHoriz,
                 contentDescription = stringResource(R.string.more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = chromeTint.copy(alpha = 0.88f)
             )
         }
     }

@@ -21,6 +21,10 @@ on:
           - beta
           - release
 
+# 创建 Release、推送 tag、上传制品需要写权限（推送 beta / main 均依赖此项）
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build APK

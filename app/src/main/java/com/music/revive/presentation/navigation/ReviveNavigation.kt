@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,7 @@ import com.music.revive.domain.model.Album
 import com.music.revive.domain.model.Artist
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.BottomPlayerBar
+import com.music.revive.presentation.theme.rememberAlbumColors
 import com.music.revive.presentation.screen.album.AlbumDetailScreen
 import com.music.revive.presentation.screen.album.AlbumDetailViewModel
 import com.music.revive.presentation.screen.artist.ArtistDetailScreen
@@ -108,22 +111,38 @@ private fun standardPopExitTransition(): ExitTransition {
     )
 }
 
-// Player screen uses slide up from bottom with smooth animation
+// 全屏播放器：自底部滑入 + 轻微缩放 + 长淡出（接近 iOS / Apple Music Now Playing）
 private fun playerEnterTransition(): EnterTransition {
+    val slide = spring<IntOffset>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMediumLow
+    )
+    val fade = tween<Float>(420, easing = FastOutSlowInEasing)
+    val zoom = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
     return slideInVertically(
         initialOffsetY = { it },
-        animationSpec = tween(400, easing = DecelerateEasing)
-    ) + fadeIn(
-        animationSpec = tween(300, easing = SmoothEasing)
+        animationSpec = slide
+    ) + fadeIn(animationSpec = fade) + scaleIn(
+        initialScale = 0.96f,
+        animationSpec = zoom
     )
 }
 
 private fun playerExitTransition(): ExitTransition {
     return slideOutVertically(
         targetOffsetY = { it },
-        animationSpec = tween(350, easing = AccelerateEasing)
+        animationSpec = spring<IntOffset>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
     ) + fadeOut(
-        animationSpec = tween(200, easing = SmoothEasing)
+        animationSpec = tween(260, delayMillis = 30, easing = FastOutSlowInEasing)
+    ) + scaleOut(
+        targetScale = 0.98f,
+        animationSpec = tween(320, easing = FastOutSlowInEasing)
     )
 }
 
@@ -195,6 +214,12 @@ fun ReviveNavigation(
     val playerState by musicPlayer.playerState.collectAsState()
     val isPlaying by musicPlayer.isPlaying.collectAsState()
 
+    val isDarkForArtPalette = isSystemInDarkTheme()
+    val nowPlayingArtColors = rememberAlbumColors(
+        playerState.currentSong?.albumArtUri,
+        isDarkForArtPalette
+    )
+
     val homeViewModel: HomeViewModel = hiltViewModel()
     val homeUiState by homeViewModel.uiState.collectAsState()
 
@@ -243,7 +268,9 @@ fun ReviveNavigation(
                         onPlayPauseClick = { musicPlayer.playPause() },
                         onNextClick = { musicPlayer.playNext() },
                         onPreviousClick = { musicPlayer.playPrevious() },
-                        onBarClick = { navController.navigate(Player) }
+                        onBarClick = { navController.navigate(Player) },
+                        accentPrimary = nowPlayingArtColors.primary,
+                        accentSecondary = nowPlayingArtColors.secondary
                     )
                 }
 

@@ -53,6 +53,9 @@ fun BottomPlayerBar(
     onBarClick: () -> Unit,
     onFavoriteClick: () -> Unit = {},
     isFavorite: Boolean = false,
+    /** 来自当前唱片封面取色，避免仅使用全局主题红 */
+    accentPrimary: Color = MaterialTheme.colorScheme.primary,
+    accentSecondary: Color = MaterialTheme.colorScheme.tertiary,
     modifier: Modifier = Modifier
 ) {
     val song = playerState.currentSong ?: return
@@ -79,9 +82,8 @@ fun BottomPlayerBar(
         }
     }
 
-    // Capture colors before drawBehind (can't use MaterialTheme inside drawBehind)
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val primaryColor = accentPrimary
+    val tertiaryColor = accentSecondary
 
     // Album art scale animation with spring
     val albumScale by animateFloatAsState(
@@ -235,8 +237,8 @@ fun BottomPlayerBar(
                         modifier = Modifier.size(48.dp),
                         shape = MaterialTheme.shapes.large,
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = accentPrimary,
+                            contentColor = Color.White
                         )
                     ) {
                         Icon(
