@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/github/license/ChidcGithub/Revive?style=flat-square)](LICENSE)
 [![Code Size](https://img.shields.io/github/languages/code-size/ChidcGithub/Revive?style=flat-square)](https://github.com/ChidcGithub/Revive)
 
-A modern local music player for Android built with Jetpack Compose and Material 3.
+A modern local music player for Android built with Jetpack Compose and Material 3, featuring Apple Music-inspired design.
 
 ---
 
@@ -24,6 +24,7 @@ A modern local music player for Android built with Jetpack Compose and Material 
 - Background playback with notification controls
 - Lock screen media controls
 - Audio focus handling
+- Sleep timer with fade-out effect
 
 ### Library Management
 - Browse by **Albums**, **Artists**, **Folders**
@@ -31,13 +32,16 @@ A modern local music player for Android built with Jetpack Compose and Material 
 - Favorites management
 - Recently played history
 - Custom playlists with drag-to-reorder
+- Smart collections (Top Picks, New Releases)
 
 ### User Interface
-- Material 3 design system
+- Apple Music-inspired design system
 - Material You dynamic colors (Android 12+)
 - Light/Dark theme with system follow
 - Smooth animations and transitions
-- Immersive full-screen player
+- Immersive full-screen player with ambient backgrounds
+- "Listen Now" home screen with personalized sections
+- Audio quality badges (HI-RES, LOSSLESS)
 
 ---
 
@@ -47,7 +51,7 @@ A modern local music player for Android built with Jetpack Compose and Material 
 |----------|------------|
 | Language | Kotlin 2.0 |
 | UI Framework | Jetpack Compose |
-| Design System | Material 3 |
+| Design System | Material 3 + Apple Music Style |
 | Architecture | MVVM + Repository |
 | DI | Hilt |
 | Media Playback | ExoPlayer (Media3) |
@@ -56,6 +60,7 @@ A modern local music player for Android built with Jetpack Compose and Material 
 | Image Loading | Coil |
 | Async | Coroutines & Flow |
 | Navigation | Compose Navigation |
+| Color Extraction | AndroidX Palette |
 
 ---
 
@@ -65,22 +70,30 @@ A modern local music player for Android built with Jetpack Compose and Material 
 app/src/main/java/com/music/revive/
 ├── data/
 │   ├── datasource/      # MediaStore data source
+│   ├── color/           # Color extraction services
 │   ├── local/           # Room database
 │   │   ├── dao/         # DAO interfaces
 │   │   └── entity/      # Database entities
 │   └── repository/      # Repository implementations
 ├── domain/
-│   └── model/           # Domain models
+│   ├── model/           # Domain models
+│   └── utils/           # Domain utilities (SleepTimer)
 ├── presentation/
 │   ├── components/      # Reusable Compose components
+│   │   ├── GradientOrb.kt          # Ambient background orbs
+│   │   ├── ImmersivePlayerComponents.kt  # Player UI
+│   │   └── QualityBadges.kt        # Audio quality badges
 │   ├── navigation/      # Navigation setup
 │   ├── screen/          # Screen UIs
-│   │   ├── home/        # Home screen
-│   │   ├── player/      # Player screen
+│   │   ├── home/        # "Listen Now" home screen
+│   │   ├── player/      # Immersive player screen
 │   │   ├── playlist/    # Playlist screens
 │   │   ├── search/      # Search screen
 │   │   └── settings/    # Settings screen
 │   └── theme/           # Theme configuration
+│       ├── Color.kt     # Apple Music color system
+│       ├── Type.kt      # SF Pro-style typography
+│       └── Theme.kt     # Shape and animation system
 ├── service/             # Background services
 │   ├── MusicService.kt  # MediaSession service
 │   └── MusicPlayer.kt   # ExoPlayer wrapper
@@ -234,3 +247,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Material Design 3](https://m3.material.io/) - Design system
 - [Coil](https://coil-kt.github.io/coil/) - Image loading
 - [Hilt](https://dagger.dev/hilt/) - Dependency injection
+- [AndroidX Palette](https://developer.android.com/jetpack/androidx/releases/palette) - Color extraction
