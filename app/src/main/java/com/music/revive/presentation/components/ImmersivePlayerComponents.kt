@@ -71,10 +71,14 @@ fun ImmersiveAlbumArt(
     // Subtle rotation when playing
     val rotation by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ).let { if (!isPlaying) tween(1000) else it },
+        animationSpec = if (isPlaying) {
+            infiniteRepeatable(
+                animation = tween(durationMillis = 20000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            )
+        } else {
+            tween(1000)
+        },
         label = "rotation"
     )
     

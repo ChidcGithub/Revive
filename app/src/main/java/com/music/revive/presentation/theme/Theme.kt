@@ -21,8 +21,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.music.revive.data.local.ColorSource
-import com.music.revive.presentation.theme.AlbumColors.toDarkColorScheme
-import com.music.revive.presentation.theme.AlbumColors.toLightColorScheme
+import com.music.revive.presentation.theme.toDarkColorScheme
+import com.music.revive.presentation.theme.toLightColorScheme
 
 private fun findActivity(context: Context): Activity {
     var contextInner = context

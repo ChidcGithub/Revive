@@ -964,7 +964,7 @@ private fun LoadingShimmer(modifier: Modifier = Modifier) {
                     .height(80.dp),
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)
-            )
+            ) {}
         }
     }
 }
