@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.music.revive.R
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
+import com.music.revive.domain.model.WordSegment
 import kotlinx.coroutines.launch
 
 /**
@@ -323,7 +325,7 @@ private fun AppleMusicLyricLine(
             }
     ) {
         // 主歌词文本（带卡拉 OK 效果）
-        if (enableKaraoke && line.words.isNotEmpty()) {
+        if (enableKaraoke && !line.words.isNullOrEmpty()) {
             WordByWordLyrics(
                 line = line,
                 textStyle = textStyle,
@@ -344,10 +346,10 @@ private fun AppleMusicLyricLine(
         }
         
         // 翻译文本
-        if (showTranslation && line.translation.isNotBlank()) {
+        if (showTranslation && !line.translation.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = line.translation,
+                text = line.translation!!,
                 style = translationStyle,
                 color = onBackgroundColor.copy(alpha = 0.7f),
                 modifier = Modifier.fillMaxWidth()
@@ -368,7 +370,17 @@ private fun WordByWordLyrics(
     progress: Float,
     modifier: Modifier = Modifier
 ) {
-    if (line.words.isEmpty()) {
+    val words = line.words ?: run {
+        Text(
+            text = line.text,
+            style = textStyle,
+            color = inactiveColor,
+            modifier = modifier
+        )
+        return
+    }
+    
+    if (words.isEmpty()) {
         Text(
             text = line.text,
             style = textStyle,
@@ -379,13 +391,13 @@ private fun WordByWordLyrics(
     }
     
     Row(modifier = modifier) {
-        val totalDuration = line.words.sumOf { it.duration }
+        val totalDuration = words.sumOf { it.endTimeMs - it.startTimeMs }
         var accumulatedTime = 0L
         
-        line.words.forEachIndexed { index, word ->
+        words.forEach { word ->
             val wordProgress = if (totalDuration > 0) {
                 val wordStart = accumulatedTime
-                val wordEnd = wordStart + word.duration
+                val wordEnd = wordStart + (word.endTimeMs - word.startTimeMs)
                 val currentTime = progress * totalDuration
                 
                 when {
@@ -415,7 +427,7 @@ private fun WordByWordLyrics(
                 )
             }
             
-            accumulatedTime += word.duration
+            accumulatedTime += (word.endTimeMs - word.startTimeMs)
         }
     }
 }
@@ -452,31 +464,30 @@ private fun GradientText(
         return
     }
     
-    // 使用 ShaderBrush 创建渐变效果
+    // 使用 Box 叠加实现渐变效果
     Box(modifier = modifier) {
+        // 底层：未完成颜色
         Text(
             text = text,
             style = style,
             color = inactiveColor
         )
         
+        // 上层：已完成颜色（使用 clip 裁剪）
         Text(
             text = text,
             style = style,
             color = activeColor,
-            modifier = Modifier.graphicsLayer {
-                clip = true
-            }.drawBehind {
-                val width = size.width
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(activeColor, activeColor),
-                        startX = 0f,
-                        endX = width * progress
-                    ),
-                    size = Size(width * progress, size.height)
-                )
-            }
+            modifier = Modifier
+                .graphicsLayer {
+                    clip = true
+                }
+                .drawBehind {
+                    drawRect(
+                        color = activeColor,
+                        size = androidx.compose.ui.geometry.Size(size.width * progress, size.height)
+                    )
+                }
         )
     }
 }
@@ -495,13 +506,13 @@ fun EmptyLyricsView(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = androidx.compose.material.icons.Icons.Rounded.Lyrics,
+                imageVector = Icons.Rounded.Lyrics,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
             Text(
-                text = com.music.revive.R.string.no_lyrics,
+                text = "暂无歌词",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
@@ -572,17 +583,6 @@ private fun GradientFadeOverlay(
         )
     )
 }
-
-/**
- * 调色板颜色数据类 - 从专辑封面提取的颜色
- */
-data class PaletteColors(
-    val dominant: Color,
-    val vibrant: Color,
-    val lightVibrant: Color,
-    val darkVibrant: Color,
-    val muted: Color
-)
 
 /**
  * 从图片 URI 提取调色板颜色
