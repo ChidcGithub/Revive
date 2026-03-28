@@ -17,10 +17,10 @@ import androidx.compose.ui.Alignment
 import kotlin.math.sin
 
 /**
- * Animated Gradient Orb
+ * Apple Music Style Gradient Orb
  * 
- * Creates a floating, animated color blob for ambient background effects.
- * Used in Apple Music-style now playing screens.
+ * Creates floating, animated color blobs for ambient background effects.
+ * Optimized for performance with minimal re-compositions.
  */
 @Composable
 fun GradientOrb(
@@ -32,13 +32,13 @@ fun GradientOrb(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "orbAnimation")
     
-    // Position animation - slow drift using sine waves
+    // Slow, smooth position animations
     val offsetX by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 100f,
+        targetValue = 60f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 8000,
+                durationMillis = 10000 + (animationPhase * 2000).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -48,10 +48,10 @@ fun GradientOrb(
     
     val offsetY by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 80f,
+        targetValue = 50f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = (7000 + (animationPhase * 2000)).toInt(),
+                durationMillis = 8000 + (animationPhase * 1500).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -59,13 +59,13 @@ fun GradientOrb(
         label = "offsetY"
     )
     
-    // Scale animation - subtle breathing effect
+    // Subtle breathing scale animation
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.2f,
+        targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = (6000 + (animationPhase * 1500)).toInt(),
+                durationMillis = 6000 + (animationPhase * 1000).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -73,13 +73,13 @@ fun GradientOrb(
         label = "scale"
     )
     
-    // Alpha animation - gentle pulsing
+    // Gentle alpha pulsing
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.6f,
+        initialValue = 0.25f,
+        targetValue = 0.5f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = (5000 + (animationPhase * 1000)).toInt(),
+                durationMillis = 5000 + (animationPhase * 800).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -87,25 +87,13 @@ fun GradientOrb(
         label = "alpha"
     )
     
-    // Calculate position with phase offset
-    val time = remember { mutableStateOf(0f) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            time.value += 0.01f
-            kotlinx.coroutines.delay(16)
-        }
-    }
-    
-    val finalOffsetX = offsetX + sin(time.value + animationPhase) * 50
-    val finalOffsetY = offsetY + sin(time.value * 1.2f + animationPhase) * 40
-    
     Box(
         modifier = modifier
             .size(size.dp)
             .offset { 
                 IntOffset(
-                    finalOffsetX.toInt(),
-                    finalOffsetY.toInt()
+                    offsetX.toInt(),
+                    offsetY.toInt()
                 )
             }
             .graphicsLayer {
@@ -117,7 +105,7 @@ fun GradientOrb(
             .background(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        color.copy(alpha = 0.8f),
+                        color.copy(alpha = 0.7f),
                         color.copy(alpha = 0.3f),
                         Color.Transparent
                     ),
@@ -129,9 +117,10 @@ fun GradientOrb(
 }
 
 /**
- * Multiple Gradient Orbs Layer
+ * Apple Music Style Gradient Orbs Layer
  * 
- * Creates a layer of multiple animated gradient orbs for rich ambient backgrounds.
+ * Creates a layered ambient background with multiple floating color orbs.
+ * Each orb has a unique animation phase for organic movement.
  */
 @Composable
 fun GradientOrbsLayer(
@@ -142,19 +131,94 @@ fun GradientOrbsLayer(
         colors.forEachIndexed { index, color ->
             GradientOrb(
                 color = color,
-                size = 280 + (index * 40),
-                animationPhase = index * 0.5f,
-                blurRadius = 100,
+                size = 250 + (index * 35),
+                animationPhase = index * 0.4f,
+                blurRadius = 90,
                 modifier = Modifier
                     .align(
-                        when (index % 3) {
+                        when (index % 4) {
                             0 -> Alignment.TopStart
                             1 -> Alignment.TopEnd
-                            2 -> Alignment.BottomCenter
+                            2 -> Alignment.BottomStart
+                            3 -> Alignment.BottomEnd
                             else -> Alignment.Center
                         }
                     )
             )
         }
     }
+}
+
+/**
+ * Apple Music Style Ambient Background
+ * 
+ * A simplified, performant ambient background for use in player screens.
+ */
+@Composable
+fun AppleMusicAmbientBackground(
+    primaryColor: Color,
+    secondaryColor: Color? = null,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "ambient")
+    
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(25000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offset"
+    )
+    
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .drawBehind {
+                // Primary color orb
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.25f),
+                            primaryColor.copy(alpha = 0.1f),
+                            Color.Transparent
+                        ),
+                        center = Offset(
+                            size.width * (0.25f + offset * 0.1f),
+                            size.height * (0.3f + (1f - offset) * 0.05f)
+                        ),
+                        radius = size.width * 0.5f
+                    ),
+                    center = Offset(
+                        size.width * (0.25f + offset * 0.1f),
+                        size.height * (0.3f + (1f - offset) * 0.05f)
+                    ),
+                    radius = size.width * 0.5f
+                )
+                
+                // Secondary color orb (if provided)
+                if (secondaryColor != null) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                secondaryColor.copy(alpha = 0.2f),
+                                secondaryColor.copy(alpha = 0.08f),
+                                Color.Transparent
+                            ),
+                            center = Offset(
+                                size.width * (0.7f - offset * 0.1f),
+                                size.height * (0.6f + offset * 0.05f)
+                            ),
+                            radius = size.width * 0.4f
+                        ),
+                        center = Offset(
+                            size.width * (0.7f - offset * 0.1f),
+                            size.height * (0.6f + offset * 0.05f)
+                        ),
+                        radius = size.width * 0.4f
+                    )
+                }
+            }
+    )
 }

@@ -1,7 +1,6 @@
 package com.music.revive.presentation.components
 
 import android.content.Context
-import android.graphics.BlurMaskFilter
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -24,49 +23,40 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.revive.R
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
+import com.music.revive.domain.model.WordSegment
 import kotlinx.coroutines.launch
 
 /**
- * Main lyrics display component with BetterLyrics-inspired effects:
- * - Karaoke gradient sweep (line-level or word-level)
- * - Dynamic glow effect on active line
- * - Spring-based animations for scale and alpha
- * - Immersive background integration
+ * Apple Music Style Lyrics View
+ * 
+ * Design Principles:
+ * - Large, prominent text for active lyrics
+ * - Smooth fade and scale transitions
+ * - Word-by-word karaoke effect
+ * - Minimal UI distractions
+ * - Centered, elegant layout
  */
 @Composable
 fun LyricsView(
@@ -86,9 +76,9 @@ fun LyricsView(
     modifier: Modifier = Modifier
 ) {
     if (lyric.isEmpty) {
-        EmptyLyricsView(modifier = modifier)
+        AppleMusicEmptyLyrics(modifier = modifier)
     } else if (lyric.isSynced) {
-        SyncedLyricsView(
+        AppleMusicSyncedLyrics(
             lyric = lyric,
             currentPositionMs = currentPositionMs,
             fontSizeMultiplier = fontSizeMultiplier,
@@ -97,15 +87,10 @@ fun LyricsView(
             enableGlow = enableGlow,
             enableKaraoke = enableKaraoke,
             enableHapticFeedback = enableHapticFeedback,
-            enableBlur = enableBlur,
-            enableShader = enableShader,
-            enableBalancedLines = enableBalancedLines,
-            blurRadius = blurRadius,
-            blurTransitionDistance = blurTransitionDistance,
             modifier = modifier
         )
     } else {
-        PlainLyricsView(
+        AppleMusicPlainLyrics(
             lyric = lyric,
             fontSizeMultiplier = fontSizeMultiplier,
             isCentered = isCentered,
@@ -115,10 +100,10 @@ fun LyricsView(
 }
 
 /**
- * Empty state when no lyrics are available
+ * Empty state when no lyrics are available - Apple Music style
  */
 @Composable
-fun EmptyLyricsView(
+private fun AppleMusicEmptyLyrics(
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -127,33 +112,46 @@ fun EmptyLyricsView(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Lyrics,
-                contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
+            // Icon with subtle styling
+            Surface(
+                modifier = Modifier.size(80.dp),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.Lyrics,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            
             Text(
                 text = stringResource(R.string.no_lyrics),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
+            
             Text(
                 text = stringResource(R.string.no_lyrics_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }
 }
 
 /**
- * Synced lyrics view with karaoke effects, glow, and spring animations
+ * Apple Music-style synced lyrics with karaoke effect
  */
 @Composable
-private fun SyncedLyricsView(
+private fun AppleMusicSyncedLyrics(
     lyric: Lyric,
     currentPositionMs: Long,
     fontSizeMultiplier: Float,
@@ -162,20 +160,14 @@ private fun SyncedLyricsView(
     enableGlow: Boolean,
     enableKaraoke: Boolean,
     enableHapticFeedback: Boolean,
-    enableBlur: Boolean,
-    enableShader: Boolean,
-    enableBalancedLines: Boolean,
-    blurRadius: Float,
-    blurTransitionDistance: Int,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
     val context = LocalContext.current
     val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     
-    // Track user scrolling to prevent auto-scroll interference
+    // Track user scrolling
     var isUserScrolling by remember { mutableStateOf(false) }
     var lastUserScrollTime by remember { mutableLongStateOf(0L) }
     var previousLineIndex by remember { mutableStateOf(-1) }
@@ -185,7 +177,12 @@ private fun SyncedLyricsView(
         lyric.findCurrentLineIndex(currentPositionMs)
     }
     
-    // Haptic feedback when line changes
+    // Calculate line progress for karaoke
+    val lineProgress = remember(currentPositionMs, currentLineIndex) {
+        lyric.lineProgressAt(currentLineIndex, currentPositionMs)
+    }
+    
+    // Haptic feedback on line change
     LaunchedEffect(currentLineIndex) {
         if (enableHapticFeedback && currentLineIndex != previousLineIndex && currentLineIndex >= 0) {
             performHapticFeedback(vibrator, HapticFeedbackType.LINE_CHANGE)
@@ -193,29 +190,20 @@ private fun SyncedLyricsView(
         previousLineIndex = currentLineIndex
     }
     
-    // Calculate line progress for karaoke effect
-    val lineProgress = remember(currentPositionMs, currentLineIndex) {
-        lyric.lineProgressAt(currentLineIndex, currentPositionMs)
-    }
-    
-    // Auto-scroll to current line with spring animation
+    // Auto-scroll to current line
     LaunchedEffect(currentLineIndex) {
         if (currentLineIndex >= 0 && !isUserScrolling) {
-            val visibleItems = listState.layoutInfo.visibleItemsInfo
-            if (visibleItems.isNotEmpty()) {
-                // Calculate dynamic offset based on viewport height for better centering
-                val viewportHeight = listState.layoutInfo.viewportEndOffset
-                // Position current line at approximately 40% from top for better visibility
-                val centerOffset = (viewportHeight * 0.4f).toInt()
-                listState.animateScrollToItem(
-                    index = currentLineIndex,
-                    scrollOffset = -centerOffset
-                )
-            }
+            val viewportHeight = listState.layoutInfo.viewportEndOffset
+            // Position current line at approximately 35% from top for Apple Music style
+            val targetOffset = -(viewportHeight * 0.35f).toInt()
+            listState.animateScrollToItem(
+                index = currentLineIndex,
+                scrollOffset = targetOffset
+            )
         }
     }
     
-    // Reset user scrolling flag after delay
+    // Reset user scrolling after delay
     LaunchedEffect(isUserScrolling) {
         if (isUserScrolling) {
             kotlinx.coroutines.delay(4000)
@@ -223,18 +211,12 @@ private fun SyncedLyricsView(
         }
     }
     
-    // Theme colors
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onBackgroundColor = MaterialTheme.colorScheme.onBackground
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val glowColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-    
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 24.dp)
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onDragStart = {
@@ -250,8 +232,8 @@ private fun SyncedLyricsView(
                     }
                 },
             contentPadding = PaddingValues(
-                top = 120.dp,
-                bottom = 120.dp
+                top = 150.dp,
+                bottom = 150.dp
             ),
             horizontalAlignment = if (isCentered) Alignment.CenterHorizontally else Alignment.Start,
             userScrollEnabled = true
@@ -267,13 +249,11 @@ private fun SyncedLyricsView(
                     Int.MAX_VALUE
                 }
                 
-                // Per-line progress: only the active line gets karaoke sweep
+                // Per-line progress for karaoke
                 val currentLineProgress = if (isActive && enableKaraoke) lineProgress else if (isActive) 1f else 0f
-                
-                // Word-level progress override
                 val wordPositionMs = if (isActive) currentPositionMs else 0L
                 
-                KaraokeLyricLine(
+                AppleMusicLyricLine(
                     line = line,
                     isActive = isActive,
                     distance = distance,
@@ -284,51 +264,37 @@ private fun SyncedLyricsView(
                     textAlign = if (isCentered) TextAlign.Center else TextAlign.Start,
                     enableGlow = enableGlow,
                     enableKaraoke = enableKaraoke,
-                    enableHapticFeedback = enableHapticFeedback,
-                    enableBlur = enableBlur,
-                    enableShader = enableShader,
-                    enableBalancedLines = enableBalancedLines,
-                    blurRadius = blurRadius,
-                    blurTransitionDistance = blurTransitionDistance,
                     vibrator = vibrator,
-                    primaryColor = primaryColor,
-                    onBackgroundColor = onBackgroundColor,
-                    glowColor = glowColor,
+                    enableHapticFeedback = enableHapticFeedback,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         }
         
-        // Top gradient fade
-        GradientOverlay(
+        // Apple Music-style gradient fade at edges
+        AppleMusicGradientFade(
             isTop = true,
-            color = surfaceColor,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(100.dp)
         )
         
-        // Bottom gradient fade
-        GradientOverlay(
+        AppleMusicGradientFade(
             isTop = false,
-            color = surfaceColor,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(80.dp)
+                .height(100.dp)
         )
     }
 }
 
 /**
- * A single lyric line with karaoke gradient sweep and glow effect.
- * 
- * For word-by-word LRC: highlights each word as it's being sung
- * For standard LRC: sweeps a gradient across the entire line based on time progress
+ * Apple Music-style single lyric line
  */
 @Composable
-private fun KaraokeLyricLine(
+private fun AppleMusicLyricLine(
     line: LyricLine,
     isActive: Boolean,
     distance: Int,
@@ -339,49 +305,23 @@ private fun KaraokeLyricLine(
     textAlign: TextAlign,
     enableGlow: Boolean,
     enableKaraoke: Boolean,
-    enableHapticFeedback: Boolean,
-    enableBlur: Boolean,
-    enableShader: Boolean,
-    enableBalancedLines: Boolean,
-    blurRadius: Float,
-    blurTransitionDistance: Int,
     vibrator: Vibrator?,
-    primaryColor: Color,
-    onBackgroundColor: Color,
-    glowColor: Color,
+    enableHapticFeedback: Boolean,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val context = LocalContext.current
     
-    // Calculate blur alpha based on distance from active line with enhanced transition
-    val blurAlpha by animateFloatAsState(
-        targetValue = when {
-            isActive -> 0f
-            enableBlur && distance <= blurTransitionDistance -> {
-                // Enhanced smooth transition curve
-                val normalizedDistance = (distance - 1).toFloat() / (blurTransitionDistance - 1)
-                normalizedDistance.coerceIn(0f, 1f)
-            }
-            else -> 1f
-        },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "blurAlpha"
-    )
+    // Apple Music-style animations
+    val smoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
     
-    // Haptic feedback on line click
-    val performLineHaptic = {
-        if (enableHapticFeedback) {
-            performHapticFeedback(vibrator, HapticFeedbackType.LINE_CLICK)
-        }
-    }
-    
-    // Spring-based scale animation (more organic than tween)
+    // Scale animation - more pronounced for active line
     val scale by animateFloatAsState(
-        targetValue = if (isActive) 1.12f else 1f,
+        targetValue = when {
+            isActive -> 1.0f
+            distance == 1 -> 0.92f
+            distance == 2 -> 0.88f
+            else -> 0.85f
+        },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -389,14 +329,15 @@ private fun KaraokeLyricLine(
         label = "scale"
     )
     
-    // Smooth alpha with distance-based cascade
+    // Alpha animation - smooth fade based on distance
     val alpha by animateFloatAsState(
         targetValue = when {
             isActive -> 1f
-            distance == 1 -> 0.55f
-            distance == 2 -> 0.35f
+            distance == 1 -> 0.6f
+            distance == 2 -> 0.4f
             distance == 3 -> 0.25f
-            else -> 0.15f
+            distance == 4 -> 0.15f
+            else -> 0.08f
         },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -405,136 +346,60 @@ private fun KaraokeLyricLine(
         label = "alpha"
     )
     
-    // Animated glow intensity
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isActive && enableGlow) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "glowAlpha"
-    )
-    
-    // Animated karaoke progress for smooth sweep
+    // Animated karaoke progress
     val animatedLineProgress by animateFloatAsState(
         targetValue = lineProgress,
         animationSpec = if (isActive) {
-            tween(durationMillis = 120, easing = FastOutSlowInEasing)
+            tween(durationMillis = 100, easing = LinearEasing)
         } else {
             spring(stiffness = Spring.StiffnessHigh)
         },
         label = "lineProgress"
     )
     
-    val textStyle = MaterialTheme.typography.titleLarge.copy(
-        fontSize = 22.sp * fontSizeMultiplier,
+    // Glow intensity
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isActive && enableGlow) 0.15f else 0f,
+        animationSpec = tween(300),
+        label = "glowAlpha"
+    )
+    
+    // Text styles - Apple Music uses large, bold text
+    val textStyle = MaterialTheme.typography.headlineSmall.copy(
+        fontSize = (24.sp * fontSizeMultiplier),
         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
         textAlign = textAlign
     )
     
     val translationStyle = MaterialTheme.typography.bodyMedium.copy(
-        fontSize = 14.sp * fontSizeMultiplier,
+        fontSize = (14.sp * fontSizeMultiplier),
         textAlign = textAlign
     )
     
-    val dimmedColor = onBackgroundColor.copy(alpha = 0.5f)
-    val density = LocalDensity.current
-    
-    // Balanced line mode: adjust line width and spacing based on content length
-    // Enhanced with smart detection for Chinese/English mix and better visual balance
-    val lineWidthFraction = if (enableBalancedLines) {
-        val lineLength = line.text.length
-        val hasChinese = line.text.any { it in '\u4e00'..'\u9fff' }
-        val hasEnglish = line.text.any { it.isLetter() }
-        
-        when {
-            // Very short lines (1-5 chars): center with narrow width
-            lineLength <= 5 -> 0.5f
-            // Short lines (6-12 chars): moderate width
-            lineLength <= 12 -> {
-                if (hasChinese && !hasEnglish) 0.65f else 0.75f
-            }
-            // Medium lines (13-25 chars): wider width
-            lineLength <= 25 -> {
-                if (hasChinese && !hasEnglish) 0.85f else 0.95f
-            }
-            // Long lines: full width
-            else -> 1.0f
-        }
-    } else {
-        1.0f
-    }
-    
-    // Animate line width changes for smooth transitions
-    val animatedLineWidthFraction by animateFloatAsState(
-        targetValue = lineWidthFraction,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "lineWidthFraction"
-    )
-    
-    // Adjust vertical spacing based on line length and content
-    val verticalPadding = if (enableBalancedLines) {
-        val lineLength = line.text.length
-        val hasChinese = line.text.any { it in '\u4e00'..'\u9fff' }
-        
-        when {
-            // More spacing for short lines to improve visual balance
-            lineLength < 8 -> if (hasChinese) 14.dp else 12.dp
-            lineLength < 15 -> if (hasChinese) 12.dp else 10.dp
-            lineLength < 25 -> if (hasChinese) 10.dp else 8.dp
-            // Less spacing for very long lines
-            else -> 6.dp
-        }
-    } else {
-        8.dp
-    }
-    
-    // Shader effect for active line - creates gradient shimmer effect
-    val shaderAlpha by animateFloatAsState(
-        targetValue = if (isActive && enableShader) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "shaderAlpha"
-    )
-    
-    // Animated shimmer offset using InfiniteTransition for smooth continuous animation
-    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val animatedShimmerOffset by infiniteTransition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmerOffset"
-    )
+    // Colors - Apple Music uses white text with varying opacity
+    val activeColor = Color.White
+    val inactiveColor = Color.White.copy(alpha = 0.5f)
     
     Column(
         modifier = modifier
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                this.scaleX = scale
+                this.scaleY = scale
                 this.alpha = alpha
             }
             .then(
-                if (enableBlur && blurAlpha > 0.01f) {
-                    Modifier.blur((blurRadius * blurAlpha).dp)
-                } else {
-                    Modifier
-                }
-            )
-            .padding(vertical = verticalPadding)
-            .then(
                 if (glowAlpha > 0.01f) {
                     Modifier.drawBehind {
-                        drawGlowEffect(
-                            glowColor = glowColor,
-                            glowAlpha = glowAlpha,
+                        // Draw subtle glow behind active line
+                        drawRoundRect(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = glowAlpha),
+                                    Color.Transparent
+                                ),
+                                center = Offset(size.width / 2, size.height / 2),
+                                radius = size.width * 0.6f
+                            ),
                             cornerRadius = 16.dp.toPx()
                         )
                     }
@@ -542,75 +407,55 @@ private fun KaraokeLyricLine(
                     Modifier
                 }
             )
-            .then(
-                if (shaderAlpha > 0.01f && enableShader) {
-                    Modifier.drawBehind {
-                        drawShaderEffect(
-                            primaryColor = primaryColor,
-                            shaderAlpha = shaderAlpha,
-                            shimmerOffset = animatedShimmerOffset,
-                            cornerRadius = 16.dp.toPx()
-                        )
-                    }
-                } else {
-                    Modifier
-                }
-            )
-            .padding(vertical = 14.dp, horizontal = 4.dp),
+            .padding(vertical = 12.dp),
         horizontalAlignment = when (textAlign) {
             TextAlign.Center -> Alignment.CenterHorizontally
             else -> Alignment.Start
         }
     ) {
         if (isActive && enableKaraoke) {
-            // Karaoke text with gradient sweep
-            KaraokeText(
+            // Karaoke text with fill effect
+            AppleMusicKaraokeText(
                 text = line.text,
                 words = line.words,
                 lineProgress = animatedLineProgress,
                 currentPositionMs = currentPositionMs,
                 textStyle = textStyle,
-                activeColor = primaryColor,
-                inactiveColor = dimmedColor,
+                activeColor = activeColor,
+                inactiveColor = inactiveColor,
                 textMeasurer = textMeasurer,
                 textAlign = textAlign,
-                onHapticFeedback = performLineHaptic,
-                enableHapticFeedback = enableHapticFeedback,
-                vibrator = vibrator,
-                modifier = Modifier.fillMaxWidth(animatedLineWidthFraction)
+                modifier = Modifier.fillMaxWidth()
             )
         } else {
-            // Standard text rendering
+            // Standard text
             Text(
                 text = line.text,
                 style = textStyle,
-                color = if (isActive) primaryColor else onBackgroundColor,
+                color = if (isActive) activeColor else inactiveColor,
                 textAlign = textAlign,
-                modifier = Modifier
-                    .fillMaxWidth(lineWidthFraction)
-                    .clickable { performLineHaptic() }
+                modifier = Modifier.fillMaxWidth()
             )
         }
         
-        // Translation
+        // Translation with fade animation
         AnimatedVisibility(
             visible = showTranslation && line.translation != null,
             enter = fadeIn(tween(200)),
             exit = fadeOut(tween(200))
         ) {
             line.translation?.let { translation ->
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = translation,
                     style = translationStyle,
                     color = if (isActive) {
-                        primaryColor.copy(alpha = 0.7f)
+                        Color.White.copy(alpha = 0.7f)
                     } else {
-                        onBackgroundColor.copy(alpha = 0.4f)
+                        Color.White.copy(alpha = 0.4f)
                     },
                     textAlign = textAlign,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -618,16 +463,12 @@ private fun KaraokeLyricLine(
 }
 
 /**
- * Karaoke text with gradient sweep effect.
- * Supports both line-level sweep (standard LRC) and word-level highlighting (enhanced LRC).
- * 
- * Implementation: Draws the text twice - once dimmed, then clips and draws the highlighted
- * portion on top, creating the karaoke fill effect.
+ * Apple Music-style karaoke text with fill effect
  */
 @Composable
-private fun KaraokeText(
+private fun AppleMusicKaraokeText(
     text: String,
-    words: List<com.music.revive.domain.model.WordSegment>?,
+    words: List<WordSegment>?,
     lineProgress: Float,
     currentPositionMs: Long,
     textStyle: TextStyle,
@@ -635,9 +476,6 @@ private fun KaraokeText(
     inactiveColor: Color,
     textMeasurer: TextMeasurer,
     textAlign: TextAlign,
-    onHapticFeedback: () -> Unit,
-    enableHapticFeedback: Boolean,
-    vibrator: Vibrator?,
     modifier: Modifier = Modifier
 ) {
     val measuredText = remember(text, textStyle) {
@@ -651,23 +489,18 @@ private fun KaraokeText(
     val textWidth = measuredText.size.width.toFloat()
     val textHeight = measuredText.size.height.toFloat()
     
-    // Calculate the clip width for karaoke effect
+    // Calculate clip progress
     val clipProgress = if (words != null && words.isNotEmpty()) {
-        // Word-level: calculate progress based on individual word timing
         calculateWordProgress(words, currentPositionMs, measuredText)
     } else {
-        // Line-level: simple linear sweep
         lineProgress
     }
     
+    val density = LocalDensity.current
+    
     androidx.compose.foundation.Canvas(
         modifier = modifier
-            .height(with(LocalDensity.current) { textHeight.toDp() })
-            .clickable { 
-                if (enableHapticFeedback) {
-                    onHapticFeedback()
-                }
-            }
+            .height(with(density) { textHeight.toDp() })
     ) {
         val canvasWidth = size.width
         
@@ -678,14 +511,14 @@ private fun KaraokeText(
             else -> 0f
         }
         
-        // Draw dimmed (inactive) text
+        // Draw inactive text (dimmed)
         drawText(
             textLayoutResult = measuredText,
             color = inactiveColor,
             topLeft = Offset(textX, 0f)
         )
         
-        // Draw highlighted (active) text with clip
+        // Draw active text with clip (highlighted portion)
         if (clipProgress > 0f) {
             clipRect(
                 left = textX,
@@ -704,18 +537,14 @@ private fun KaraokeText(
 }
 
 /**
- * Calculate the horizontal progress for word-by-word karaoke.
- * Maps word timing to horizontal text position using text layout measurements.
+ * Calculate horizontal progress for word-by-word karaoke
  */
 private fun calculateWordProgress(
-    words: List<com.music.revive.domain.model.WordSegment>,
+    words: List<WordSegment>,
     currentPositionMs: Long,
     textLayout: TextLayoutResult
 ): Float {
     if (words.isEmpty()) return 0f
-    
-    val fullText = words.joinToString("") { it.text }
-    if (fullText.isEmpty()) return 0f
     
     val totalWidth = textLayout.size.width.toFloat()
     if (totalWidth <= 0f) return 0f
@@ -728,13 +557,11 @@ private fun calculateWordProgress(
         val wordEnd = charOffset + word.text.length
         
         if (currentPositionMs < word.startTimeMs) {
-            // Haven't reached this word yet
             break
         }
         
         val wordProgress = word.progressAt(currentPositionMs)
         
-        // Get the horizontal bounds of this word from text layout
         val wordStartX = if (wordStart < textLayout.layoutInput.text.length) {
             textLayout.getHorizontalPosition(wordStart, true)
         } else 0f
@@ -753,99 +580,43 @@ private fun calculateWordProgress(
 }
 
 /**
- * Draw a soft glow effect behind the active lyric line.
- * Uses BlurMaskFilter for a natural-looking glow.
- */
-private fun DrawScope.drawGlowEffect(
-    glowColor: Color,
-    glowAlpha: Float,
-    cornerRadius: Float
-) {
-    // Cache paint object to reduce allocations
-    val glowPaint = android.graphics.Paint().apply {
-        color = glowColor.copy(alpha = glowAlpha * 0.6f).toArgb()
-        isAntiAlias = true
-        maskFilter = BlurMaskFilter(
-            cornerRadius * 2f,
-            BlurMaskFilter.Blur.NORMAL
-        )
-    }
-    
-    drawIntoCanvas { canvas ->
-        val padding = cornerRadius
-        canvas.nativeCanvas.drawRoundRect(
-            -padding,
-            -padding * 0.5f,
-            size.width + padding,
-            size.height + padding * 0.5f,
-            cornerRadius,
-            cornerRadius,
-            glowPaint
-        )
-    }
-}
-
-/**
- * Draw a shader-based shimmer effect for active lyric line.
- * Creates a gradient overlay with animated shimmer that flows across the text.
- */
-private fun DrawScope.drawShaderEffect(
-    primaryColor: Color,
-    shaderAlpha: Float,
-    shimmerOffset: Float,
-    cornerRadius: Float
-) {
-    // Cache paint objects to reduce allocations
-    val shaderPaint = android.graphics.Paint().apply {
-        isAntiAlias = true
-        alpha = (shaderAlpha * 255).toInt()
-    }
-    
-    // Draw rounded rectangle background with shader
-    val rect = android.graphics.RectF(
-        0f, 0f, size.width, size.height
-    )
-    
-    drawIntoCanvas { canvas ->
-        canvas.nativeCanvas.saveLayer(rect, shaderPaint)
-        
-        // Create linear gradient directly with cached values
-        val colors = intArrayOf(
-            primaryColor.copy(alpha = 0f).toArgb(),
-            primaryColor.copy(alpha = 0.3f * shaderAlpha).toArgb(),
-            primaryColor.copy(alpha = 0.6f * shaderAlpha).toArgb(),
-            primaryColor.copy(alpha = 0.3f * shaderAlpha).toArgb(),
-            primaryColor.copy(alpha = 0f).toArgb()
-        )
-        val positions = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
-        
-        val gradient = android.graphics.LinearGradient(
-            shimmerOffset * size.width,
-            0f,
-            (shimmerOffset + 2f) * size.width,
-            size.height,
-            colors,
-            positions,
-            android.graphics.Shader.TileMode.CLAMP
-        )
-        
-        shaderPaint.shader = gradient
-        canvas.nativeCanvas.drawRoundRect(
-            rect,
-            cornerRadius,
-            cornerRadius,
-            shaderPaint
-        )
-        
-        canvas.nativeCanvas.restore()
-    }
-}
-
-/**
- * Plain lyrics view (no timing information)
+ * Apple Music-style gradient fade overlay
  */
 @Composable
-private fun PlainLyricsView(
+private fun AppleMusicGradientFade(
+    isTop: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    
+    Box(
+        modifier = modifier.background(
+            Brush.verticalGradient(
+                colors = if (isTop) {
+                    listOf(
+                        backgroundColor,
+                        backgroundColor.copy(alpha = 0.8f),
+                        backgroundColor.copy(alpha = 0.4f),
+                        Color.Transparent
+                    )
+                } else {
+                    listOf(
+                        Color.Transparent,
+                        backgroundColor.copy(alpha = 0.4f),
+                        backgroundColor.copy(alpha = 0.8f),
+                        backgroundColor
+                    )
+                }
+            )
+        )
+    )
+}
+
+/**
+ * Apple Music-style plain lyrics (no timing)
+ */
+@Composable
+private fun AppleMusicPlainLyrics(
     lyric: Lyric,
     fontSizeMultiplier: Float,
     isCentered: Boolean,
@@ -855,14 +626,15 @@ private fun PlainLyricsView(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
-        contentPadding = PaddingValues(vertical = 48.dp),
+        contentPadding = PaddingValues(vertical = 64.dp),
         horizontalAlignment = if (isCentered) Alignment.CenterHorizontally else Alignment.Start
     ) {
         itemsIndexed(lyric.lines) { _, line ->
             Text(
                 text = line.text,
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 16.sp * fontSizeMultiplier
+                    fontSize = 18.sp * fontSizeMultiplier,
+                    fontWeight = FontWeight.Normal
                 ),
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                 textAlign = if (isCentered) TextAlign.Center else TextAlign.Start,
@@ -875,85 +647,81 @@ private fun PlainLyricsView(
 }
 
 /**
- * Gradient overlay for smooth transitions at edges
+ * Haptic feedback types
  */
-@Composable
-private fun GradientOverlay(
-    isTop: Boolean,
-    color: Color = MaterialTheme.colorScheme.background,
-    modifier: Modifier = Modifier
-) {
-    val backgroundGradient = Brush.verticalGradient(
-        colors = if (isTop) {
-            listOf(color, color.copy(alpha = 0f))
-        } else {
-            listOf(color.copy(alpha = 0f), color)
-        }
-    )
-    
-    Box(
-        modifier = modifier.background(backgroundGradient)
-    )
+private enum class HapticFeedbackType {
+    LINE_CHANGE,
+    LINE_CLICK
 }
 
 /**
- * Haptic feedback types for lyrics interaction
- */
-enum class HapticFeedbackType {
-    LINE_CHANGE,      // Light tap when current line changes
-    LINE_CLICK,       // Medium click when user taps a line
-    SCROLL_EDGE,      // Stronger feedback when reaching edge while scrolling
-}
-
-/**
- * Perform haptic feedback based on type and Android version
+ * Perform haptic feedback
  */
 private fun performHapticFeedback(vibrator: Vibrator?, type: HapticFeedbackType) {
-    if (vibrator == null || !vibrator.hasVibrator()) return
-    
-    // Check for vibration permission on Android 13+
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        // On Android 12+, hasVibrator() already checks permissions implicitly
-        // but we add an extra safety check
-        try {
-            vibrator.vibrate(VibrationEffect.createOneShot(1, VibrationEffect.DEFAULT_AMPLITUDE))
-        } catch (e: SecurityException) {
-            // Permission denied, skip haptic feedback
-            return
-        }
-    }
+    if (vibrator == null) return
     
     try {
-        when (type) {
-            HapticFeedbackType.LINE_CHANGE -> {
-                // Light, quick tap for line change
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE))
-                } else {
-                    @Suppress("DEPRECATION")
-                    vibrator.vibrate(15)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            when (type) {
+                HapticFeedbackType.LINE_CHANGE -> {
+                    vibrator.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                }
+                HapticFeedbackType.LINE_CLICK -> {
+                    vibrator.vibrate(VibrationEffect.createOneShot(5, VibrationEffect.DEFAULT_AMPLITUDE))
                 }
             }
-            HapticFeedbackType.LINE_CLICK -> {
-                // Medium click for user interaction
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
-                } else {
-                    @Suppress("DEPRECATION")
-                    vibrator.vibrate(30)
-                }
-            }
-            HapticFeedbackType.SCROLL_EDGE -> {
-                // Stronger feedback for edge detection
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-                } else {
-                    @Suppress("DEPRECATION")
-                    vibrator.vibrate(50)
-                }
-            }
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(10)
         }
     } catch (e: Exception) {
-        // Ignore haptic feedback errors
+        // Ignore haptic errors
     }
+}
+
+/**
+ * Gradient overlay for fading edges (kept for compatibility)
+ */
+@Composable
+fun GradientOverlay(
+    isTop: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    AppleMusicGradientFade(
+        isTop = isTop,
+        modifier = modifier.background(color)
+    )
+}
+
+// Keep these for backward compatibility
+fun DrawScope.drawGlowEffect(
+    glowColor: Color,
+    glowAlpha: Float,
+    cornerRadius: Float
+) {
+    // Simplified implementation
+    drawRoundRect(
+        color = glowColor.copy(alpha = glowAlpha),
+        cornerRadius = cornerRadius
+    )
+}
+
+fun DrawScope.drawShaderEffect(
+    primaryColor: Color,
+    shaderAlpha: Float,
+    shimmerOffset: Float,
+    cornerRadius: Float
+) {
+    // Simplified implementation
+    drawRoundRect(
+        brush = Brush.radialGradient(
+            colors = listOf(
+                primaryColor.copy(alpha = shaderAlpha * 0.5f),
+                primaryColor.copy(alpha = shaderAlpha * 0.2f),
+                Color.Transparent
+            )
+        ),
+        cornerRadius = cornerRadius
+    )
 }

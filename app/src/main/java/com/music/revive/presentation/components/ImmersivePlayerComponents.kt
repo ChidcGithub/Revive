@@ -23,13 +23,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.music.revive.R
+import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.theme.AppleMusicPrimary
-import com.music.revive.presentation.theme.NowPlayingTitleStyle
 
 /**
  * Apple Music Style Immersive Album Art Display
@@ -54,7 +55,7 @@ fun ImmersiveAlbumArt(
     
     // Animation states
     val albumScale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.85f,
+        targetValue = if (isVisible) 1f else 0.9f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -64,22 +65,15 @@ fun ImmersiveAlbumArt(
     
     val albumAlpha by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(600, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)),
+        animationSpec = tween(500, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)),
         label = "albumAlpha"
     )
     
-    // Subtle rotation when playing
-    val rotation by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0f,
-        animationSpec = if (isPlaying) {
-            infiniteRepeatable(
-                animation = tween(durationMillis = 20000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            )
-        } else {
-            tween(1000)
-        },
-        label = "rotation"
+    // Playing state scale
+    val playingScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0.98f,
+        animationSpec = tween(300),
+        label = "playingScale"
     )
     
     Box(
@@ -90,33 +84,34 @@ fun ImmersiveAlbumArt(
         contentAlignment = Alignment.Center
     ) {
         // Blurred background
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(song.albumArtUri)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(40.dp)
-                .scale(1.2f)
-                .graphicsLayer {
-                    alpha = albumAlpha
-                },
-            contentScale = ContentScale.Crop,
-            alpha = 0.6f
-        )
+        if (song.albumArtUri != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(song.albumArtUri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(50.dp)
+                    .scale(1.3f)
+                    .graphicsLayer {
+                        alpha = albumAlpha * 0.5f
+                    },
+                contentScale = ContentScale.Crop
+            )
+        }
         
-        // Gradient overlay for depth
+        // Gradient overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Black.copy(alpha = 0.3f),
+                            Color.Black.copy(alpha = 0.25f),
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.5f)
+                            Color.Black.copy(alpha = 0.4f)
                         )
                     )
                 )
@@ -125,15 +120,15 @@ fun ImmersiveAlbumArt(
                 }
         )
         
-        // Animated gradient orbs (ambient effect)
+        // Gradient orbs
         GradientOrbsLayer(
             colors = listOf(
-                AppleMusicPrimary.copy(alpha = 0.4f),
-                Color.Blue.copy(alpha = 0.3f),
-                Color.Magenta.copy(alpha = 0.2f)
+                AppleMusicPrimary.copy(alpha = 0.3f),
+                Color(0xFF007AFF).copy(alpha = 0.25f),
+                Color(0xFFAF52DE).copy(alpha = 0.2f)
             ),
             modifier = Modifier.graphicsLayer {
-                this.alpha = albumAlpha * 0.5f
+                alpha = albumAlpha * 0.4f
             }
         )
         
@@ -142,24 +137,40 @@ fun ImmersiveAlbumArt(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
                 .aspectRatio(1f)
-                .scale(albumScale)
+                .scale(albumScale * playingScale)
                 .graphicsLayer {
-                    shadowElevation = 20.dp.toPx()
+                    shadowElevation = 24.dp.toPx()
                     shape = RoundedCornerShape(12.dp)
                 }
                 .clickable(onClick = onAlbumClick),
             shape = RoundedCornerShape(12.dp),
-            color = Color.Transparent
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(song.albumArtUri)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = song.album,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
+            if (song.albumArtUri != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(song.albumArtUri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = song.album,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
         }
     }
 }
@@ -176,48 +187,49 @@ fun NowPlayingInfo(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // Title
         Text(
             text = song.title,
-            style = NowPlayingTitleStyle,
-            fontWeight = FontWeight(700),
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold
+            ),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onBackground
         )
         
-        // Artist with clickable interaction
+        // Artist with chevron
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.clickable(onClick = onArtistClick)
         ) {
             Text(
                 text = song.artist,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight(510),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Medium
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clickable(onClick = onArtistClick)
+                color = MaterialTheme.colorScheme.primary
             )
             
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.primary
             )
         }
         
-        // Album name (if different from title)
-        if (song.album != song.title) {
+        // Album name
+        if (song.album != song.title && song.album.isNotBlank()) {
             Text(
                 text = song.album,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight(510),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -237,50 +249,54 @@ fun AppleMusicProgressSlider(
     modifier: Modifier = Modifier
 ) {
     var isDragging by remember { mutableStateOf(false) }
-    var dragPosition by remember { mutableStateOf(position) }
+    var dragPosition by remember { mutableLongStateOf(position) }
     
-    val progress = if (duration > 0) position.toFloat() / duration else 0f
-    
-    Column(
-        modifier = modifier.fillMaxWidth()
-    ) {
+    val progress = if (duration > 0) {
+        (if (isDragging) dragPosition else position).toFloat() / duration
+    } else 0f
+
+    Column(modifier = modifier.fillMaxWidth()) {
         // Custom slider track
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp) // Larger touch target
-                .clickable { }
+                .height(36.dp),
+            contentAlignment = Alignment.Center
         ) {
             // Background track
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp)
-                    .align(Alignment.Center),
-                shape = RoundedCornerShape(1.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
+                    .height(3.dp),
+                shape = RoundedCornerShape(1.5.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
             ) {}
             
             // Active progress
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(progress)
-                    .height(2.dp)
-                    .align(Alignment.CenterStart),
-                shape = RoundedCornerShape(1.dp),
-                color = AppleMusicPrimary
+                    .height(3.dp),
+                shape = RoundedCornerShape(1.5.dp),
+                color = MaterialTheme.colorScheme.primary
             ) {}
             
-            // Thumb (visible on hover/drag)
-            Surface(
-                modifier = Modifier
-                    .size(12.dp)
-                    .align(Alignment.CenterStart)
-                    .offset(x = ((progress * 100).toInt().dp - 6.dp)),
-                shape = CircleShape,
-                color = Color.White,
-                tonalElevation = 2.dp
-            ) {}
+            // Thumb (visible when dragging)
+            if (isDragging) {
+                Surface(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .offset { 
+                            androidx.compose.ui.unit.IntOffset(
+                                (progress * 100).dp.roundToPx() - 7.dp.roundToPx(),
+                                0
+                            )
+                        },
+                    shape = CircleShape,
+                    color = Color.White,
+                    tonalElevation = 4.dp
+                ) {}
+            }
         }
         
         // Time labels
@@ -289,15 +305,13 @@ fun AppleMusicProgressSlider(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = formatTime(position),
+                text = formatTime(if (isDragging) dragPosition else position),
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight(510),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = formatTime(duration),
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight(510),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -311,7 +325,7 @@ fun AppleMusicProgressSlider(
 fun AppleMusicPlaybackControls(
     isPlaying: Boolean,
     isShuffleEnabled: Boolean,
-    repeatMode: com.music.revive.domain.model.RepeatMode,
+    repeatMode: RepeatMode,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -320,46 +334,39 @@ fun AppleMusicPlaybackControls(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Shuffle button
-        FilledIconButton(
-            onClick = onToggleShuffle,
-            modifier = Modifier.size(40.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = if (isShuffleEnabled) AppleMusicPrimary else Color.Transparent,
-                contentColor = if (isShuffleEnabled) Color.White else MaterialTheme.colorScheme.onSurface
-            )
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Shuffle,
-                contentDescription = "Shuffle",
-                modifier = Modifier.size(20.dp)
-            )
-        }
+        AppleMusicSmallControlButton(
+            icon = Icons.Rounded.Shuffle,
+            isActive = isShuffleEnabled,
+            onClick = onToggleShuffle
+        )
         
         // Previous button
-        FilledTonalIconButton(
+        IconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(56.dp),
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+            modifier = Modifier.size(56.dp)
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipPrevious,
                 contentDescription = "Previous",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
         
-        // Play/Pause button (larger)
+        // Play/Pause button (large, prominent)
         FilledIconButton(
             onClick = onPlayPause,
-            modifier = Modifier.size(72.dp),
+            modifier = Modifier
+                .size(72.dp)
+                .graphicsLayer {
+                    shadowElevation = 8.dp.toPx()
+                },
+            shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = AppleMusicPrimary,
                 contentColor = Color.White
@@ -373,40 +380,69 @@ fun AppleMusicPlaybackControls(
         }
         
         // Next button
-        FilledTonalIconButton(
+        IconButton(
             onClick = onNext,
-            modifier = Modifier.size(56.dp),
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+            modifier = Modifier.size(56.dp)
         ) {
             Icon(
                 imageVector = Icons.Rounded.SkipNext,
                 contentDescription = "Next",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
         
         // Repeat button
-        FilledIconButton(
-            onClick = onCycleRepeat,
-            modifier = Modifier.size(40.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = when (repeatMode) {
-                    com.music.revive.domain.model.RepeatMode.ONE -> AppleMusicPrimary
-                    com.music.revive.domain.model.RepeatMode.ALL -> AppleMusicPrimary
-                    else -> Color.Transparent
-                },
-                contentColor = if (repeatMode != com.music.revive.domain.model.RepeatMode.OFF) Color.White else MaterialTheme.colorScheme.onSurface
-            )
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Repeat,
-                contentDescription = "Repeat",
-                modifier = Modifier.size(20.dp)
-            )
-        }
+        AppleMusicSmallControlButton(
+            icon = when (repeatMode) {
+                RepeatMode.ONE -> Icons.Rounded.RepeatOne
+                else -> Icons.Rounded.Repeat
+            },
+            isActive = repeatMode != RepeatMode.OFF,
+            onClick = onCycleRepeat
+        )
+    }
+}
+
+/**
+ * Small control button (shuffle/repeat)
+ */
+@Composable
+private fun AppleMusicSmallControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isActive) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        },
+        animationSpec = tween(200),
+        label = "containerColor"
+    )
+    
+    val contentColor by animateColorAsState(
+        targetValue = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(200),
+        label = "contentColor"
+    )
+    
+    FilledIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(40.dp),
+        shape = CircleShape,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
