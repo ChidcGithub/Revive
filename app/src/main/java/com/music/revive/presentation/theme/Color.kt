@@ -2,113 +2,151 @@ package com.music.revive.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Material 3 You - Primary Tonal Palette
-val md_theme_light_primary = Color(0xFF6750A4)
-val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer = Color(0xFFEADDFF)
-val md_theme_light_onPrimaryContainer = Color(0xFF21005D)
+// MARK: - Apple Music Primary Accent Colors
+// Signature Apple Music vibrant red-pink for play buttons and active states
+val AppleMusicPrimary = Color(0xFFFA2D48)
+val AppleMusicPrimaryLight = Color(0xFFFF6B7A)
+val AppleMusicPrimaryDark = Color(0xFFD41F3A)
+val AppleMusicOnPrimary = Color(0xFFFFFFFF)
 
-val md_theme_dark_primary = Color(0xFFD0BCFF)
-val md_theme_dark_onPrimary = Color(0xFF381E72)
-val md_theme_dark_primaryContainer = Color(0xFF4F378B)
-val md_theme_dark_onPrimaryContainer = Color(0xFFEADDFF)
+// Deep blue for secondary actions and links (Apple system blue)
+val AppleMusicBlue = Color(0xFF007AFF)
+val AppleMusicBlueLight = Color(0xFF409CFF)
+val AppleMusicBlueDark = Color(0xFF0056B3)
+val AppleMusicOnBlue = Color(0xFFFFFFFF)
 
-// Secondary Tonal Palette
-val md_theme_light_secondary = Color(0xFF625B71)
-val md_theme_light_onSecondary = Color(0xFFFFFFFF)
-val md_theme_light_secondaryContainer = Color(0xFFE8DEF8)
-val md_theme_light_onSecondaryContainer = Color(0xFF1D192B)
+// MARK: - Dark Mode Background Layers (Multi-layer approach)
+// Pure black base
+val AppleMusicBlack = Color(0xFF000000)
+// Primary dark surface
+val AppleMusicDarkSurface = Color(0xFF1C1C1E)
+// Secondary dark surface (cards, elevated elements)
+val AppleMusicDarkSurfaceSecondary = Color(0xFF2C2C2E)
+// Tertiary dark surface (inputs, chips)
+val AppleMusicDarkSurfaceTertiary = Color(0xFF3A3A3C)
 
-val md_theme_dark_secondary = Color(0xFFCCC2DC)
-val md_theme_dark_onSecondary = Color(0xFF332D41)
-val md_theme_dark_secondaryContainer = Color(0xFF4A4458)
-val md_theme_dark_onSecondaryContainer = Color(0xFFE8DEF8)
+// Dark text colors
+val AppleMusicDarkPrimaryText = Color(0xFFF5F5F7)
+val AppleMusicDarkSecondaryText = Color(0xFF86868B)
+val AppleMusicDarkTertiaryText = Color(0xFF636366)
+val AppleMusicDarkSeparator = Color(0xFF38383A)
 
-// Tertiary Tonal Palette
-val md_theme_light_tertiary = Color(0xFF7D5260)
-val md_theme_light_onTertiary = Color(0xFFFFFFFF)
-val md_theme_light_tertiaryContainer = Color(0xFFFFD8E4)
-val md_theme_light_onTertiaryContainer = Color(0xFF31111D)
+// MARK: - Light Mode Background Layers
+// Pure white base
+val AppleMusicWhite = Color(0xFFFFFFFF)
+// Primary light surface (off-white for depth)
+val AppleMusicLightSurface = Color(0xFFF2F2F7)
+// Secondary light surface (cards)
+val AppleMusicLightSurfaceSecondary = Color(0xFFFFFFFF)
+// Grouped background
+val AppleMusicLightGroupedBackground = Color(0xFFF2F2F7)
 
-val md_theme_dark_tertiary = Color(0xFFEFB8C8)
-val md_theme_dark_onTertiary = Color(0xFF492532)
-val md_theme_dark_tertiaryContainer = Color(0xFF633B48)
-val md_theme_dark_onTertiaryContainer = Color(0xFFFFD8E4)
+// Light text colors
+val AppleMusicLightPrimaryText = Color(0xFF1C1C1E)
+val AppleMusicLightSecondaryText = Color(0xFF6E6E73)
+val AppleMusicLightTertiaryText = Color(0xFF8E8E93)
+val AppleMusicLightSeparator = Color(0xFFC6C6C8)
 
-// Error Tonal Palette
-val md_theme_light_error = Color(0xFFB3261E)
-val md_theme_light_errorContainer = Color(0xFFF9DEDC)
-val md_theme_light_onError = Color(0xFFFFFFFF)
-val md_theme_light_onErrorContainer = Color(0xFF410E0B)
+// MARK: - Apple Music Gradient Colors
+// Vibrant gradient stops for ambient backgrounds
+val GradientRedStart = Color(0xFFFF2D55)
+val GradientRedEnd = Color(0xFFFF6B7A)
 
-val md_theme_dark_error = Color(0xFFF2B8B5)
-val md_theme_dark_errorContainer = Color(0xFF8C1D18)
-val md_theme_dark_onError = Color(0xFF601410)
-val md_theme_dark_onErrorContainer = Color(0xFFF9DEDC)
+val GradientBlueStart = Color(0xFF007AFF)
+val GradientBlueEnd = Color(0xFF5AC8FA)
 
-// Background & Surface
-val md_theme_light_background = Color(0xFFFFFBFE)
-val md_theme_light_onBackground = Color(0xFF1C1B1F)
-val md_theme_light_surface = Color(0xFFFFFBFE)
-val md_theme_light_onSurface = Color(0xFF1C1B1F)
-val md_theme_light_surfaceVariant = Color(0xFFE7E0EC)
-val md_theme_light_onSurfaceVariant = Color(0xFF49454F)
-val md_theme_light_outline = Color(0xFF79747E)
-val md_theme_light_outlineVariant = Color(0xFFCAC4D0)
+val GradientPurpleStart = Color(0xFFAF52DE)
+val GradientPurpleEnd = Color(0xFFD48AFF)
 
-val md_theme_dark_background = Color(0xFF1C1B1F)
-val md_theme_dark_onBackground = Color(0xFFE6E1E5)
-val md_theme_dark_surface = Color(0xFF1C1B1F)
-val md_theme_dark_onSurface = Color(0xFFE6E1E5)
-val md_theme_dark_surfaceVariant = Color(0xFF49454F)
-val md_theme_dark_onSurfaceVariant = Color(0xFFCAC4D0)
-val md_theme_dark_outline = Color(0xFF938F99)
-val md_theme_dark_outlineVariant = Color(0xFF49454F)
+val GradientOrangeStart = Color(0xFFFF9500)
+val GradientOrangeEnd = Color(0xFFFFCC00)
 
-// Inverse Colors
-val md_theme_light_inverseSurface = Color(0xFF313033)
-val md_theme_light_inverseOnSurface = Color(0xFFF4EFF4)
-val md_theme_light_inversePrimary = Color(0xFFD0BCFF)
+val GradientGreenStart = Color(0xFF34C759)
+val GradientGreenEnd = Color(0xFF30D158)
 
-val md_theme_dark_inverseSurface = Color(0xFFE6E1E5)
-val md_theme_dark_inverseOnSurface = Color(0xFF313033)
-val md_theme_dark_inversePrimary = Color(0xFF6750A4)
+// MARK: - Quality Badge Colors
+// Lossless/Hi-Res badges
+val BadgeLossless = Color(0xFFBF5AF2) // Purple
+val BadgeHiRes = Color(0xFFFFD60A) // Gold
+val BadgeDolbyAtmos = Color(0xFF0A84FF) // Blue
+val BadgeExplicit = Color(0xFF8E8E93) // Gray
 
-// Surface Tints
-val md_theme_light_surfaceTint = Color(0xFF6750A4)
-val md_theme_light_scrim = Color(0xFF000000)
+// MARK: - Lyrics Colors
+// Karaoke effect colors
+val LyricsActiveColor = Color(0xFFFFFFFF)
+val LyricsInactiveColor = Color(0x80FFFFFF)
+val LyricsKaraokeGradientStart = Color(0xFFFF2D55)
+val LyricsKaraokeGradientEnd = Color(0xFFFF6B7A)
 
-val md_theme_dark_surfaceTint = Color(0xFFD0BCFF)
-val md_theme_dark_scrim = Color(0xFF000000)
+// Light mode lyrics
+val LyricsActiveColorLight = Color(0xFF1C1C1E)
+val LyricsInactiveColorLight = Color(0x801C1C1E)
 
-// Music Player Custom Colors
-val PlayerGradientStartLight = Color(0xFFF3EDF7)
-val PlayerGradientEndLight = Color(0xFFE8DEF8)
+// MARK: - Player Control Colors
+// Progress bar
+val ProgressBarActiveColor = AppleMusicPrimary
+val ProgressBarInactiveColor = Color(0x40FFFFFF)
+val ProgressBarActiveColorLight = AppleMusicPrimary
+val ProgressBarInactiveColorLight = Color(0x40000000)
 
-val PlayerGradientStartDark = Color(0xFF1C1B1F)
-val PlayerGradientEndDark = Color(0xFF2B2930)
+// Playback controls
+val ControlButtonColor = Color(0xFFFFFFFF)
+val ControlButtonColorDark = Color(0xFFFFFFFF)
+val ControlButtonDisabled = Color(0x40FFFFFF)
 
-// Accent colors for special elements
-val NowPlayingWaveformActive = Color(0xFFD0BCFF)
-val NowPlayingWaveformInactive = Color(0x4DD0BCFF)
+// MARK: - Status Colors
+val SuccessGreen = Color(0xFF34C759)
+val WarningOrange = Color(0xFFFF9500)
+val ErrorRed = Color(0xFFFF3B30)
+val InfoBlue = Color(0xFF007AFF)
 
-// Legacy colors for backwards compatibility
-val Purple80 = md_theme_dark_primary
-val PurpleGrey80 = md_theme_dark_secondaryContainer
-val Pink80 = md_theme_dark_tertiary
+// MARK: - Smart Playlist Colors
+val SmartPlaylistChillMix = Color(0xFF30D158)
+val SmartPlaylistOnTheGoMix = Color(0xFFFF2D55)
+val SmartPlaylistFavoritesMix = Color(0xFF007AFF)
+val SmartPlaylistNewMusicMix = Color(0xFFAF52DE)
 
-val Purple40 = md_theme_light_primary
-val PurpleGrey40 = md_theme_light_secondaryContainer
-val Pink40 = md_theme_light_tertiary
+// MARK: - Legacy Compatibility Aliases
+// Kept for backward compatibility with existing code
+val md_theme_light_primary = AppleMusicPrimary
+val md_theme_dark_primary = AppleMusicPrimaryLight
+val md_theme_light_secondary = AppleMusicBlue
+val md_theme_dark_secondary = AppleMusicBlueLight
+val md_theme_light_background = AppleMusicLightSurface
+val md_theme_dark_background = AppleMusicBlack
+val md_theme_light_surface = AppleMusicLightSurfaceSecondary
+val md_theme_dark_surface = AppleMusicDarkSurface
+val md_theme_light_onPrimary = AppleMusicOnPrimary
+val md_theme_dark_onPrimary = AppleMusicOnPrimary
+val md_theme_light_onBackground = AppleMusicLightPrimaryText
+val md_theme_dark_onBackground = AppleMusicDarkPrimaryText
+val md_theme_light_onSurface = AppleMusicLightPrimaryText
+val md_theme_dark_onSurface = AppleMusicDarkPrimaryText
 
-val DarkPrimary = md_theme_dark_primary
-val DarkSecondary = md_theme_dark_secondary
-val DarkBackground = md_theme_dark_background
-val DarkSurface = md_theme_dark_surface
-val DarkError = md_theme_dark_error
+// MARK: - Deprecated Legacy Colors
+// These are kept only for full backward compatibility but should not be used in new code
+val Purple80 = AppleMusicPrimaryLight
+val PurpleGrey80 = AppleMusicBlueLight
+val Pink80 = AppleMusicPrimaryLight
+val Purple40 = AppleMusicPrimary
+val PurpleGrey40 = AppleMusicBlue
+val Pink40 = AppleMusicPrimary
+val DarkPrimary = AppleMusicPrimaryLight
+val DarkSecondary = AppleMusicBlueLight
+val DarkBackground = AppleMusicBlack
+val DarkSurface = AppleMusicDarkSurface
+val DarkError = ErrorRed
+val LightPrimary = AppleMusicPrimary
+val LightSecondary = AppleMusicBlue
+val LightBackground = AppleMusicLightSurface
+val LightSurface = AppleMusicLightSurfaceSecondary
+val LightError = ErrorRed
 
-val LightPrimary = md_theme_light_primary
-val LightSecondary = md_theme_light_secondary
-val LightBackground = md_theme_light_background
-val LightSurface = md_theme_light_surface
-val LightError = md_theme_light_error
+// Old player gradient colors (replaced by dynamic gradients)
+val PlayerGradientStartLight = AppleMusicLightSurface
+val PlayerGradientEndLight = AppleMusicLightSurfaceSecondary
+val PlayerGradientStartDark = AppleMusicBlack
+val PlayerGradientEndDark = AppleMusicDarkSurface
+
+val NowPlayingWaveformActive = AppleMusicPrimary
+val NowPlayingWaveformInactive = Color(0x4DFA2D48)
