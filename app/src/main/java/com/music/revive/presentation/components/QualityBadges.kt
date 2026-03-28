@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.revive.domain.model.Song
+import com.music.revive.domain.model.AudioQuality
 import com.music.revive.presentation.theme.*
 
 /**
@@ -24,19 +25,19 @@ import com.music.revive.presentation.theme.*
  */
 @Composable
 fun AudioQualityBadge(
-    audioQuality: Song.AudioQuality,
+    audioQuality: AudioQuality,
     modifier: Modifier = Modifier,
     showLabel: Boolean = true
 ) {
     val (badgeColor, label) = when (audioQuality) {
-        Song.AudioQuality.HI_RES -> Pair(BadgeHiRes, "HI-RES")
-        Song.AudioQuality.LOSSLESS -> Pair(BadgeLossless, "LOSSLESS")
-        Song.AudioQuality.EXTREME -> Pair(BadgeDolbyAtmos, "HIGH QUALITY")
-        Song.AudioQuality.HIGH -> Pair(AppleMusicBlue, "HIGH")
-        Song.AudioQuality.GOOD -> Pair(SuccessGreen, "GOOD")
-        Song.AudioQuality.STANDARD -> Pair(AppleMusicDarkSecondaryText, "STANDARD")
-        Song.AudioQuality.LOW -> Pair(Color.Gray, "LOW")
-        Song.AudioQuality.UNKNOWN -> Pair(Color.Gray, null)
+        AudioQuality.HI_RES -> Pair(BadgeHiRes, "HI-RES")
+        AudioQuality.LOSSLESS -> Pair(BadgeLossless, "LOSSLESS")
+        AudioQuality.EXTREME -> Pair(BadgeDolbyAtmos, "HIGH QUALITY")
+        AudioQuality.HIGH -> Pair(AppleMusicBlue, "HIGH")
+        AudioQuality.GOOD -> Pair(SuccessGreen, "GOOD")
+        AudioQuality.STANDARD -> Pair(AppleMusicDarkSecondaryText, "STANDARD")
+        AudioQuality.LOW -> Pair(Color.Gray, "LOW")
+        AudioQuality.UNKNOWN -> Pair(Color.Gray, null)
     }
     
     if (label == null) return

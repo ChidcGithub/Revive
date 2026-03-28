@@ -11,7 +11,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import kotlin.math.sin
 
 /**
@@ -49,7 +51,7 @@ fun GradientOrb(
         targetValue = 80f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 7000 + (animationPhase * 2000),
+                durationMillis = (7000 + (animationPhase * 2000)).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -63,7 +65,7 @@ fun GradientOrb(
         targetValue = 1.2f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 6000 + (animationPhase * 1500),
+                durationMillis = (6000 + (animationPhase * 1500)).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -77,7 +79,7 @@ fun GradientOrb(
         targetValue = 0.6f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 5000 + (animationPhase * 1000),
+                durationMillis = (5000 + (animationPhase * 1000)).toInt(),
                 easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
             ),
             repeatMode = RepeatMode.Reverse
@@ -101,7 +103,7 @@ fun GradientOrb(
         modifier = modifier
             .size(size.dp)
             .offset { 
-                androidx.compose.ui.unit.IntOffset(
+                IntOffset(
                     finalOffsetX.toInt(),
                     finalOffsetY.toInt()
                 )
@@ -119,7 +121,7 @@ fun GradientOrb(
                         color.copy(alpha = 0.3f),
                         Color.Transparent
                     ),
-                    radius = size.dp.toPx() * scale
+                    radius = size.toFloat()
                 ),
                 shape = CircleShape
             )

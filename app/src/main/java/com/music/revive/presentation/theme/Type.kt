@@ -13,22 +13,18 @@ import androidx.compose.ui.unit.sp
 val AppleMusicTypography = Typography(
     // MARK: Display Styles (Large Headers)
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
         lineHeight = 41.sp,
-        letterSpacing = (-0.5).sp,
-        fontWeight = FontWeight(700)
+        letterSpacing = (-0.5).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
         letterSpacing = (-0.3).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 29.sp,
@@ -37,21 +33,18 @@ val AppleMusicTypography = Typography(
     
     // MARK: Headline Styles (Section Headers, Song Titles)
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = (-0.4).sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 25.sp,
         letterSpacing = (-0.3).sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
         lineHeight = 22.sp,
@@ -60,21 +53,18 @@ val AppleMusicTypography = Typography(
     
     // MARK: Title Styles (Card Titles, Subheaders)
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 25.sp,
         letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 17.sp,
         lineHeight = 22.sp,
         letterSpacing = 0.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 15.sp,
         lineHeight = 20.sp,
@@ -83,21 +73,18 @@ val AppleMusicTypography = Typography(
     
     // MARK: Body Styles (Primary Content Text)
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 17.sp,
         lineHeight = 22.sp,
         letterSpacing = (-0.1).sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
         lineHeight = 18.sp,
@@ -106,21 +93,18 @@ val AppleMusicTypography = Typography(
     
     // MARK: Label Styles (Buttons, Chips, Metadata)
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 15.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 13.sp,
         lineHeight = 18.sp,
         letterSpacing = 0.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
@@ -133,7 +117,7 @@ val AppleMusicTypography = Typography(
 
 // Greeting text (Good Morning/Afternoon/Evening)
 val GreetingTextStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Bold,
     fontSize = 34.sp,
     lineHeight = 41.sp,
@@ -142,7 +126,7 @@ val GreetingTextStyle = TextStyle(
 
 // Date subtitle under greeting
 val DateSubtitleStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Normal,
     fontSize = 13.sp,
     lineHeight = 18.sp,
@@ -152,7 +136,7 @@ val DateSubtitleStyle = TextStyle(
 
 // Section header with "See All" link style
 val SectionHeaderStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Bold,
     fontSize = 22.sp,
     lineHeight = 28.sp,
@@ -161,7 +145,7 @@ val SectionHeaderStyle = TextStyle(
 
 // See All action link
 val SeeAllLinkStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Normal,
     fontSize = 15.sp,
     lineHeight = 20.sp,
@@ -171,7 +155,7 @@ val SeeAllLinkStyle = TextStyle(
 
 // Song title in now playing
 val NowPlayingTitleStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Bold,
     fontSize = 22.sp,
     lineHeight = 28.sp,
@@ -180,7 +164,7 @@ val NowPlayingTitleStyle = TextStyle(
 
 // Artist name in now playing
 val NowPlayingArtistStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Medium,
     fontSize = 17.sp,
     lineHeight = 22.sp,
@@ -190,7 +174,7 @@ val NowPlayingArtistStyle = TextStyle(
 
 // Lyrics line (active)
 val LyricsActiveStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.SemiBold,
     fontSize = 24.sp,
     lineHeight = 32.sp,
@@ -199,7 +183,7 @@ val LyricsActiveStyle = TextStyle(
 
 // Lyrics line (inactive)
 val LyricsInactiveStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Normal,
     fontSize = 24.sp,
     lineHeight = 32.sp,
@@ -208,7 +192,7 @@ val LyricsInactiveStyle = TextStyle(
 
 // Quality badge text
 val QualityBadgeStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Bold,
     fontSize = 11.sp,
     lineHeight = 14.sp,
@@ -217,7 +201,7 @@ val QualityBadgeStyle = TextStyle(
 
 // Scrubber time labels
 val ScrubberTimeStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Medium,
     fontSize = 12.sp,
     lineHeight = 16.sp,
@@ -226,7 +210,7 @@ val ScrubberTimeStyle = TextStyle(
 
 // Navigation bar title
 val NavigationTitleStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.SemiBold,
     fontSize = 17.sp,
     lineHeight = 22.sp,
@@ -235,7 +219,7 @@ val NavigationTitleStyle = TextStyle(
 
 // Tab bar label (active)
 val TabBarLabelActiveStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Medium,
     fontSize = 10.sp,
     lineHeight = 13.sp,
@@ -244,7 +228,7 @@ val TabBarLabelActiveStyle = TextStyle(
 
 // Tab bar label (inactive)
 val TabBarLabelInactiveStyle = TextStyle(
-    fontFamily = FontFamily.Default,
+
     fontWeight = FontWeight.Normal,
     fontSize = 10.sp,
     lineHeight = 13.sp,

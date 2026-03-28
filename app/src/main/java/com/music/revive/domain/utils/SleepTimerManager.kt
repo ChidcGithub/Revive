@@ -74,7 +74,7 @@ class SleepTimerManager @Inject constructor(
                 )
                 
                 // Apply fade out effect in last 30 seconds
-                if (shouldFadeOut && !playerPreferences.fade_in_out) {
+                if (shouldFadeOut && !playerPreferences.fadeInOut) {
                     // TODO: Implement volume fade-out when integrated with MusicPlayer
                 }
             }
@@ -91,7 +91,7 @@ class SleepTimerManager @Inject constructor(
                 
                 // Pause playback via preferences flag
                 // The actual pausing is handled by MusicService observing this flag
-                launch {
+                kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(
                             context,

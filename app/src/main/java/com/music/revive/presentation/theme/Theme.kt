@@ -21,6 +21,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.music.revive.data.local.ColorSource
+import com.music.revive.presentation.theme.AlbumColors.toDarkColorScheme
+import com.music.revive.presentation.theme.AlbumColors.toLightColorScheme
 
 private fun findActivity(context: Context): Activity {
     var contextInner = context
@@ -123,62 +125,6 @@ val AppleMusicShapes = Shapes(
 val ReviveShapes = AppleMusicShapes
 
 // MARK: - Album Color Scheme Extensions
-
-@Composable
-private fun AlbumColors.toLightColorScheme(): ColorScheme {
-    return lightColorScheme(
-        primary = dominant ?: AppleMusicPrimary,
-        onPrimary = Color.White,
-        primaryContainer = vibrant ?: AppleMusicPrimaryLight,
-        onPrimaryContainer = Color.White,
-        secondary = light ?: AppleMusicBlue,
-        onSecondary = Color.White,
-        secondaryContainer = (light?.copy(alpha = 0.2f)) ?: Color(0xFFD4E5FF),
-        onSecondaryContainer = AppleMusicBlueDark,
-        tertiary = muted ?: AppleMusicPrimary,
-        onTertiary = Color.White,
-        tertiaryContainer = (muted?.copy(alpha = 0.3f)) ?: Color(0xFFFFD6E0),
-        onTertiaryContainer = AppleMusicPrimaryDark,
-        background = AppleMusicLightSurface,
-        onBackground = AppleMusicLightPrimaryText,
-        surface = AppleMusicLightSurfaceSecondary,
-        onSurface = AppleMusicLightPrimaryText,
-        surfaceVariant = AppleMusicLightGroupedBackground,
-        onSurfaceVariant = AppleMusicLightSecondaryText,
-        outline = AppleMusicLightSeparator,
-        inverseSurface = AppleMusicDarkSurface,
-        inverseOnSurface = AppleMusicDarkPrimaryText,
-        inversePrimary = dominant ?: AppleMusicPrimaryLight,
-    )
-}
-
-@Composable
-private fun AlbumColors.toDarkColorScheme(): ColorScheme {
-    return darkColorScheme(
-        primary = dominant ?: AppleMusicPrimary,
-        onPrimary = Color.White,
-        primaryContainer = vibrant ?: AppleMusicPrimaryDark,
-        onPrimaryContainer = Color.White,
-        secondary = light ?: AppleMusicBlue,
-        onSecondary = Color.White,
-        secondaryContainer = (light?.copy(alpha = 0.2f)) ?: Color(0xFF003D73),
-        onSecondaryContainer = AppleMusicBlueLight,
-        tertiary = muted ?: AppleMusicPrimary,
-        onTertiary = Color.White,
-        tertiaryContainer = (muted?.copy(alpha = 0.3f)) ?: AppleMusicPrimaryDark,
-        onTertiaryContainer = Color.White,
-        background = AppleMusicBlack,
-        onBackground = AppleMusicDarkPrimaryText,
-        surface = AppleMusicDarkSurface,
-        onSurface = AppleMusicDarkPrimaryText,
-        surfaceVariant = AppleMusicDarkSurfaceSecondary,
-        onSurfaceVariant = AppleMusicDarkSecondaryText,
-        outline = AppleMusicDarkSeparator,
-        inverseSurface = AppleMusicLightSurface,
-        inverseOnSurface = AppleMusicLightPrimaryText,
-        inversePrimary = dominant ?: AppleMusicPrimary,
-    )
-}
 
 // MARK: - Revive Theme Composable
 
@@ -361,15 +307,4 @@ data class ThemeState(
     )
 }
 
-// MARK: - Album Colors Data Class
 
-/**
- * Extracted colors from album artwork for dynamic theming
- */
-data class AlbumColors(
-    val dominant: Color?,
-    val vibrant: Color?,
-    val muted: Color?,
-    val light: Color?,
-    val dark: Color?
-)

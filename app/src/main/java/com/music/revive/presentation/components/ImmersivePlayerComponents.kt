@@ -30,7 +30,6 @@ import com.music.revive.R
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.theme.AppleMusicPrimary
 import com.music.revive.presentation.theme.NowPlayingTitleStyle
-import com.music.revive.presentation.theme.gradientOrbs
 
 /**
  * Apple Music Style Immersive Album Art Display
@@ -256,7 +255,7 @@ fun AppleMusicProgressSlider(
                     .align(Alignment.Center),
                 shape = RoundedCornerShape(1.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
-            )
+            ) {}
             
             // Active progress
             Surface(
@@ -266,7 +265,7 @@ fun AppleMusicProgressSlider(
                     .align(Alignment.CenterStart),
                 shape = RoundedCornerShape(1.dp),
                 color = AppleMusicPrimary
-            )
+            ) {}
             
             // Thumb (visible on hover/drag)
             Surface(
@@ -277,7 +276,7 @@ fun AppleMusicProgressSlider(
                 shape = CircleShape,
                 color = Color.White,
                 tonalElevation = 2.dp
-            )
+            ) {}
         }
         
         // Time labels

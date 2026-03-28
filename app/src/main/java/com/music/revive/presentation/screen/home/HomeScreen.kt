@@ -315,8 +315,8 @@ private fun ListenNowHeader(
                 visible = isVisible,
                 enter = slideInVertically(
                     initialOffsetY = { 15 },
-                    animationSpec = tween(500, delay = 100, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f))
-                ) + fadeIn(animationSpec = tween(500, delay = 100))
+                    animationSpec = tween(500, delayMillis = 100, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f))
+                ) + fadeIn(animationSpec = tween(500, delayMillis = 100))
             ) {
                 Text(
                     text = date,
@@ -332,8 +332,8 @@ private fun ListenNowHeader(
                 visible = isVisible,
                 enter = slideInVertically(
                     initialOffsetY = { 30 },
-                    animationSpec = tween(600, delay = 200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f))
-                ) + fadeIn(animationSpec = tween(600, delay = 200))
+                    animationSpec = tween(600, delayMillis = 200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f))
+                ) + fadeIn(animationSpec = tween(600, delayMillis = 200))
             ) {
                 Surface(
                     modifier = Modifier
@@ -359,7 +359,7 @@ private fun ListenNowHeader(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Search",
-                            style = bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontWeight = FontWeight(510)
                         )
@@ -629,7 +629,7 @@ private fun LargeAlbumCard(
             }
             
             // Info
-            Padding(12.dp) {
+            Box(modifier = Modifier.padding(12.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = album.name,
@@ -1013,8 +1013,8 @@ private fun EmptyLibraryStateAppleMusic(modifier: Modifier = Modifier) {
             visible = isVisible,
             enter = slideInVertically(
                 initialOffsetY = { 20 },
-                animationSpec = tween(500, delay = 200)
-            ) + fadeIn(animationSpec = tween(500, delay = 200))
+                animationSpec = tween(500, delayMillis = 200)
+            ) + fadeIn(animationSpec = tween(500, delayMillis = 200))
         ) {
             Text(
                 text = "Start Your Music Journey",
@@ -1030,8 +1030,8 @@ private fun EmptyLibraryStateAppleMusic(modifier: Modifier = Modifier) {
             visible = isVisible,
             enter = slideInVertically(
                 initialOffsetY = { 15 },
-                animationSpec = tween(500, delay = 300)
-            ) + fadeIn(animationSpec = tween(500, delay = 300))
+                animationSpec = tween(500, delayMillis = 300)
+            ) + fadeIn(animationSpec = tween(500, delayMillis = 300))
         ) {
             Text(
                 text = "Add music files to your device to begin",
