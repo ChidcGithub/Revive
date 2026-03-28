@@ -277,61 +277,59 @@ fun PlayerScreen(
                 val currentPaletteColors = paletteColors
                 
                 // Album art view
-                if (!showLyrics) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Enhanced glow effect behind album art
-                        if (playerState.isPlaying && currentPaletteColors != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize(0.85f)
-                                    .aspectRatio(1f)
-                                    .graphicsLayer {
-                                        scaleX = albumScale * playingScale
-                                        scaleY = albumScale * playingScale
-                                        alpha = albumAlpha * 0.5f
-                                    }
-                                    .blur(20.dp)
-                                    .background(
-                                        currentPaletteColors.dominant.copy(alpha = 0.5f),
-                                        CircleShape
-                                    )
-                            )
-                        }
-
-                        // Main album art with shadow and rounded corners
-                        Surface(
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Enhanced glow effect behind album art
+                    if (playerState.isPlaying && currentPaletteColors != null) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize(0.9f)
+                                .fillMaxSize(0.85f)
                                 .aspectRatio(1f)
                                 .graphicsLayer {
                                     scaleX = albumScale * playingScale
                                     scaleY = albumScale * playingScale
-                                    shadowElevation = (albumShadow.toPx() * 1.5).toFloat()
-                                    clip = true
-                                    shape = albumShape
-                                    alpha = albumAlpha
-                                },
-                            tonalElevation = 8.dp,
-                            shape = albumShape
-                        ) {
-                            if (song.albumArtUri != null) {
-                                AsyncImage(
-                                    model = song.albumArtUri,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
+                                    alpha = albumAlpha * 0.5f
+                                }
+                                .blur(20.dp)
+                                .background(
+                                    currentPaletteColors.dominant.copy(alpha = 0.5f),
+                                    CircleShape
                                 )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.mipmap.ic_launcher),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
+                        )
+                    }
+
+                    // Main album art with shadow and rounded corners
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize(0.9f)
+                            .aspectRatio(1f)
+                            .graphicsLayer {
+                                scaleX = albumScale * playingScale
+                                scaleY = albumScale * playingScale
+                                shadowElevation = (albumShadow.toPx() * 1.5).toFloat()
+                                clip = true
+                                shape = albumShape
+                                alpha = albumAlpha
+                            },
+                        tonalElevation = 8.dp,
+                        shape = albumShape
+                    ) {
+                        if (song.albumArtUri != null) {
+                            AsyncImage(
+                                model = song.albumArtUri,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.mipmap.ic_launcher),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                 }
