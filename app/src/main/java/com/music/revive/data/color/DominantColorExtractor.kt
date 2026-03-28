@@ -3,13 +3,11 @@ package com.music.revive.data.color
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.palette.graphics.Palette
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.music.revive.presentation.theme.AlbumColors
+import com.music.revive.presentation.theme.ColorExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -38,9 +36,9 @@ class DominantColorExtractor @Inject constructor(
      * @param imageUrl The URL or URI of the album art
      * @return AlbumColors object containing extracted colors
      */
-    suspend fun extractColors(imageUrl: String?): AlbumColors {
+    suspend fun extractColors(imageUrl: String?, isDarkTheme: Boolean = false): AlbumColors {
         if (imageUrl.isNullOrEmpty()) {
-            return AlbumColors(null, null, null, null, null)
+            return AlbumColors.Default
         }
         
         // Check cache first
@@ -60,7 +58,7 @@ class DominantColorExtractor @Inject constructor(
                     val bitmap = (result.drawable as? BitmapDrawable)?.bitmap
                     
                     if (bitmap != null && !bitmap.isRecycled) {
-                        val colors = extractFromBitmap(bitmap)
+                        val colors = ColorExtractor.extractFromBitmap(bitmap, isDarkTheme)
                         
                         // Cache the result
                         if (colorCache.size >= maxCacheSize) {
@@ -75,14 +73,14 @@ class DominantColorExtractor @Inject constructor(
                         
                         colors
                     } else {
-                        AlbumColors(null, null, null, null, null)
+                        AlbumColors.Default
                     }
                 } else {
-                    AlbumColors(null, null, null, null, null)
+                    AlbumColors.Default
                 }
             } catch (e: Exception) {
                 // Return default colors on error
-                AlbumColors(null, null, null, null, null)
+                AlbumColors.Default
             }
         }
     }
@@ -93,49 +91,12 @@ class DominantColorExtractor @Inject constructor(
      * @param bitmap The bitmap to extract colors from
      * @return AlbumColors object containing extracted colors
      */
-    fun extractFromBitmap(bitmap: Bitmap): AlbumColors {
+    fun extractFromBitmap(bitmap: Bitmap, isDarkTheme: Boolean = false): AlbumColors {
         if (bitmap.isRecycled) {
-            return AlbumColors(null, null, null, null, null)
+            return AlbumColors.Default
         }
         
-        // Generate palette with optimized settings
-        val palette = Palette.from(bitmap)
-            .maximumColorCount(16) // More colors for better selection
-            .addFilter(true) { _, rgb ->
-                // Filter out very dark and very light colors
-                val hsl = FloatArray(3)
-                android.graphics.Color.RGBToHSV(
-                    android.graphics.Color.red(rgb),
-                    android.graphics.Color.green(rgb),
-                    android.graphics.Color.blue(rgb),
-                    hsl
-                )
-                // Keep colors with saturation > 0.15 and lightness between 0.15 and 0.85
-                hsl[1] > 0.15f && hsl[2] in 0.15f..0.85f
-            }
-            .generate()
-        
-        // Extract individual color swatches
-        val dominantSwatch = palette.dominantSwatch
-        val vibrantSwatch = palette.vibrantSwatch
-        val mutedSwatch = palette.mutedSwatch
-        val lightVibrantSwatch = palette.lightVibrantSwatch
-        val darkVibrantSwatch = palette.darkVibrantSwatch
-        
-        // Convert to Compose Colors
-        val dominant = dominantSwatch?.rgb?.let { Color(it) }
-        val vibrant = vibrantSwatch?.rgb?.let { Color(it) }
-        val muted = mutedSwatch?.rgb?.let { Color(it) }
-        val light = lightVibrantSwatch?.rgb?.let { Color(it) } ?: vibrantSwatch?.rgb?.let { Color(it) }
-        val dark = darkVibrantSwatch?.rgb?.let { Color(it) } ?: mutedSwatch?.rgb?.let { Color(it) }
-        
-        return AlbumColors(
-            dominant = dominant,
-            vibrant = vibrant,
-            muted = muted,
-            light = light,
-            dark = dark
-        )
+        return ColorExtractor.extractFromBitmap(bitmap, isDarkTheme)
     }
     
     /**
