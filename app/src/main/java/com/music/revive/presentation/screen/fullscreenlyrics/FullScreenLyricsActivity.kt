@@ -60,8 +60,8 @@ import com.music.revive.presentation.components.AnimatedPlayingIndicator
 import com.music.revive.presentation.components.AppleMusicLyricsBackground
 import com.music.revive.presentation.components.AppleMusicLyricsView
 import com.music.revive.presentation.components.EmptyLyricsView
-import com.music.revive.presentation.components.PaletteColors
-import com.music.revive.presentation.components.extractPaletteColors
+import com.music.revive.presentation.screen.player.PaletteColors
+import com.music.revive.presentation.screen.player.extractPaletteColors
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers

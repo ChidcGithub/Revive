@@ -58,8 +58,6 @@ import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.AddToPlaylistDialog
 import com.music.revive.presentation.components.CreatePlaylistDialog
 import com.music.revive.presentation.components.LyricsView
-import com.music.revive.presentation.components.PaletteColors
-import com.music.revive.presentation.components.extractPaletteColors
 import com.music.revive.presentation.screen.fullscreenlyrics.FullScreenLyricsActivity
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -1132,4 +1130,50 @@ fun AmbientBackground(
                 }
             }
     )
+}
+
+/**
+ * Data class to hold extracted palette colors from album art
+ */
+data class PaletteColors(
+    val dominant: Color,
+    val vibrant: Color,
+    val lightVibrant: Color,
+    val darkVibrant: Color,
+    val muted: Color
+)
+
+/**
+ * Extract multiple colors from image URI using Palette
+ */
+private suspend fun extractPaletteColors(context: android.content.Context, uri: String): PaletteColors? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val imageLoader = coil.ImageLoader(context)
+            val request = coil.request.ImageRequest.Builder(context)
+                .data(uri)
+                .allowHardware(false)
+                .build()
+
+            val result = imageLoader.execute(request)
+            val drawable = result.drawable ?: return@withContext null
+            val bitmap = drawable.toBitmap()
+
+            val palette = androidx.palette.graphics.Palette.from(bitmap)
+                .maximumColorCount(24)
+                .generate()
+
+            val defaultColor = android.graphics.Color.GRAY
+            
+            PaletteColors(
+                dominant = Color(palette.dominantSwatch?.rgb ?: palette.getDominantColor(defaultColor)),
+                vibrant = Color(palette.vibrantSwatch?.rgb ?: palette.getVibrantColor(defaultColor)),
+                lightVibrant = Color(palette.lightVibrantSwatch?.rgb ?: palette.getLightVibrantColor(defaultColor)),
+                darkVibrant = Color(palette.darkVibrantSwatch?.rgb ?: palette.getDarkVibrantColor(defaultColor)),
+                muted = Color(palette.mutedSwatch?.rgb ?: palette.getMutedColor(defaultColor))
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
