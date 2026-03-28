@@ -106,21 +106,6 @@ fun PlayerScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Lyrics state
-    var showLyrics by remember { mutableStateOf(false) }
-    val currentLyrics by viewModel.currentLyrics.collectAsState()
-    val isLoadingLyrics by viewModel.isLoadingLyrics.collectAsState()
-    val lyricsFontSize by viewModel.lyricsFontSize.collectAsState()
-    val showTranslation by viewModel.showTranslation.collectAsState()
-    val lyricsDisplayStyle by viewModel.lyricsDisplayStyle.collectAsState()
-    val enableGlow by viewModel.enableGlow.collectAsState()
-    val enableKaraoke by viewModel.enableKaraoke.collectAsState()
-    val enableHapticFeedback by viewModel.enableHapticFeedback.collectAsState()
-    val enableBlur by viewModel.enableBlur.collectAsState()
-    val enableFullScreenLyricsButton by viewModel.enableFullScreenLyricsButton.collectAsState()
-    val enableShaderEffect by viewModel.enableShaderEffect.collectAsState()
-    val enableBalancedLines by viewModel.enableBalancedLines.collectAsState()
-
     // Entry animation states
     var isVisible by remember { mutableStateOf(false) }
     
@@ -250,7 +235,7 @@ fun PlayerScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 
                 Text(
-                    text = if (showLyrics) stringResource(R.string.lyrics) else stringResource(R.string.playing),
+                    text = stringResource(R.string.playing),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -258,18 +243,14 @@ fun PlayerScreen(
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Toggle lyrics/album art button
+                // Open full screen lyrics button
                 IconButton(onClick = { 
-                    if (showLyrics) {
-                        val intent = FullScreenLyricsActivity.newIntent(context)
-                        context.startActivity(intent)
-                    } else {
-                        showLyrics = !showLyrics
-                    }
+                    val intent = FullScreenLyricsActivity.newIntent(context)
+                    context.startActivity(intent)
                 }) {
                     Icon(
-                        imageVector = if (showLyrics) Icons.Rounded.Album else Icons.Rounded.Lyrics,
-                        contentDescription = if (showLyrics) stringResource(R.string.show_album_art) else stringResource(R.string.show_lyrics),
+                        imageVector = Icons.Rounded.Lyrics,
+                        contentDescription = stringResource(R.string.show_lyrics),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -351,57 +332,6 @@ fun PlayerScreen(
                                     contentScale = ContentScale.Crop
                                 )
                             }
-                        }
-                    }
-                } else {
-                    // Lyrics view with immersive background
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { alpha = albumAlpha }
-                    ) {
-                        val currentPaletteForLyrics = paletteColors
-                        if (currentPaletteForLyrics != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .drawBehind {
-                                        drawCircle(
-                                            brush = Brush.radialGradient(
-                                                colors = listOf(
-                                                    currentPaletteForLyrics.dominant.copy(alpha = 0.08f),
-                                                    Color.Transparent
-                                                ),
-                                                center = Offset(size.width * 0.5f, size.height * 0.3f),
-                                                radius = size.width * 0.8f
-                                            )
-                                        )
-                                    }
-                            )
-                        }
-                        
-                        if (isLoadingLyrics) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        } else {
-                            LyricsView(
-                                lyric = currentLyrics,
-                                currentPositionMs = playerState.position,
-                                fontSizeMultiplier = lyricsFontSize,
-                                showTranslation = showTranslation,
-                                isCentered = lyricsDisplayStyle == 0,
-                                enableGlow = enableGlow,
-                                enableKaraoke = enableKaraoke,
-                                enableHapticFeedback = enableHapticFeedback,
-                                enableBlur = enableBlur,
-                                enableShader = enableShaderEffect,
-                                enableBalancedLines = enableBalancedLines,
-                                modifier = Modifier.fillMaxSize()
-                            )
                         }
                     }
                 }
