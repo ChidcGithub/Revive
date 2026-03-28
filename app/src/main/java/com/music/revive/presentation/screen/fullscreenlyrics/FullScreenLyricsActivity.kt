@@ -56,6 +56,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.music.revive.data.local.LyricsPreferences
 import com.music.revive.domain.model.Lyric
 import com.music.revive.domain.model.LyricLine
+import com.music.revive.presentation.components.AppleMusicLyricsBackground
 import com.music.revive.presentation.components.LyricsView
 import com.music.revive.presentation.screen.player.PaletteColors
 import com.music.revive.presentation.screen.player.extractPaletteColors
@@ -173,6 +174,16 @@ fun FullScreenLyricsScreen(
     
     var showControls by remember { mutableStateOf(true) }
     var isExiting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    
+    // Extract palette colors for background
+    var paletteColors by remember { mutableStateOf<PaletteColors?>(null) }
+    
+    LaunchedEffect(song?.albumArtUri) {
+        song?.albumArtUri?.let { uri ->
+            paletteColors = extractPaletteColors(context, uri)
+        }
+    }
     
     LaunchedEffect(Unit) {
         delay(3000)
@@ -203,8 +214,9 @@ fun FullScreenLyricsScreen(
                 )
             }
     ) {
-        FullScreenLyricsBackground(
-            song = song,
+        // Apple Music-style dynamic background with moving color orbs
+        AppleMusicLyricsBackground(
+            colors = paletteColors,
             modifier = Modifier.fillMaxSize()
         )
         
@@ -279,11 +291,12 @@ fun FullScreenLyricsScreen(
                 }
             }
             
+            // Bottom info bar with song details
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer { alpha = topBarAlpha },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
             ) {
                 Row(
                     modifier = Modifier
@@ -310,15 +323,39 @@ fun FullScreenLyricsScreen(
                         )
                     }
                     
-                    // Simple playing indicator
+                    // Mini player controls
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.Bottom
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        repeat(3) { index ->
-                            PlayingBar(
-                                isActive = playerState.isPlaying,
-                                delay = index * 150
+                        IconButton(onClick = { 
+                            musicPlayer.playPrevious()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Rounded.SkipPrevious,
+                                contentDescription = "上一首",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        IconButton(onClick = { 
+                            musicPlayer.togglePlayPause()
+                        }) {
+                            Icon(
+                                imageVector = if (playerState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = if (playerState.isPlaying) "暂停" else "播放",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        
+                        IconButton(onClick = { 
+                            musicPlayer.playNext()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Rounded.SkipNext,
+                                contentDescription = "下一首",
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -326,40 +363,4 @@ fun FullScreenLyricsScreen(
             }
         }
     }
-}
-
-@Composable
-private fun PlayingBar(
-    isActive: Boolean,
-    delay: Int
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "playing")
-    
-    val height by infiniteTransition.animateFloat(
-        initialValue = 4f,
-        targetValue = if (isActive) 16f else 4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 600,
-                delayMillis = delay,
-                easing = FastOutSlowInEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "barHeight"
-    )
-    
-    Box(
-        modifier = Modifier
-            .width(4.dp)
-            .height(height.dp)
-            .background(
-                color = if (isActive) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                shape = MaterialTheme.shapes.small
-            )
-    )
 }
