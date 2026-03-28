@@ -58,6 +58,8 @@ import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.AddToPlaylistDialog
 import com.music.revive.presentation.components.CreatePlaylistDialog
 import com.music.revive.presentation.components.LyricsView
+import com.music.revive.presentation.components.PaletteColors
+import com.music.revive.presentation.components.extractPaletteColors
 import com.music.revive.presentation.screen.fullscreenlyrics.FullScreenLyricsActivity
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -229,63 +231,68 @@ fun PlayerScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top bar
+            // Top bar - Cleaner design
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = stringResource(R.string.back),
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+                
                 Spacer(modifier = Modifier.weight(1f))
+                
                 Text(
                     text = if (showLyrics) stringResource(R.string.lyrics) else stringResource(R.string.playing),
                     style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
                 Spacer(modifier = Modifier.weight(1f))
-                // Toggle lyrics/album art button - click to open full screen lyrics
+                
+                // Toggle lyrics/album art button
                 IconButton(onClick = { 
                     if (showLyrics) {
-                        // Open full screen lyrics directly
                         val intent = FullScreenLyricsActivity.newIntent(context)
                         context.startActivity(intent)
                     } else {
-                        // Show lyrics view
                         showLyrics = !showLyrics
                     }
                 }) {
                     Icon(
                         imageVector = if (showLyrics) Icons.Rounded.Album else Icons.Rounded.Lyrics,
-                        contentDescription = if (showLyrics) stringResource(R.string.show_album_art) else stringResource(R.string.show_lyrics)
+                        contentDescription = if (showLyrics) stringResource(R.string.show_album_art) else stringResource(R.string.show_lyrics),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                // Remove separate full screen button - integrated into toggle button above
+                
                 IconButton(onClick = onQueueClick) {
                     Icon(
                         imageVector = Icons.Rounded.QueueMusic,
-                        contentDescription = stringResource(R.string.queue)
+                        contentDescription = stringResource(R.string.queue),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
 
-            // Album art or Lyrics view with animation
-            val albumShape = MaterialTheme.shapes.large
+            // Album art or Lyrics view with enhanced animation
+            val albumShape = RoundedCornerShape(16.dp)
             
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(32.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Glow effect behind album art
                 val currentPaletteColors = paletteColors
                 
                 // Album art view
@@ -294,36 +301,39 @@ fun PlayerScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Enhanced glow effect behind album art
                         if (playerState.isPlaying && currentPaletteColors != null) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize(0.75f)
+                                    .fillMaxSize(0.85f)
                                     .aspectRatio(1f)
                                     .graphicsLayer {
                                         scaleX = albumScale * playingScale
                                         scaleY = albumScale * playingScale
-                                        alpha = albumAlpha * 0.4f
+                                        alpha = albumAlpha * 0.5f
                                     }
+                                    .blur(20.dp)
                                     .background(
-                                        currentPaletteColors.dominant.copy(alpha = 0.4f),
+                                        currentPaletteColors.dominant.copy(alpha = 0.5f),
                                         CircleShape
                                     )
                             )
                         }
 
+                        // Main album art with shadow and rounded corners
                         Surface(
                             modifier = Modifier
-                                .fillMaxSize(0.8f)
+                                .fillMaxSize(0.9f)
                                 .aspectRatio(1f)
                                 .graphicsLayer {
                                     scaleX = albumScale * playingScale
                                     scaleY = albumScale * playingScale
-                                    shadowElevation = albumShadow.toPx()
+                                    shadowElevation = (albumShadow.toPx() * 1.5)
                                     clip = true
                                     shape = albumShape
                                     alpha = albumAlpha
                                 },
-                            tonalElevation = 0.dp,
+                            tonalElevation = 8.dp,
                             shape = albumShape
                         ) {
                             if (song.albumArtUri != null) {
@@ -350,14 +360,12 @@ fun PlayerScreen(
                             .fillMaxSize()
                             .graphicsLayer { alpha = albumAlpha }
                     ) {
-                        // Subtle album color tint behind lyrics
                         val currentPaletteForLyrics = paletteColors
                         if (currentPaletteForLyrics != null) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .drawBehind {
-                                        // Soft radial gradient from album dominant color
                                         drawCircle(
                                             brush = Brush.radialGradient(
                                                 colors = listOf(
@@ -399,70 +407,70 @@ fun PlayerScreen(
                 }
             }
 
-            // Song info with marquee
+            // Song info - Centered and cleaner
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 32.dp)
                     .graphicsLayer {
                         alpha = infoAlpha
                         translationY = infoOffset.toPx()
                     },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Title with larger font
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee(),
-                    color = MaterialTheme.colorScheme.onBackground
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                // Artist name with primary color
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { onArtistClick(song.artistId) }
+                )
+                
+                // Album name
+                if (song.album.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = song.artist,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        text = song.album,
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable { onArtistClick(song.artistId) }
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { onAlbumClick(song.albumId) }
                     )
-                    if (song.album.isNotBlank()) {
-                        Text(
-                            text = " • ",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = song.album,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clickable { onAlbumClick(song.albumId) }
-                        )
-                    }
                 }
                 
                 // Audio quality badge
                 if (song.audioQuality != com.music.revive.domain.model.AudioQuality.UNKNOWN) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     com.music.revive.presentation.screen.song.AudioQualityBadge(
                         quality = song.audioQuality
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Modern progress slider
+            // Modern progress slider with enhanced design
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 24.dp)
                     .graphicsLayer { alpha = controlsAlpha }
             ) {
                 Slider(
@@ -479,7 +487,7 @@ fun PlayerScreen(
                     thumb = {
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(16.dp)
                                 .background(
                                     MaterialTheme.colorScheme.primary,
                                     CircleShape
@@ -490,20 +498,22 @@ fun PlayerScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(currentSliderValue)
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
                                     .background(MaterialTheme.colorScheme.primary)
                             )
                         }
                     }
                 )
+                
+                // Time labels
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -521,17 +531,18 @@ fun PlayerScreen(
                 }
             }
 
-            // Main controls
+            // Main controls - Enhanced design
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = 20.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Shuffle
+                // Shuffle - Larger touch target
                 FilledTonalIconButton(
                     onClick = { viewModel.toggleShuffle() },
+                    modifier = Modifier.size(48.dp),
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = if (playerState.isShuffleEnabled)
                             MaterialTheme.colorScheme.primaryContainer
@@ -542,6 +553,7 @@ fun PlayerScreen(
                     Icon(
                         imageVector = Icons.Rounded.Shuffle,
                         contentDescription = stringResource(R.string.shuffle),
+                        modifier = Modifier.size(24.dp),
                         tint = if (playerState.isShuffleEnabled)
                             MaterialTheme.colorScheme.primary
                         else
@@ -554,15 +566,16 @@ fun PlayerScreen(
                     Icon(
                         imageVector = Icons.Rounded.SkipPrevious,
                         contentDescription = stringResource(R.string.previous),
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                // Play/Pause - Large FAB style with M3 shape
+                // Play/Pause - Extra large FAB
                 FilledIconButton(
                     onClick = { viewModel.playPause() },
-                    modifier = Modifier.size(72.dp),
-                    shape = MaterialTheme.shapes.extraLarge,
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -571,7 +584,7 @@ fun PlayerScreen(
                     Icon(
                         imageVector = if (playerState.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (playerState.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
@@ -580,13 +593,15 @@ fun PlayerScreen(
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = stringResource(R.string.next),
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
                 // Repeat
                 FilledTonalIconButton(
                     onClick = { viewModel.cycleRepeatMode() },
+                    modifier = Modifier.size(48.dp),
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = when (playerState.repeatMode) {
                             RepeatMode.OFF -> MaterialTheme.colorScheme.surfaceVariant
@@ -600,6 +615,7 @@ fun PlayerScreen(
                             else -> Icons.Rounded.Repeat
                         },
                         contentDescription = stringResource(R.string.repeat),
+                        modifier = Modifier.size(24.dp),
                         tint = when (playerState.repeatMode) {
                             RepeatMode.OFF -> MaterialTheme.colorScheme.onSurfaceVariant
                             else -> MaterialTheme.colorScheme.primary
@@ -612,7 +628,7 @@ fun PlayerScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 16.dp)
                     .navigationBarsPadding()
                     .graphicsLayer { alpha = bottomAlpha },
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -629,7 +645,8 @@ fun PlayerScreen(
                 IconButton(onClick = { showAddToPlaylistDialog = true }) {
                     Icon(
                         imageVector = Icons.Rounded.PlaylistAdd,
-                        contentDescription = stringResource(R.string.add_to_playlist)
+                        contentDescription = stringResource(R.string.add_to_playlist),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 // Share
@@ -645,19 +662,21 @@ fun PlayerScreen(
                 }) {
                     Icon(
                         imageVector = Icons.Rounded.Share,
-                        contentDescription = stringResource(R.string.share)
+                        contentDescription = stringResource(R.string.share),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 // More options
                 IconButton(onClick = { showMoreOptionsSheet = true }) {
                     Icon(
                         imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = stringResource(R.string.more_options)
+                        contentDescription = stringResource(R.string.more_options),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
@@ -1001,53 +1020,6 @@ class PlayerPlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             val playlistId = repository.createPlaylist(name)
             repository.addSongToPlaylist(playlistId, songId)
-        }
-    }
-}
-
-/**
- * Data class to hold extracted palette colors
- */
-data class PaletteColors(
-    val dominant: Color,
-    val vibrant: Color,
-    val lightVibrant: Color,
-    val darkVibrant: Color,
-    val muted: Color
-)
-
-/**
- * Extract multiple colors from image URI using Palette
- */
-private suspend fun extractPaletteColors(context: android.content.Context, uri: String): PaletteColors? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val imageLoader = ImageLoader(context)
-            val request = ImageRequest.Builder(context)
-                .data(uri)
-                .allowHardware(false)
-                .build()
-
-            val result = imageLoader.execute(request)
-            val drawable = result.drawable ?: return@withContext null
-            val bitmap = drawable.toBitmap()
-
-            val palette = Palette.from(bitmap)
-                .maximumColorCount(24)
-                .generate()
-
-            // Get default colors from theme
-            val defaultColor = android.graphics.Color.GRAY
-            
-            PaletteColors(
-                dominant = Color(palette.dominantSwatch?.rgb ?: palette.getDominantColor(defaultColor)),
-                vibrant = Color(palette.vibrantSwatch?.rgb ?: palette.getVibrantColor(defaultColor)),
-                lightVibrant = Color(palette.lightVibrantSwatch?.rgb ?: palette.getLightVibrantColor(defaultColor)),
-                darkVibrant = Color(palette.darkVibrantSwatch?.rgb ?: palette.getDarkVibrantColor(defaultColor)),
-                muted = Color(palette.mutedSwatch?.rgb ?: palette.getMutedColor(defaultColor))
-            )
-        } catch (e: Exception) {
-            null
         }
     }
 }

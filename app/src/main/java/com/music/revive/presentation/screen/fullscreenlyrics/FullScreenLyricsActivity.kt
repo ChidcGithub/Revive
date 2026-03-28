@@ -10,20 +10,40 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -35,7 +55,13 @@ import coil.request.ImageRequest
 import androidx.core.graphics.drawable.toBitmap
 import com.music.revive.data.local.LyricsPreferences
 import com.music.revive.domain.model.Lyric
-import com.music.revive.presentation.components.LyricsView
+import com.music.revive.domain.model.LyricLine
+import com.music.revive.presentation.components.AnimatedPlayingIndicator
+import com.music.revive.presentation.components.AppleMusicLyricsBackground
+import com.music.revive.presentation.components.AppleMusicLyricsView
+import com.music.revive.presentation.components.EmptyLyricsView
+import com.music.revive.presentation.components.PaletteColors
+import com.music.revive.presentation.components.extractPaletteColors
 import com.music.revive.service.MusicPlayer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -287,197 +313,58 @@ fun FullScreenLyricsScreen(
                         )
                     }
                     
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        repeat(3) { index ->
-                            PlayingBar(
-                                isActive = playerState.isPlaying,
-                                delay = index * 150
-                            )
-                        }
-                    }
+                    AnimatedPlayingIndicator(
+                        isPlaying = playerState.isPlaying
+                    )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun PlayingBar(
-    isActive: Boolean,
-    delay: Int
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "playing")
     
-    val height by infiniteTransition.animateFloat(
-        initialValue = 4f,
-        targetValue = if (isActive) 16f else 4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 600,
-                delayMillis = delay,
-                easing = FastOutSlowInEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "barHeight"
-    )
-    
-    Box(
-        modifier = Modifier
-            .width(4.dp)
-            .height(height.dp)
-            .background(
-                color = if (isActive) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                shape = MaterialTheme.shapes.small
+    // Settings bottom sheet
+    if (showSettings) {
+        ModalBottomSheet(
+            onDismissRequest = { showSettings = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            LyricsSettingsContent(
+                lyricsPreferences = lyricsPreferences,
+                playerPreferences = playerPreferences,
+                onDismiss = { showSettings = false }
             )
-    )
-}
-
-@Composable
-private fun FullScreenLyricsBackground(
-    song: com.music.revive.domain.model.Song?,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    var paletteColors by remember { mutableStateOf<PaletteColors?>(null) }
-    val backgroundColor = MaterialTheme.colorScheme.background
-    
-    LaunchedEffect(song?.albumArtUri) {
-        song?.albumArtUri?.let { uri ->
-            paletteColors = extractPaletteColors(context, uri)
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
-    
-    val infiniteTransition = rememberInfiniteTransition(label = "background")
-    
-    val offsetX1 by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(15000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offsetX1"
-    )
-    
-    val offsetY1 by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(18000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offsetY1"
-    )
-    
-    val offsetX2 by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 0.8f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offsetX2"
-    )
-    
-    val offsetY2 by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(16000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offsetY2"
-    )
-    
-    Box(
-        modifier = modifier.drawBehind {
-            val width = size.width
-            val height = size.height
-            
-            drawRect(backgroundColor)
-            
-            if (paletteColors != null) {
-                val center1 = Offset(width * offsetX1, height * offsetY1)
-                val radius1 = width * 0.7f
-                
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            paletteColors!!.dominant.copy(alpha = 0.15f),
-                            paletteColors!!.dominant.copy(alpha = 0.05f),
-                            Color.Transparent
-                        ),
-                        center = center1,
-                        radius = radius1
-                    ),
-                    center = center1,
-                    radius = radius1
-                )
-                
-                val center2 = Offset(width * offsetX2, height * offsetY2)
-                val radius2 = width * 0.6f
-                
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            paletteColors!!.vibrant.copy(alpha = 0.12f),
-                            paletteColors!!.vibrant.copy(alpha = 0.03f),
-                            Color.Transparent
-                        ),
-                        center = center2,
-                        radius = radius2
-                    ),
-                    center = center2,
-                    radius = radius2
-                )
-            }
-        }
-    )
 }
 
-data class PaletteColors(
-    val dominant: Color,
-    val vibrant: Color,
-    val lightVibrant: Color,
-    val darkVibrant: Color,
-    val muted: Color
-)
-
-private suspend fun extractPaletteColors(context: Context, uri: String): PaletteColors? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val imageLoader = ImageLoader(context)
-            val request = ImageRequest.Builder(context)
-                .data(uri)
-                .allowHardware(false)
-                .build()
-
-            val result = imageLoader.execute(request)
-            val drawable = result.drawable ?: return@withContext null
-            val bitmap = drawable.toBitmap()
-
-            val palette = androidx.palette.graphics.Palette.from(bitmap)
-                .generate()
-
-            val defaultColor = android.graphics.Color.GRAY
-            
-            PaletteColors(
-                dominant = Color(palette.dominantSwatch?.rgb ?: palette.getDominantColor(defaultColor)),
-                vibrant = Color(palette.vibrantSwatch?.rgb ?: palette.getVibrantColor(defaultColor)),
-                lightVibrant = Color(palette.lightVibrantSwatch?.rgb ?: palette.getLightVibrantColor(defaultColor)),
-                darkVibrant = Color(palette.darkVibrantSwatch?.rgb ?: palette.getDarkVibrantColor(defaultColor)),
-                muted = Color(palette.mutedSwatch?.rgb ?: palette.getMutedColor(defaultColor))
-            )
-        } catch (e: Exception) {
-            null
-        }
+@Composable
+private fun LyricsSettingsContent(
+    lyricsPreferences: LyricsPreferences,
+    playerPreferences: com.music.revive.data.local.PlayerPreferences,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "歌词设置",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 这里可以添加更多设置选项
+        // 字体大小、显示样式等
+        
+        Text(
+            text = "功能开发中...",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
