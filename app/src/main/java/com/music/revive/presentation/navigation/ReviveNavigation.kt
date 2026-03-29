@@ -2,6 +2,9 @@ package com.music.revive.presentation.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -14,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -111,40 +113,12 @@ private fun standardPopExitTransition(): ExitTransition {
     )
 }
 
-// 全屏播放器：自底部滑入 + 轻微缩放 + 长淡出（接近 iOS / Apple Music Now Playing）
-private fun playerEnterTransition(): EnterTransition {
-    val slide = spring<IntOffset>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    )
-    val fade = tween<Float>(420, easing = FastOutSlowInEasing)
-    val zoom = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium
-    )
-    return slideInVertically(
-        initialOffsetY = { it },
-        animationSpec = slide
-    ) + fadeIn(animationSpec = fade) + scaleIn(
-        initialScale = 0.96f,
-        animationSpec = zoom
-    )
-}
+// 与 sharedElement 封面衔接：整屏仅用淡入淡出，位移/缩放交给共享封面
+private fun playerEnterTransition(): EnterTransition =
+    fadeIn(tween(340, easing = FastOutSlowInEasing))
 
-private fun playerExitTransition(): ExitTransition {
-    return slideOutVertically(
-        targetOffsetY = { it },
-        animationSpec = spring<IntOffset>(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        )
-    ) + fadeOut(
-        animationSpec = tween(260, delayMillis = 30, easing = FastOutSlowInEasing)
-    ) + scaleOut(
-        targetScale = 0.98f,
-        animationSpec = tween(320, easing = FastOutSlowInEasing)
-    )
-}
+private fun playerExitTransition(): ExitTransition =
+    fadeOut(tween(260, easing = FastOutSlowInEasing))
 
 // Queue screen slides up
 private fun queueEnterTransition(): EnterTransition {
@@ -201,7 +175,7 @@ class SharedMusicViewModel @Inject constructor(
     val musicPlayer: MusicPlayer
 ) : androidx.lifecycle.ViewModel()
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun ReviveNavigation(
     navController: NavHostController = rememberNavController(),
@@ -243,7 +217,10 @@ fun ReviveNavigation(
     // Show bottom player bar only when there's a song and not on full-screen pages
     val showBottomPlayerBar = playerState.currentSong != null && !isFullScreenPage
 
-    Scaffold(
+    SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+        val sharedTransitionScope = this
+        Scaffold(
+        modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             Column {
@@ -270,7 +247,9 @@ fun ReviveNavigation(
                         onPreviousClick = { musicPlayer.playPrevious() },
                         onBarClick = { navController.navigate(Player) },
                         accentPrimary = nowPlayingArtColors.primary,
-                        accentSecondary = nowPlayingArtColors.secondary
+                        accentSecondary = nowPlayingArtColors.secondary,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = this@AnimatedVisibility
                     )
                 }
 
@@ -530,7 +509,9 @@ fun ReviveNavigation(
                     },
                     onArtistClick = { artistId ->
                         artistId?.let { navController.navigate(ArtistDetail(it)) }
-                    }
+                    },
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedContentScope = this@composable
                 )
             }
 
@@ -629,5 +610,6 @@ fun ReviveNavigation(
                 )
             }
         }
+    }
     }
 }

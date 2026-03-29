@@ -1,5 +1,8 @@
 package com.music.revive.presentation.components
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.*
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -37,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.music.revive.R
 import com.music.revive.domain.model.PlayerState
+import com.music.revive.presentation.navigation.NowPlayingSharedKeys
 import com.music.revive.domain.model.Song
 import kotlinx.coroutines.delay
 
@@ -44,6 +48,7 @@ import kotlinx.coroutines.delay
 private val SmoothEasing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
 private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BottomPlayerBar(
     playerState: PlayerState,
@@ -56,6 +61,8 @@ fun BottomPlayerBar(
     /** 来自当前唱片封面取色，避免仅使用全局主题红 */
     accentPrimary: Color = MaterialTheme.colorScheme.primary,
     accentSecondary: Color = MaterialTheme.colorScheme.tertiary,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     modifier: Modifier = Modifier
 ) {
     val song = playerState.currentSong ?: return
@@ -94,6 +101,17 @@ fun BottomPlayerBar(
         ),
         label = "albumScale"
     )
+
+    val miniArtShared = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElement(
+                state = rememberSharedContentState(key = NowPlayingSharedKeys.albumArt(song.id)),
+                animatedVisibilityScope = animatedVisibilityScope
+            )
+        }
+    } else {
+        Modifier
+    }
 
     Surface(
         modifier = modifier
@@ -161,9 +179,10 @@ fun BottomPlayerBar(
                     .navigationBarsPadding(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Album art with animation
+                // Album art with animation（sharedElement 需在 size/clip 链前，与全屏播放器配对）
                 Surface(
                     modifier = Modifier
+                        .then(miniArtShared)
                         .size(52.dp)
                         .scale(albumScale),
                     shape = MaterialTheme.shapes.medium,
