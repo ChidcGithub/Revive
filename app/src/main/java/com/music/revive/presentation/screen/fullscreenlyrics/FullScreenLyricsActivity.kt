@@ -282,13 +282,13 @@ private fun ModernFullScreenLyrics(
                         fontSizeMultiplier = lyricsFontSize * 1.15f,
                         showTranslation = showTranslation,
                         isCentered = lyricsDisplayStyle == 0,
-                        enableGlow = enableGlow,
-                        enableKaraoke = enableKaraoke,
+                        enableGlow = true, // 强制启用发光效果
+                        enableKaraoke = true, // 强制启用卡拉OK效果
                         enableHapticFeedback = false,
-                        enableBlur = enableBlur,
-                        enableShader = enableShaderEffect,
-                        useShaderRenderer = true, // Enable new shader-based renderer
-                        blurRadius = 6f,
+                        enableBlur = true, // 强制启用模糊效果
+                        enableShader = true, // 强制启用着色器效果
+                        useShaderRenderer = true, // 使用新的着色器渲染器
+                        blurRadius = 8f, // 增加模糊半径
                         accentColor = accentColor,
                         modifier = Modifier.fillMaxSize()
                     )
