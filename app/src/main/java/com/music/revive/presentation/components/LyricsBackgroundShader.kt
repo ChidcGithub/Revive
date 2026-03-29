@@ -102,14 +102,12 @@ fun LyricsShaderBackground(
                 }
                 
                 translate(left = x, top = y) {
-                    rotate(degrees = rotation) {
-                        val particleSize = min(width, height) * particle.size * layerScale
-                        drawFloatingSquare(
-                            size = particleSize,
-                            color = color.copy(alpha = layerAlpha),
-                            blurRadius = particle.size * 20f
-                        )
-                    }
+                    val particleSize = min(width, height) * particle.size * layerScale
+                    drawFloatingSquare(
+                        size = particleSize,
+                        color = color.copy(alpha = layerAlpha),
+                        blurRadius = particle.size * 20f
+                    )
                 }
             }
         }
