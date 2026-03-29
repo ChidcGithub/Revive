@@ -70,12 +70,6 @@ private val springSubtle = spring<Float>(
     visibilityThreshold = 0.01f
 )
 
-private val springScroll = spring<IntOffset>(
-    dampingRatio = Spring.DampingRatioMediumBouncy,
-    stiffness = Spring.StiffnessLow,
-    visibilityThreshold = IntOffset(1, 1)
-)
-
 /**
  * Apple Music Style Lyrics View with Dynamic Colors
  * 
@@ -268,8 +262,7 @@ private fun AppleMusicSyncedLyrics(
             // Use spring animation for smooth nonlinear scrolling
             listState.animateScrollToItem(
                 index = currentLineIndex,
-                scrollOffset = targetOffset,
-                animationSpec = springScroll
+                scrollOffset = targetOffset
             )
         }
     }
@@ -300,8 +293,7 @@ private fun AppleMusicSyncedLyrics(
                     val targetOffset = -(layoutInfo.viewportEndOffset * 0.35f).toInt()
                     listState.animateScrollToItem(
                         index = closestItemIndex,
-                        scrollOffset = targetOffset,
-                        animationSpec = springScroll
+                        scrollOffset = targetOffset
                     )
                 }
             }
@@ -465,31 +457,29 @@ private fun AppleMusicLyricLine(
     
     // Text styles
     // Pulse animation when line becomes active
-    var pulseScale by remember { mutableFloatStateOf(1.0f) }
+    val pulseAnimatable = remember { Animatable(1.0f) }
     
     LaunchedEffect(isActive) {
         if (isActive) {
             // Pulse animation: scale up then back down with smooth animation
             // First scale up with tween animation
-            kotlinx.coroutines.launch {
-                animateFloat(
-                    initialValue = 1.0f,
-                    targetValue = 1.05f,
-                    animationSpec = tween(durationMillis = 100, easing = LinearEasing)
-                ) { value, _ -> pulseScale = value }
-                
-                // Then scale back down with spring animation
-                animateFloat(
-                    initialValue = 1.05f,
-                    targetValue = 1.0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) { value, _ -> pulseScale = value }
-            }
+            pulseAnimatable.animateTo(
+                targetValue = 1.05f,
+                animationSpec = tween(durationMillis = 100, easing = LinearEasing)
+            )
+            
+            // Then scale back down with spring animation
+            pulseAnimatable.animateTo(
+                targetValue = 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
         }
     }
+    
+    val pulseScale = pulseAnimatable.value
     
     val textStyle = MaterialTheme.typography.headlineSmall.copy(
         fontSize = (24.sp * fontSizeMultiplier),
