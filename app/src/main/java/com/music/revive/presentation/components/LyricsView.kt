@@ -72,6 +72,7 @@ fun LyricsView(
     enableHapticFeedback: Boolean = true,
     enableBlur: Boolean = false,
     enableShader: Boolean = false,
+    useShaderRenderer: Boolean = true, // Use new shader-based renderer
     enableBalancedLines: Boolean = false,
     blurRadius: Float = 5f,
     blurTransitionDistance: Int = 3,
@@ -300,6 +301,7 @@ private fun AppleMusicSyncedLyrics(
                     enableKaraoke = enableKaraoke,
                     vibrator = vibrator,
                     enableHapticFeedback = enableHapticFeedback,
+                    useShaderRenderer = useShaderRenderer,
                     accentColor = accentColor,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -342,6 +344,7 @@ private fun AppleMusicLyricLine(
     enableKaraoke: Boolean,
     vibrator: Vibrator?,
     enableHapticFeedback: Boolean,
+    useShaderRenderer: Boolean,
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
@@ -446,7 +449,18 @@ private fun AppleMusicLyricLine(
             else -> Alignment.Start
         }
     ) {
-        if (isActive && enableKaraoke) {
+        if (useShaderRenderer && isActive) {
+            // Use new shader-based renderer for active line
+            LyricsShaderRenderer(
+                text = line.text,
+                progress = animatedLineProgress,
+                accentColor = activeColor,
+                fontSize = textStyle.fontSize.value,
+                enableGlow = enableGlow,
+                enableKaraoke = enableKaraoke,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else if (isActive && enableKaraoke) {
             AppleMusicKaraokeText(
                 text = line.text,
                 words = line.words,

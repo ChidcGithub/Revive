@@ -1,4 +1,7 @@
-@file:OptIn(ExperimentalAnimationApi::class)
+@file:OptIn(
+    ExperimentalAnimationApi::class,
+    ExperimentalSharedTransitionApi::class
+)
 
 package com.music.revive.presentation.screen.player
 
@@ -38,7 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -68,6 +74,7 @@ import com.music.revive.domain.model.RepeatMode
 import com.music.revive.domain.model.Song
 import com.music.revive.presentation.components.AddToPlaylistDialog
 import com.music.revive.presentation.components.CreatePlaylistDialog
+import com.music.revive.presentation.navigation.NowPlayingSharedKeys
 import com.music.revive.presentation.screen.fullscreenlyrics.FullScreenLyricsActivity
 import com.music.revive.presentation.theme.rememberAlbumColors
 import com.music.revive.service.MusicPlayer
@@ -117,6 +124,8 @@ fun PlayerScreen(
     onSongDetailClick: (Long) -> Unit = {},
     onAlbumClick: (Long?) -> Unit = {},
     onArtistClick: (Long?) -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedContentScope? = null,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val playerState by viewModel.playerState.collectAsState()
@@ -234,6 +243,8 @@ fun PlayerScreen(
                     song = song,
                     isPlaying = playerState.isPlaying,
                     accentColor = accentColor,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedContentScope = animatedContentScope,
                     modifier = Modifier
                         .fillMaxWidth(0.92f)
                         .aspectRatio(1f)
@@ -508,6 +519,8 @@ private fun AppleMusicNowPlayingArtwork(
     song: Song,
     isPlaying: Boolean,
     accentColor: Color,
+    sharedTransitionScope: SharedTransitionScope?,
+    animatedContentScope: AnimatedContentScope?,
     modifier: Modifier = Modifier
 ) {
     val accentGlow by animateColorAsState(
@@ -533,6 +546,16 @@ private fun AppleMusicNowPlayingArtwork(
     val livePulse = if (isPlaying) pulse else 1f
     val corner = 16.dp
     val shape = RoundedCornerShape(corner)
+    val fullArtShared = if (sharedTransitionScope != null && animatedContentScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElement(
+                state = rememberSharedContentState(key = NowPlayingSharedKeys.albumArt(song.id)),
+                animatedVisibilityScope = animatedContentScope
+            )
+        }
+    } else {
+        Modifier
+    }
     Box(
         modifier = modifier
             .graphicsLayer {
@@ -581,6 +604,7 @@ private fun AppleMusicNowPlayingArtwork(
         ) { _ ->
             Surface(
                 modifier = Modifier
+                    .then(fullArtShared)
                     .fillMaxSize()
                     .shadow(
                         elevation = 28.dp,
