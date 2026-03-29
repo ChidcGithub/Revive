@@ -127,6 +127,7 @@ fun BottomPlayerBar(
         color = Color.Transparent
     ) {
         // Elegant glassmorphism background
+        val borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -144,7 +145,7 @@ fun BottomPlayerBar(
                 .drawBehind {
                     // Subtle border
                     drawLine(
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                        color = borderColor,
                         start = Offset(0f, 0f),
                         end = Offset(size.width, 0f),
                         strokeWidth = 1f

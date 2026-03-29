@@ -102,7 +102,7 @@ fun LyricsShaderBackground(
                 }
                 
                 translate(left = x, top = y) {
-                    rotate(degrees = rotation, pivot = Offset.Zero) {
+                    rotate(degrees = rotation) {
                         val particleSize = min(width, height) * particle.size * layerScale
                         drawFloatingSquare(
                             size = particleSize,
