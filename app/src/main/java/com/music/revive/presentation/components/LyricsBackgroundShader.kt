@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -101,7 +102,10 @@ fun LyricsShaderBackground(
                     else -> tertiaryColor
                 }
                 
-                translate(left = x, top = y) {
+                withTransform({
+                    translate(left = x, top = y)
+                    rotate(degrees = rotation)
+                }) {
                     val particleSize = min(width, height) * particle.size * layerScale
                     drawFloatingSquare(
                         size = particleSize,
