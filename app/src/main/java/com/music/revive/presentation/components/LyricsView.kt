@@ -73,7 +73,6 @@ fun LyricsView(
     enableBlur: Boolean = false,
     enableShader: Boolean = false,
     useShaderRenderer: Boolean = true, // Use new shader-based renderer
-    enableBalancedLines: Boolean = false,
     blurRadius: Float = 5f,
     blurTransitionDistance: Int = 3,
     modifier: Modifier = Modifier,
@@ -91,6 +90,7 @@ fun LyricsView(
             enableGlow = enableGlow,
             enableKaraoke = enableKaraoke,
             enableHapticFeedback = enableHapticFeedback,
+            useShaderRenderer = useShaderRenderer,
             accentColor = accentColor,
             modifier = modifier
         )
@@ -119,7 +119,7 @@ fun LyricsView(
     enableHapticFeedback: Boolean = true,
     enableBlur: Boolean = false,
     enableShader: Boolean = false,
-    enableBalancedLines: Boolean = false,
+    useShaderRenderer: Boolean = true,
     blurRadius: Float = 5f,
     blurTransitionDistance: Int = 3,
     modifier: Modifier = Modifier,
@@ -136,7 +136,7 @@ fun LyricsView(
         enableHapticFeedback = enableHapticFeedback,
         enableBlur = enableBlur,
         enableShader = enableShader,
-        enableBalancedLines = enableBalancedLines,
+        useShaderRenderer = useShaderRenderer,
         blurRadius = blurRadius,
         blurTransitionDistance = blurTransitionDistance,
         modifier = modifier,
@@ -204,6 +204,7 @@ private fun AppleMusicSyncedLyrics(
     enableGlow: Boolean,
     enableKaraoke: Boolean,
     enableHapticFeedback: Boolean,
+    useShaderRenderer: Boolean,
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
