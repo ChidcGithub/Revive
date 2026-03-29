@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.revive.R
@@ -50,15 +51,40 @@ import com.music.revive.domain.model.WordSegment
 import com.music.revive.presentation.theme.AlbumColors
 import kotlinx.coroutines.launch
 
+// Spring animation presets for consistent nonlinear animations
+private val springBouncy = spring<Float>(
+    dampingRatio = Spring.DampingRatioLowBouncy,
+    stiffness = Spring.StiffnessMediumLow,
+    visibilityThreshold = 0.01f
+)
+
+private val springSmooth = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessLow,
+    visibilityThreshold = 0.01f
+)
+
+private val springSubtle = spring<Float>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMedium,
+    visibilityThreshold = 0.01f
+)
+
+private val springScroll = spring<IntOffset>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessLow,
+    visibilityThreshold = IntOffset(1, 1)
+)
+
 /**
  * Apple Music Style Lyrics View with Dynamic Colors
  * 
  * Design Principles:
  * - Large, prominent text for active lyrics
- * - Smooth fade and scale transitions
+ * - Smooth fade and scale transitions with spring animations
  * - Word-by-word karaoke effect with dynamic accent color
  * - Minimal UI distractions
- * - Centered, elegant layout
+ * - Centered, elegant layout with nonlinear scrolling
  */
 @Composable
 fun LyricsView(
@@ -233,23 +259,52 @@ private fun AppleMusicSyncedLyrics(
         previousLineIndex = currentLineIndex
     }
     
-    // Auto-scroll
+    // Auto-scroll with spring animation
     LaunchedEffect(currentLineIndex) {
         if (currentLineIndex >= 0 && !isUserScrolling) {
             val viewportHeight = listState.layoutInfo.viewportEndOffset
             val targetOffset = -(viewportHeight * 0.35f).toInt()
+            
+            // Use spring animation for smooth nonlinear scrolling
             listState.animateScrollToItem(
                 index = currentLineIndex,
-                scrollOffset = targetOffset
+                scrollOffset = targetOffset,
+                animationSpec = springScroll
             )
         }
     }
     
-    // Reset user scrolling
+    // Reset user scrolling with spring bounce back
     LaunchedEffect(isUserScrolling) {
         if (isUserScrolling) {
             kotlinx.coroutines.delay(4000)
             isUserScrolling = false
+            
+            // After user stops scrolling, spring to the closest lyric line
+            val layoutInfo = listState.layoutInfo
+            if (layoutInfo.visibleItemsInfo.isNotEmpty()) {
+                val viewportCenter = layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset / 2
+                var closestItemIndex = -1
+                var minDistance = Int.MAX_VALUE
+                
+                for (itemInfo in layoutInfo.visibleItemsInfo) {
+                    val itemCenter = itemInfo.offset + itemInfo.size / 2
+                    val distance = kotlin.math.abs(itemCenter - viewportCenter)
+                    if (distance < minDistance) {
+                        minDistance = distance
+                        closestItemIndex = itemInfo.index
+                    }
+                }
+                
+                if (closestItemIndex >= 0) {
+                    val targetOffset = -(layoutInfo.viewportEndOffset * 0.35f).toInt()
+                    listState.animateScrollToItem(
+                        index = closestItemIndex,
+                        scrollOffset = targetOffset,
+                        animationSpec = springScroll
+                    )
+                }
+            }
         }
     }
     
@@ -352,7 +407,7 @@ private fun AppleMusicLyricLine(
     val textMeasurer = rememberTextMeasurer()
     val smoothEasing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
     
-    // Scale animation
+    // Scale animation with more bounce
     val scale by animateFloatAsState(
         targetValue = when {
             isActive -> 1.0f
@@ -360,28 +415,34 @@ private fun AppleMusicLyricLine(
             distance == 2 -> 0.88f
             else -> 0.85f
         },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = springBouncy,
         label = "scale"
     )
     
-    // Alpha animation
+    // Alpha animation with smooth fade
     val alpha by animateFloatAsState(
         targetValue = when {
             isActive -> 1f
-            distance == 1 -> 0.6f
-            distance == 2 -> 0.4f
-            distance == 3 -> 0.25f
-            distance == 4 -> 0.15f
-            else -> 0.08f
+            distance == 1 -> 0.65f
+            distance == 2 -> 0.45f
+            distance == 3 -> 0.3f
+            distance == 4 -> 0.2f
+            else -> 0.1f
         },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
+        animationSpec = springSmooth,
         label = "alpha"
+    )
+    
+    // Vertical offset animation for floating effect
+    val density = LocalDensity.current
+    val yOffset by animateFloatAsState(
+        targetValue = when {
+            isActive -> with(density) { (-4).dp.toPx() }
+            distance == 1 -> with(density) { (-2).dp.toPx() }
+            else -> 0f
+        },
+        animationSpec = springSubtle,
+        label = "yOffset"
     )
     
     // Karaoke progress
@@ -403,6 +464,33 @@ private fun AppleMusicLyricLine(
     )
     
     // Text styles
+    // Pulse animation when line becomes active
+    var pulseScale by remember { mutableFloatStateOf(1.0f) }
+    
+    LaunchedEffect(isActive) {
+        if (isActive) {
+            // Pulse animation: scale up then back down with smooth animation
+            // First scale up with tween animation
+            kotlinx.coroutines.launch {
+                animateFloat(
+                    initialValue = 1.0f,
+                    targetValue = 1.05f,
+                    animationSpec = tween(durationMillis = 100, easing = LinearEasing)
+                ) { value, _ -> pulseScale = value }
+                
+                // Then scale back down with spring animation
+                animateFloat(
+                    initialValue = 1.05f,
+                    targetValue = 1.0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) { value, _ -> pulseScale = value }
+            }
+        }
+    }
+    
     val textStyle = MaterialTheme.typography.headlineSmall.copy(
         fontSize = (24.sp * fontSizeMultiplier),
         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
@@ -421,9 +509,10 @@ private fun AppleMusicLyricLine(
     Column(
         modifier = modifier
             .graphicsLayer {
-                this.scaleX = scale
-                this.scaleY = scale
+                this.scaleX = scale * pulseScale
+                this.scaleY = scale * pulseScale
                 this.alpha = alpha
+                this.translationY = yOffset
             }
             .then(
                 if (glowAlpha > 0.01f) {
@@ -437,7 +526,7 @@ private fun AppleMusicLyricLine(
                                 center = Offset(size.width / 2, size.height / 2),
                                 radius = size.width * 0.6f
                             ),
-                            cornerRadius = CornerRadius(16.dp.toPx())
+                            cornerRadius = CornerRadius(with(density) { 16.dp.toPx() })
                         )
                     }
                 } else {
