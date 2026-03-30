@@ -1289,7 +1289,7 @@ private fun LyricLineView(
 }
 
 // ============================================================================
-// Karaoke Text with Dynamic Color Fill
+// Karaoke Text with Dynamic Color Fill - Optimized
 // ============================================================================
 
 @Composable
@@ -1316,13 +1316,22 @@ private fun KaraokeText(
     val textWidth = measuredText.size.width.toFloat()
     val textHeight = measuredText.size.height.toFloat()
     
+    // Smooth animated progress
+    val animatedProgress = remember { Animatable(0f) }
     val clipProgress = calculateWordProgress(words, currentPositionMs, measuredText)
+    
+    LaunchedEffect(clipProgress) {
+        animatedProgress.snapTo(clipProgress)
+    }
     
     val density = LocalDensity.current
     
+    // Glow effect for active text
+    val glowAlpha = 0.3f
+    
     androidx.compose.foundation.Canvas(
         modifier = modifier
-            .height(with(density) { textHeight.toDp() })
+            .height(with(density) { textHeight.toDp() + 8.dp })
     ) {
         val canvasWidth = size.width
         val textX = when (textAlign) {
@@ -1331,25 +1340,56 @@ private fun KaraokeText(
             else -> 0f
         }
         
-        // Draw inactive text
+        val textY = 4.dp.toPx() // Center vertically with extra padding
+        
+        // Draw inactive text (base layer)
         drawText(
             textLayoutResult = measuredText,
             color = inactiveColor,
-            topLeft = Offset(textX, 0f)
+            topLeft = Offset(textX, textY)
         )
         
-        // Draw active text with clip
-        if (clipProgress > 0f) {
+        // Draw active text with clip and glow
+        if (animatedProgress.value > 0.01f) {
+            // Glow effect layer (optional, under the active text)
+            drawIntoCanvas { canvas ->
+                canvas.save()
+                canvas.clipRect(
+                    left = textX,
+                    top = 0f,
+                    right = textX + textWidth * animatedProgress.value,
+                    bottom = size.height
+                )
+                
+                // Draw glow effect
+                val glowPaint = androidx.compose.ui.graphics.Paint().apply {
+                    this.color = activeColor.copy(alpha = glowAlpha)
+                    this.asFrameworkPaint().apply {
+                        setShadowLayer(8.dp.toPx(), 0f, 0f, activeColor.copy(alpha = 0.5f).toArgb())
+                    }
+                }
+                
+                // Draw text with glow
+                drawText(
+                    textLayoutResult = measuredText,
+                    color = activeColor,
+                    topLeft = Offset(textX, textY)
+                )
+                
+                canvas.restore()
+            }
+            
+            // Main active text layer with sharp clip
             clipRect(
                 left = textX,
                 top = 0f,
-                right = textX + textWidth * clipProgress,
-                bottom = textHeight
+                right = textX + textWidth * animatedProgress.value,
+                bottom = size.height
             ) {
                 drawText(
                     textLayoutResult = measuredText,
                     color = activeColor,
-                    topLeft = Offset(textX, 0f)
+                    topLeft = Offset(textX, textY)
                 )
             }
         }

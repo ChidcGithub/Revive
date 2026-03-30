@@ -567,16 +567,6 @@ private fun TopNavigationBar(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Title
-            Text(
-                text = "Music",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
             // Lyrics button
             IconButton(onClick = onLyricsClick) {
                 Icon(
