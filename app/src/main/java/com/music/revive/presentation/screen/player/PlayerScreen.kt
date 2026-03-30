@@ -1,6 +1,7 @@
 @file:OptIn(
     ExperimentalAnimationApi::class,
-    ExperimentalSharedTransitionApi::class
+    ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterial3Api::class
 )
 
 package com.music.revive.presentation.screen.player
@@ -9,12 +10,9 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -28,43 +26,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import com.music.revive.presentation.theme.AlbumColors
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.music.revive.R
@@ -89,11 +68,28 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private val AppleMusicColorFlowSpec: AnimationSpec<Color> = tween(720, easing = FastOutSlowInEasing)
-private val AppleMusicTapSpring: AnimationSpec<Float> = spring(
+// ============================================================================
+// Animation Specs - Apple Music Style Smooth Animations
+// ============================================================================
+
+private val AppleMusicSpring = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
-    stiffness = Spring.StiffnessHigh
+    stiffness = Spring.StiffnessMediumLow
 )
+
+private val AppleMusicTween = tween<Float>(
+    durationMillis = 300,
+    easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
+)
+
+private val AppleMusicColorTween = tween<Color>(
+    durationMillis = 500,
+    easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
+)
+
+// ============================================================================
+// ViewModels (PlayerViewModel is in separate file: PlayerViewModel.kt)
+// ============================================================================
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(
@@ -106,16 +102,35 @@ class QueueViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 }
 
-/**
- * Apple Music Style Player Screen with Dynamic Colors
- * 
- * Design Principles:
- * - Clean, minimal layout with generous spacing
- * - Large album artwork as the visual focal point
- * - Dynamic colors extracted from album art
- * - Elegant, thin progress slider
- * - Prominent play button with album's accent color
- */
+@HiltViewModel
+class PlayerPlaylistViewModel @Inject constructor(
+    private val repository: MusicRepository
+) : ViewModel() {
+    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
+    val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.getAllPlaylists().collect { _playlists.value = it }
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: Long, songId: Long) {
+        viewModelScope.launch { repository.addSongToPlaylist(playlistId, songId) }
+    }
+
+    fun createPlaylistAndAddSong(name: String, songId: Long) {
+        viewModelScope.launch {
+            val playlistId = repository.createPlaylist(name)
+            repository.addSongToPlaylist(playlistId, songId)
+        }
+    }
+}
+
+// ============================================================================
+// Main Player Screen - Apple Music Style
+// ============================================================================
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
@@ -133,26 +148,27 @@ fun PlayerScreen(
     val song = playerState.currentSong ?: return
 
     val context = LocalContext.current
-
     val isSystemInDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     val albumColors = rememberAlbumColors(song.albumArtUri, isSystemInDarkTheme)
-
     val accentColor = albumColors.primary
     val onAccentContent = albumColors.onPrimary
-
-    val controlsFade = remember { Animatable(1f) }
-    LaunchedEffect(song.id) {
-        controlsFade.snapTo(0.78f)
-        controlsFade.animateTo(1f, tween(420, easing = FastOutSlowInEasing))
-    }
-
-    var currentSliderValue by remember { mutableFloatStateOf(0f) }
-    var isUserDragging by remember { mutableStateOf(false) }
 
     // Dialog states
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var showMoreOptionsSheet by remember { mutableStateOf(false) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showQueue by remember { mutableStateOf(false) }
+
+    // Slider state
+    var currentSliderValue by remember { mutableFloatStateOf(0f) }
+    var isUserDragging by remember { mutableStateOf(false) }
+
+    // Animations
+    val controlsAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(400, easing = FastOutSlowInEasing),
+        label = "controlsAlpha"
+    )
 
     LaunchedEffect(playerState.position, playerState.duration, isUserDragging) {
         if (!isUserDragging && playerState.duration > 0) {
@@ -160,7 +176,6 @@ fun PlayerScreen(
         }
     }
 
-    // Auto-update position
     LaunchedEffect(playerState.isPlaying) {
         while (playerState.isPlaying) {
             delay(100)
@@ -168,112 +183,80 @@ fun PlayerScreen(
         }
     }
 
-    val chromeTint = Color.White.copy(alpha = 0.92f)
-    val chromeMuted = Color.White.copy(alpha = 0.48f)
-
+    // Main container with gradient background
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        NowPlayingAmbientBackdrop(
+        // Ambient background with album art blur
+        AmbientBackground(
             albumArtUri = song.albumArtUri,
-            albumColors = albumColors,
+            accentColor = accentColor,
             isPlaying = playerState.isPlaying,
             modifier = Modifier.fillMaxSize()
         )
 
+        // Content column
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PlayerPressableIconButton(onClick = onNavigateBack) {
-                    Icon(
-                        imageVector = Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.back),
-                        modifier = Modifier.size(30.dp),
-                        tint = chromeTint
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = stringResource(R.string.playing),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = chromeMuted,
-                    letterSpacing = 0.6.sp
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                PlayerPressableIconButton(onClick = {
+            // 1. Top Navigation Bar (56dp height)
+            TopNavigationBar(
+                onBackClick = onNavigateBack,
+                onLyricsClick = {
                     val intent = FullScreenLyricsActivity.newIntent(context)
                     context.startActivity(intent)
-                }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Lyrics,
-                        contentDescription = stringResource(R.string.show_lyrics),
-                        tint = chromeTint
-                    )
-                }
-                PlayerPressableIconButton(onClick = onQueueClick) {
-                    Icon(
-                        imageVector = Icons.Rounded.QueueMusic,
-                        contentDescription = stringResource(R.string.queue),
-                        tint = chromeTint
-                    )
-                }
-            }
+                },
+                onQueueClick = { showQueue = true },
+                modifier = Modifier.fillMaxWidth()
+            )
 
+            // 2. Main content area
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.weight(0.15f))
-                AppleMusicNowPlayingArtwork(
+                Spacer(modifier = Modifier.weight(0.1f))
+
+                // 3. Album Art with rotation animation
+                AlbumArtSection(
                     song = song,
                     isPlaying = playerState.isPlaying,
                     accentColor = accentColor,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedContentScope = animatedContentScope,
                     modifier = Modifier
-                        .fillMaxWidth(0.92f)
+                        .fillMaxWidth(0.6f)
                         .aspectRatio(1f)
                 )
-                Spacer(modifier = Modifier.height(28.dp))
-                AppleMusicNowPlayingMeta(
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 4. Song Info Section
+                SongInfoSection(
                     song = song,
                     accentColor = accentColor,
                     onArtistClick = { onArtistClick(song.artistId) },
                     onAlbumClick = { onAlbumClick(song.albumId) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.weight(0.2f))
-            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer { alpha = controlsFade.value }
-                    .navigationBarsPadding()
-                    .padding(bottom = 20.dp)
-            ) {
-                AppleMusicNowPlayingSlider(
-                    formattedPosition = playerState.formattedPosition,
-                    formattedDuration = song.formattedDuration,
+                Spacer(modifier = Modifier.weight(0.15f))
+
+                // 5. Progress Slider
+                ProgressSliderSection(
+                    position = playerState.position,
+                    duration = playerState.duration,
                     accentColor = accentColor,
                     sliderValue = currentSliderValue,
-                    isScrubbing = isUserDragging,
-                    enabled = playerState.duration > 0,
+                    isUserDragging = isUserDragging,
                     onValueChange = { v ->
                         isUserDragging = true
                         currentSliderValue = v
@@ -285,14 +268,13 @@ fun PlayerScreen(
                             viewModel.seekTo((currentSliderValue * d).toLong().coerceIn(0L, d))
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                AppleMusicNowPlayingTransport(
+                // 6. Playback Controls
+                PlaybackControlsSection(
                     isPlaying = playerState.isPlaying,
                     isShuffleEnabled = playerState.isShuffleEnabled,
                     repeatMode = playerState.repeatMode,
@@ -306,21 +288,28 @@ fun PlayerScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                AppleMusicNowPlayingSecondaryRow(
+                // 7. Secondary controls (favorite, playlist, more)
+                SecondaryControlsSection(
                     isFavorite = isFavorite,
                     accentColor = accentColor,
                     onToggleFavorite = { viewModel.toggleFavorite() },
                     onAddToPlaylist = { showAddToPlaylistDialog = true },
                     onMore = { showMoreOptionsSheet = true },
-                    chromeTint = chromeTint,
-                    chromeMuted = chromeMuted,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 28.dp)
+                    modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.weight(0.1f))
             }
+        }
+
+        // Queue bottom sheet
+        if (showQueue) {
+            QueueBottomSheet(
+                onDismiss = { showQueue = false },
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 
@@ -356,9 +345,8 @@ fun PlayerScreen(
         )
     }
 
-    // More options bottom sheet
     if (showMoreOptionsSheet) {
-        DynamicMoreOptionsSheet(
+        MoreOptionsSheet(
             song = song,
             onDismiss = { showMoreOptionsSheet = false },
             onAlbumClick = {
@@ -387,126 +375,84 @@ fun PlayerScreen(
     }
 }
 
-@Composable
-private fun PlayerPressableIconButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.9f else 1f,
-        animationSpec = AppleMusicTapSpring,
-        label = "chromeIconPress"
-    )
-    IconButton(
-        onClick = onClick,
-        interactionSource = interaction,
-        modifier = modifier.scale(scale)
-    ) { content() }
-}
+// ============================================================================
+// Ambient Background
+// ============================================================================
 
 @Composable
-private fun NowPlayingAmbientBackdrop(
+private fun AmbientBackground(
     albumArtUri: String?,
-    albumColors: AlbumColors,
+    accentColor: Color,
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val primaryA by animateColorAsState(
-        albumColors.primary,
-        AppleMusicColorFlowSpec,
-        label = "ambPrim"
-    )
-    val secondaryA by animateColorAsState(
-        albumColors.secondary,
-        AppleMusicColorFlowSpec,
-        label = "ambSec"
-    )
-    val tertiaryA by animateColorAsState(
-        albumColors.tertiary,
-        AppleMusicColorFlowSpec,
-        label = "ambTer"
-    )
-    val breath = rememberInfiniteTransition(label = "amb")
-    val shift by breath.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+    
+    // Breathing animation
+    val breatheTransition = rememberInfiniteTransition(label = "breathe")
+    val breatheAlpha by breatheTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.5f,
         animationSpec = infiniteRepeatable(
-            animation = tween(18_000, easing = LinearEasing),
+            animation = tween(4000, easing = FastOutSlowInEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
-        label = "shift"
-    )
-    val kbDrift = rememberInfiniteTransition(label = "ken")
-    val kb by kbDrift.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(8_000, easing = FastOutSlowInEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "kb"
-    )
-    val bgLiveScale = if (isPlaying) 1.33f + 0.06f * kb else 1.31f
-    val bgAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.54f else 0.48f,
-        animationSpec = tween(480, easing = FastOutSlowInEasing),
-        label = "bgAlphaEase"
+        label = "breatheAlpha"
     )
 
-    Box(modifier = modifier.background(Color.Black)) {
+    Box(modifier = modifier) {
+        // Gradient overlay from surface to surfaceVariant
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                )
+        )
+
+        // Blurred album art
         if (albumArtUri != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(albumArtUri)
-                    .crossfade(520)
+                    .crossfade(true)
                     .build(),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(100.dp)
+                    .blur(80.dp)
                     .graphicsLayer {
-                        scaleX = bgLiveScale
-                        scaleY = bgLiveScale
-                        alpha = bgAlpha
+                        alpha = if (isPlaying) breatheAlpha * 0.6f else 0.4f
+                        scaleX = 1.3f
+                        scaleY = 1.3f
                     },
                 contentScale = ContentScale.Crop
             )
         }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    val w = size.width
-                    val h = size.height
-                    val t = shift
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                primaryA.copy(alpha = 0.5f + 0.07f * t),
-                                secondaryA.copy(alpha = 0.32f + 0.09f * (1f - t)),
-                                tertiaryA.copy(alpha = 0.24f),
-                                Color.Black.copy(alpha = 0.82f)
-                            ),
-                            start = Offset.Zero,
-                            end = Offset(w * (0.74f + 0.22f * t), h * 1.06f)
-                        )
-                    )
-                }
+
+        // Accent color glow orbs
+        AccentGlowOrbs(
+            accentColor = accentColor,
+            isPlaying = isPlaying,
+            modifier = Modifier.fillMaxSize()
         )
+
+        // Dark overlay for better contrast
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.1f),
-                            0.35f to Color.Transparent,
-                            0.72f to Color.Black.copy(alpha = 0.45f),
-                            1f to Color.Black.copy(alpha = 0.9f)
+                            0f to Color.Transparent,
+                            0.5f to MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
+                            1f to MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
                         )
                     )
                 )
@@ -515,7 +461,149 @@ private fun NowPlayingAmbientBackdrop(
 }
 
 @Composable
-private fun AppleMusicNowPlayingArtwork(
+private fun AccentGlowOrbs(
+    accentColor: Color,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val transition = rememberInfiniteTransition(label = "orbs")
+    
+    val offsetX1 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 50f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "offsetX1"
+    )
+    
+    val offsetY1 by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 30f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "offsetY1"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isPlaying) 0.25f else 0.15f,
+        animationSpec = tween(500),
+        label = "orbAlpha"
+    )
+
+    Box(modifier = modifier) {
+        // Primary glow orb
+        Box(
+            modifier = Modifier
+                .offset { androidx.compose.ui.unit.IntOffset(offsetX1.toInt(), offsetY1.toInt()) }
+                .size(300.dp)
+                .blur(60.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = alpha),
+                            accentColor.copy(alpha = alpha * 0.5f),
+                            Color.Transparent
+                        )
+                    ),
+                    shape = CircleShape
+                )
+        )
+
+        // Secondary glow orb
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset { androidx.compose.ui.unit.IntOffset(-offsetX1.toInt() / 2, -offsetY1.toInt()) }
+                .size(200.dp)
+                .blur(50.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = alpha * 0.6f),
+                            Color.Transparent
+                        )
+                    ),
+                    shape = CircleShape
+                )
+        )
+    }
+}
+
+// ============================================================================
+// Top Navigation Bar (56dp)
+// ============================================================================
+
+@Composable
+private fun TopNavigationBar(
+    onBackClick: () -> Unit,
+    onLyricsClick: () -> Unit,
+    onQueueClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.height(56.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Back button
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.back),
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Title
+            Text(
+                text = "Music",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Lyrics button
+            IconButton(onClick = onLyricsClick) {
+                Icon(
+                    imageVector = Icons.Rounded.Lyrics,
+                    contentDescription = stringResource(R.string.show_lyrics),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+
+            // Queue button
+            IconButton(onClick = onQueueClick) {
+                Icon(
+                    imageVector = Icons.Rounded.QueueMusic,
+                    contentDescription = stringResource(R.string.queue),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Album Art Section
+// ============================================================================
+
+@Composable
+private fun AlbumArtSection(
     song: Song,
     isPlaying: Boolean,
     accentColor: Color,
@@ -523,30 +611,38 @@ private fun AppleMusicNowPlayingArtwork(
     animatedContentScope: AnimatedContentScope?,
     modifier: Modifier = Modifier
 ) {
-    val accentGlow by animateColorAsState(
-        accentColor,
-        AppleMusicColorFlowSpec,
-        label = "artAccent"
-    )
-    val playingEase by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0.988f,
-        animationSpec = tween(480, easing = FastOutSlowInEasing),
-        label = "playingEase"
-    )
-    val breathe = rememberInfiniteTransition(label = "cover")
-    val pulse by breathe.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.012f,
+    // Rotation animation - 360° in 12 seconds when playing
+    val infiniteTransition = rememberInfiniteTransition(label = "albumRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(3_200, easing = FastOutSlowInEasing),
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    // Breathing scale animation
+    val breatheScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
-        label = "pulse"
+        label = "breathe"
     )
-    val livePulse = if (isPlaying) pulse else 1f
-    val corner = 16.dp
-    val shape = RoundedCornerShape(corner)
-    val fullArtShared = if (sharedTransitionScope != null && animatedContentScope != null) {
+
+    // Glow animation
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isPlaying) 0.3f else 0.15f,
+        animationSpec = tween(500),
+        label = "glowAlpha"
+    )
+
+    val shape = RoundedCornerShape(32.dp)
+    val sharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedElement(
                 state = rememberSharedContentState(key = NowPlayingSharedKeys.albumArt(song.id)),
@@ -556,466 +652,154 @@ private fun AppleMusicNowPlayingArtwork(
     } else {
         Modifier
     }
+
     Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = playingEase * livePulse
-                scaleY = playingEase * livePulse
-            },
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
+        // Outer glow effect
         Box(
-            Modifier
-                .fillMaxSize(0.98f)
-                .aspectRatio(1f)
-                .drawBehind {
-                    val r = minOf(size.width, size.height) * 0.5f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                accentGlow.copy(alpha = 0.5f),
-                                Color.Transparent
-                            ),
-                            center = center,
-                            radius = r * 1.2f
+            modifier = Modifier
+                .fillMaxSize(1.1f)
+                .blur(16.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = glowAlpha),
+                            accentColor.copy(alpha = glowAlpha * 0.5f),
+                            Color.Transparent
                         )
-                    )
-                }
-        )
-        AnimatedContent(
-            targetState = song.id,
-            transitionSpec = {
-                (fadeIn(tween(380, easing = FastOutSlowInEasing)) +
-                    scaleIn(
-                        initialScale = 0.92f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    ) + slideInVertically { (it * 0.06f).toInt() }) togetherWith
-                    (fadeOut(tween(260, easing = FastOutSlowInEasing)) +
-                        scaleOut(
-                            targetScale = 1.04f,
-                            animationSpec = tween(280, easing = FastOutSlowInEasing)
-                        ) +
-                        slideOutVertically { (-it * 0.04f).toInt() })
-            },
-            label = "albumArt"
-        ) { _ ->
-            Surface(
-                modifier = Modifier
-                    .then(fullArtShared)
-                    .fillMaxSize()
-                    .shadow(
-                        elevation = 28.dp,
-                        shape = shape,
-                        spotColor = accentGlow.copy(alpha = 0.55f)
                     ),
-                shape = shape,
-                color = Color(0xFF2C2C2E)
-            ) {
-                if (song.albumArtUri != null) {
-                    AsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = song.album,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                    shape = CircleShape
+                )
+        )
+
+        // Album art with rotation
+        Surface(
+            modifier = Modifier
+                .then(sharedModifier)
+                .fillMaxSize()
+                .graphicsLayer {
+                    rotationZ = if (isPlaying) rotation else 0f
+                    scaleX = if (isPlaying) breatheScale else 1f
+                    scaleY = if (isPlaying) breatheScale else 1f
+                }
+                .shadow(24.dp, shape, spotColor = accentColor.copy(alpha = 0.3f)),
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            if (song.albumArtUri != null) {
+                AsyncImage(
+                    model = song.albumArtUri,
+                    contentDescription = song.album,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Placeholder with music icon
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Audiotrack,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF2C2C2E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(88.dp),
-                            tint = Color.White.copy(alpha = 0.28f)
-                        )
-                    }
                 }
             }
         }
     }
 }
 
+// ============================================================================
+// Song Info Section
+// ============================================================================
+
 @Composable
-private fun AppleMusicNowPlayingMeta(
+private fun SongInfoSection(
     song: Song,
     accentColor: Color,
     onArtistClick: () -> Unit,
     onAlbumClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val titleColor = Color.White
-    val albumSubColor = Color.White.copy(alpha = 0.55f)
-    val accentLine by animateColorAsState(accentColor, AppleMusicColorFlowSpec, label = "metaAccent")
+    Column(
+        modifier = modifier.padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // Song title
+        Text(
+            text = song.title,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-    AnimatedContent(
-        targetState = song.id,
-        transitionSpec = {
-            (
-                fadeIn(tween(340, delayMillis = 40, easing = FastOutSlowInEasing)) +
-                    slideInVertically(
-                        animationSpec = tween(380, easing = FastOutSlowInEasing),
-                        initialOffsetY = { fullH -> (fullH * 0.1f).toInt() }
-                    )
-                ) togetherWith (
-                fadeOut(tween(220, easing = FastOutSlowInEasing)) +
-                    slideOutVertically(
-                        animationSpec = tween(220, easing = FastOutSlowInEasing),
-                        targetOffsetY = { fullH -> (-fullH * 0.06f).toInt() }
-                    )
-                )
-        },
-        modifier = modifier,
-        label = "meta"
-    ) { _ ->
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Artist with click
+        Row(
+            modifier = Modifier
+                .clickable(onClick = onArtistClick)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = song.title,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 23.sp,
-                    lineHeight = 28.sp,
-                    letterSpacing = (-0.35).sp
-                ),
+                text = song.artist,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                color = titleColor,
-                modifier = Modifier.basicMarquee(
-                    iterations = Int.MAX_VALUE,
-                    initialDelayMillis = 2_800
-                )
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.clickable(onClick = onArtistClick)
-            ) {
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = accentLine
-                )
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = accentLine.copy(alpha = 0.9f)
-                )
-            }
+            
             if (song.album.isNotBlank() && song.album != song.title) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = " · ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text(
                     text = song.album,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    color = albumSubColor,
-                    modifier = Modifier
-                        .clickable(onClick = onAlbumClick)
-                        .padding(horizontal = 8.dp)
-                )
-            }
-            if (song.audioQuality != com.music.revive.domain.model.AudioQuality.UNKNOWN) {
-                Spacer(modifier = Modifier.height(14.dp))
-                AudioQualityBadge(quality = song.audioQuality)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AppleMusicNowPlayingSlider(
-    formattedPosition: String,
-    formattedDuration: String,
-    accentColor: Color,
-    sliderValue: Float,
-    isScrubbing: Boolean,
-    enabled: Boolean,
-    onValueChange: (Float) -> Unit,
-    onValueChangeFinished: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val timeMuted = Color.White.copy(alpha = 0.45f)
-    val scrubLift by animateFloatAsState(
-        targetValue = if (isScrubbing) 1.045f else 1f,
-        animationSpec = AppleMusicTapSpring,
-        label = "scrubLift"
-    )
-    val trackAccent by animateColorAsState(
-        accentColor,
-        AppleMusicColorFlowSpec,
-        label = "sliderAccent"
-    )
-    Column(modifier = modifier.scale(scrubLift)) {
-        Slider(
-            value = sliderValue.coerceIn(0f, 1f),
-            onValueChange = onValueChange,
-            onValueChangeFinished = { onValueChangeFinished() },
-            enabled = enabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(32.dp),
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = trackAccent,
-                inactiveTrackColor = Color.White.copy(alpha = 0.28f),
-                disabledActiveTrackColor = trackAccent.copy(alpha = 0.35f),
-                disabledInactiveTrackColor = Color.White.copy(alpha = 0.12f),
-                disabledThumbColor = Color.White.copy(alpha = 0.35f)
-            )
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = formattedPosition,
-                style = MaterialTheme.typography.labelMedium,
-                color = timeMuted
-            )
-            Text(
-                text = formattedDuration,
-                style = MaterialTheme.typography.labelMedium,
-                color = timeMuted
-            )
-        }
-    }
-}
-
-@Composable
-private fun AppleMusicNowPlayingTransport(
-    isPlaying: Boolean,
-    isShuffleEnabled: Boolean,
-    repeatMode: RepeatMode,
-    accentColor: Color,
-    onAccentContent: Color,
-    onPlayPause: () -> Unit,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onToggleShuffle: () -> Unit,
-    onCycleRepeat: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val transportTint = Color.White.copy(alpha = 0.95f)
-    val subtleGlyph = Color.White.copy(alpha = 0.4f)
-    val playTint by animateColorAsState(accentColor, AppleMusicColorFlowSpec, label = "playFill")
-    val playContent by animateColorAsState(onAccentContent, AppleMusicColorFlowSpec, label = "playOn")
-
-    val playInteraction = remember { MutableInteractionSource() }
-    val playPressed by playInteraction.collectIsPressedAsState()
-    val playScale by animateFloatAsState(
-        targetValue = if (playPressed) 0.94f else 1f,
-        animationSpec = AppleMusicTapSpring,
-        label = "playPress"
-    )
-
-    Row(
-        modifier = modifier.padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AppleMusicModeGlyph(
-            icon = Icons.Rounded.Shuffle,
-            isOn = isShuffleEnabled,
-            accentColor = accentColor,
-            offTint = subtleGlyph,
-            onClick = onToggleShuffle
-        )
-        PlayerPressableIconButton(
-            onClick = onPrevious,
-            modifier = Modifier.size(56.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.SkipPrevious,
-                contentDescription = stringResource(R.string.previous),
-                modifier = Modifier.size(38.dp),
-                tint = transportTint
-            )
-        }
-        FilledIconButton(
-            onClick = onPlayPause,
-            interactionSource = playInteraction,
-            modifier = Modifier
-                .size(78.dp)
-                .scale(playScale),
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = playTint,
-                contentColor = playContent
-            )
-        ) {
-            Crossfade(
-                targetState = isPlaying,
-                animationSpec = tween(320, easing = FastOutSlowInEasing),
-                label = "playPauseIcon"
-            ) { playing ->
-                Icon(
-                    imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = if (playing) {
-                        stringResource(R.string.pause)
-                    } else {
-                        stringResource(R.string.play)
-                    },
-                    modifier = Modifier.size(40.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clickable(onClick = onAlbumClick)
                 )
             }
         }
-        PlayerPressableIconButton(
-            onClick = onNext,
-            modifier = Modifier.size(56.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.SkipNext,
-                contentDescription = stringResource(R.string.next),
-                modifier = Modifier.size(38.dp),
-                tint = transportTint
-            )
-        }
-        AppleMusicModeGlyph(
-            icon = when (repeatMode) {
-                RepeatMode.ONE -> Icons.Rounded.RepeatOne
-                else -> Icons.Rounded.Repeat
-            },
-            isOn = repeatMode != RepeatMode.OFF,
-            accentColor = accentColor,
-            offTint = subtleGlyph,
-            onClick = onCycleRepeat
-        )
-    }
-}
 
-@Composable
-private fun AppleMusicModeGlyph(
-    icon: ImageVector,
-    isOn: Boolean,
-    accentColor: Color,
-    offTint: Color,
-    onClick: () -> Unit
-) {
-    val tint by animateColorAsState(
-        targetValue = if (isOn) accentColor else offTint,
-        animationSpec = tween(380, easing = FastOutSlowInEasing),
-        label = "modeGlyph"
-    )
-    val activePulse by animateFloatAsState(
-        targetValue = if (isOn) 1.06f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "glyphPulse"
-    )
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.88f else 1f,
-        animationSpec = AppleMusicTapSpring,
-        label = "glyphPress"
-    )
-    IconButton(
-        onClick = onClick,
-        interactionSource = interaction,
-        modifier = Modifier
-            .size(48.dp)
-            .scale(pressScale * activePulse)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(23.dp),
-            tint = tint
-        )
-    }
-}
-
-@Composable
-private fun AppleMusicNowPlayingSecondaryRow(
-    isFavorite: Boolean,
-    accentColor: Color,
-    onToggleFavorite: () -> Unit,
-    onAddToPlaylist: () -> Unit,
-    onMore: () -> Unit,
-    chromeTint: Color,
-    chromeMuted: Color,
-    modifier: Modifier = Modifier
-) {
-    val favTint by animateColorAsState(
-        targetValue = if (isFavorite) accentColor else chromeMuted,
-        animationSpec = tween(420, easing = FastOutSlowInEasing),
-        label = "favTint"
-    )
-    val favHeart by animateFloatAsState(
-        targetValue = if (isFavorite) 1.12f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "favBeat"
-    )
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        PlayerPressableIconButton(
-            onClick = onToggleFavorite,
-            modifier = Modifier.scale(favHeart)
-        ) {
-            Crossfade(
-                targetState = isFavorite,
-                animationSpec = tween(280, easing = FastOutSlowInEasing),
-                label = "favIcon"
-            ) { fav ->
-                Icon(
-                    imageVector = if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = if (fav) {
-                        stringResource(R.string.remove_from_favorites)
-                    } else {
-                        stringResource(R.string.add_to_favorites)
-                    },
-                    tint = favTint
-                )
-            }
-        }
-        PlayerPressableIconButton(onClick = onAddToPlaylist) {
-            Icon(
-                imageVector = Icons.Rounded.PlaylistAdd,
-                contentDescription = stringResource(R.string.add_to_playlist),
-                tint = chromeTint.copy(alpha = 0.88f)
-            )
-        }
-        PlayerPressableIconButton(onClick = onMore) {
-            Icon(
-                imageVector = Icons.Rounded.MoreHoriz,
-                contentDescription = stringResource(R.string.more_options),
-                tint = chromeTint.copy(alpha = 0.88f)
-            )
+        // Audio quality badge
+        if (song.audioQuality != com.music.revive.domain.model.AudioQuality.UNKNOWN) {
+            Spacer(modifier = Modifier.height(8.dp))
+            AudioQualityBadge(quality = song.audioQuality)
         }
     }
 }
 
-/**
- * Audio quality badge
- */
 @Composable
 private fun AudioQualityBadge(
     quality: com.music.revive.domain.model.AudioQuality
 ) {
     val (backgroundColor, textColor) = when (quality) {
-        com.music.revive.domain.model.AudioQuality.HI_RES -> Color(0xFFFFD60A) to Color.Black
-        com.music.revive.domain.model.AudioQuality.LOSSLESS -> Color(0xFFBF5AF2) to Color.White
-        com.music.revive.domain.model.AudioQuality.EXTREME -> Color(0xFF30D158) to Color.White
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        com.music.revive.domain.model.AudioQuality.HI_RES -> 
+            Color(0xFFFFD60A) to Color.Black
+        com.music.revive.domain.model.AudioQuality.LOSSLESS -> 
+            Color(0xFFBF5AF2) to Color.White
+        com.music.revive.domain.model.AudioQuality.EXTREME -> 
+            Color(0xFF30D158) to Color.White
+        com.music.revive.domain.model.AudioQuality.HIGH -> 
+            Color(0xFF4CAF50) to Color.White
+        else -> 
+            MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
     
     Surface(
@@ -1033,12 +817,535 @@ private fun AudioQualityBadge(
     }
 }
 
-/**
- * More options bottom sheet
- */
+// ============================================================================
+// Progress Slider Section
+// ============================================================================
+
+@Composable
+private fun ProgressSliderSection(
+    position: Long,
+    duration: Long,
+    accentColor: Color,
+    sliderValue: Float,
+    isUserDragging: Boolean,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(horizontal = 8.dp)) {
+        // Slider
+        Slider(
+            value = sliderValue.coerceIn(0f, 1f),
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            enabled = duration > 0,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = accentColor,
+                inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                disabledActiveTrackColor = accentColor.copy(alpha = 0.5f),
+                disabledInactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                disabledThumbColor = accentColor.copy(alpha = 0.5f)
+            ),
+            thumb = { sliderState ->
+                // Custom thumb with scale animation
+                val interaction = remember { MutableInteractionSource() }
+                val isPressed by interaction.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed || isUserDragging) 1.2f else 1f,
+                    animationSpec = AppleMusicSpring,
+                    label = "thumbScale"
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .scale(scale)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape
+                        )
+                        .shadow(4.dp, CircleShape)
+                )
+            }
+        )
+
+        // Time labels
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = formatTime(position),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = formatTime(duration),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%02d:%02d", minutes, seconds)
+}
+
+// ============================================================================
+// Playback Controls Section
+// ============================================================================
+
+@Composable
+private fun PlaybackControlsSection(
+    isPlaying: Boolean,
+    isShuffleEnabled: Boolean,
+    repeatMode: RepeatMode,
+    accentColor: Color,
+    onAccentContent: Color,
+    onPlayPause: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onToggleShuffle: () -> Unit,
+    onCycleRepeat: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Shuffle button (48dp)
+        ControlButton(
+            icon = Icons.Rounded.Shuffle,
+            isActive = isShuffleEnabled,
+            accentColor = accentColor,
+            size = 48.dp,
+            onClick = onToggleShuffle
+        )
+
+        // Previous button (48dp)
+        ControlButton(
+            icon = Icons.Rounded.SkipPrevious,
+            isActive = false,
+            accentColor = MaterialTheme.colorScheme.onSurface,
+            size = 48.dp,
+            onClick = onPrevious
+        )
+
+        // Play/Pause button (56dp) - prominent
+        PlayPauseButton(
+            isPlaying = isPlaying,
+            accentColor = accentColor,
+            onAccentContent = onAccentContent,
+            onClick = onPlayPause
+        )
+
+        // Next button (48dp)
+        ControlButton(
+            icon = Icons.Rounded.SkipNext,
+            isActive = false,
+            accentColor = MaterialTheme.colorScheme.onSurface,
+            size = 48.dp,
+            onClick = onNext
+        )
+
+        // Repeat button (48dp)
+        ControlButton(
+            icon = when (repeatMode) {
+                RepeatMode.ONE -> Icons.Rounded.RepeatOne
+                else -> Icons.Rounded.Repeat
+            },
+            isActive = repeatMode != RepeatMode.OFF,
+            accentColor = accentColor,
+            size = 48.dp,
+            onClick = onCycleRepeat
+        )
+    }
+}
+
+@Composable
+private fun ControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isActive: Boolean,
+    accentColor: Color,
+    size: Dp,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val isPressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = AppleMusicSpring,
+        label = "buttonScale"
+    )
+
+    val containerColor by animateColorAsState(
+        targetValue = if (isActive) accentColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+        animationSpec = AppleMusicColorTween,
+        label = "containerColor"
+    )
+
+    val contentColor by animateColorAsState(
+        targetValue = if (isActive) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = AppleMusicColorTween,
+        label = "contentColor"
+    )
+
+    Surface(
+        onClick = onClick,
+        interactionSource = interaction,
+        modifier = Modifier.size(size).scale(scale),
+        shape = CircleShape,
+        color = containerColor
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(size * 0.5f),
+                tint = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayPauseButton(
+    isPlaying: Boolean,
+    accentColor: Color,
+    onAccentContent: Color,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val isPressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = AppleMusicSpring,
+        label = "playScale"
+    )
+
+    Surface(
+        onClick = onClick,
+        interactionSource = interaction,
+        modifier = Modifier
+            .size(56.dp)
+            .scale(scale)
+            .shadow(8.dp, CircleShape, spotColor = accentColor.copy(alpha = 0.3f)),
+        shape = CircleShape,
+        color = accentColor
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Crossfade(
+                targetState = isPlaying,
+                animationSpec = tween(300, easing = FastOutSlowInEasing),
+                label = "playPauseIcon"
+            ) { playing ->
+                Icon(
+                    imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (playing) stringResource(R.string.pause) else stringResource(R.string.play),
+                    modifier = Modifier.size(28.dp),
+                    tint = onAccentContent
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Secondary Controls Section
+// ============================================================================
+
+@Composable
+private fun SecondaryControlsSection(
+    isFavorite: Boolean,
+    accentColor: Color,
+    onToggleFavorite: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(horizontal = 32.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Favorite button
+        val favColor by animateColorAsState(
+            targetValue = if (isFavorite) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+            animationSpec = AppleMusicColorTween,
+            label = "favColor"
+        )
+        
+        IconButton(onClick = onToggleFavorite) {
+            Crossfade(
+                targetState = isFavorite,
+                animationSpec = tween(300),
+                label = "favIcon"
+            ) { fav ->
+                Icon(
+                    imageVector = if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = if (fav) stringResource(R.string.remove_from_favorites) else stringResource(R.string.add_to_favorites),
+                    tint = favColor
+                )
+            }
+        }
+
+        // Add to playlist
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(
+                imageVector = Icons.Rounded.PlaylistAdd,
+                contentDescription = stringResource(R.string.add_to_playlist),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+
+        // More options
+        IconButton(onClick = onMore) {
+            Icon(
+                imageVector = Icons.Rounded.MoreHoriz,
+                contentDescription = stringResource(R.string.more_options),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+// ============================================================================
+// Queue Bottom Sheet
+// ============================================================================
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DynamicMoreOptionsSheet(
+private fun QueueBottomSheet(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: QueueViewModel = hiltViewModel()
+) {
+    val queue by viewModel.queue.collectAsState()
+    val playerState by viewModel.musicPlayer.playerState.collectAsState()
+    val currentIndex = playerState.queueIndex
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(queue) {
+        if (currentIndex >= 0 && currentIndex < queue.size) {
+            listState.animateScrollToItem(currentIndex)
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            // Header
+            Text(
+                text = stringResource(R.string.queue),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            if (queue.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Rounded.QueueMusic,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.queue_empty),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    itemsIndexed(queue) { index, song ->
+                        QueueItem(
+                            song = song,
+                            isPlaying = index == currentIndex,
+                            position = index + 1,
+                            onClick = { viewModel.musicPlayer.playSong(song, queue) },
+                            onRemove = { viewModel.musicPlayer.removeFromQueue(index) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QueueItem(
+    song: Song,
+    isPlaying: Boolean,
+    position: Int,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isPlaying) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent,
+        animationSpec = tween(200),
+        label = "itemBackground"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .background(backgroundColor, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left: Current playing indicator or position
+        Box(
+            modifier = Modifier.width(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isPlaying) {
+                // Playing indicator
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    repeat(3) { i ->
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .height((8 + i * 4).dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary,
+                                    RoundedCornerShape(1.dp)
+                                )
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = position.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Album art thumbnail
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            if (song.albumArtUri != null) {
+                AsyncImage(
+                    model = song.albumArtUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.MusicNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Song info
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // Duration
+        Text(
+            text = song.formattedDuration,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        // Remove button
+        IconButton(
+            onClick = onRemove,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.remove),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+    }
+
+    // Divider line
+    if (!isPlaying) {
+        HorizontalDivider(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 60.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
+    }
+}
+
+// ============================================================================
+// More Options Sheet
+// ============================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoreOptionsSheet(
     song: Song,
     onDismiss: () -> Unit,
     onAlbumClick: () -> Unit,
@@ -1049,13 +1356,14 @@ private fun DynamicMoreOptionsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
+            // Song header
             ListItem(
                 headlineContent = {
                     Text(
@@ -1077,7 +1385,7 @@ private fun DynamicMoreOptionsSheet(
                 leadingContent = {
                     Surface(
                         modifier = Modifier.size(56.dp),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         if (song.albumArtUri != null) {
                             AsyncImage(
@@ -1103,7 +1411,7 @@ private fun DynamicMoreOptionsSheet(
                     }
                 }
             )
-            
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             if (song.albumId != null) {
@@ -1139,9 +1447,10 @@ private fun DynamicMoreOptionsSheet(
     }
 }
 
-/**
- * Queue screen
- */
+// ============================================================================
+// Queue Screen (Separate screen version)
+// ============================================================================
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QueueScreen(
@@ -1162,7 +1471,7 @@ fun QueueScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         text = stringResource(R.string.queue),
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -1205,10 +1514,11 @@ fun QueueScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                state = listState
+                state = listState,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 itemsIndexed(queue) { index, song ->
-                    DynamicQueueItem(
+                    QueueItem(
                         song = song,
                         isPlaying = index == currentIndex,
                         position = index + 1,
@@ -1217,120 +1527,6 @@ fun QueueScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * Queue item
- */
-@Composable
-private fun DynamicQueueItem(
-    song: Song,
-    isPlaying: Boolean,
-    position: Int,
-    onClick: () -> Unit,
-    onRemove: () -> Unit
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    
-    val itemAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(250, position * 20),
-        label = "itemAlpha"
-    )
-
-    LaunchedEffect(Unit) { isVisible = true }
-
-    ListItem(
-        headlineContent = {
-            Text(
-                text = song.title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                fontWeight = if (isPlaying) FontWeight.SemiBold else FontWeight.Normal
-            )
-        },
-        supportingContent = {
-            Text(
-                text = song.artist,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        leadingContent = {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(6.dp),
-                color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isPlaying) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.Bottom
-                        ) {
-                            repeat(3) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(3.dp)
-                                        .height((8 + it * 4).dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.primary,
-                                            RoundedCornerShape(1.dp)
-                                        )
-                                )
-                            }
-                        }
-                    } else {
-                        Text(
-                            text = position.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        },
-        trailingContent = {
-            IconButton(onClick = onRemove) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = stringResource(R.string.remove),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .graphicsLayer { alpha = itemAlpha }
-    )
-}
-
-@HiltViewModel
-class PlayerPlaylistViewModel @Inject constructor(
-    private val repository: MusicRepository
-) : ViewModel() {
-    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
-    val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            repository.getAllPlaylists().collect { _playlists.value = it }
-        }
-    }
-
-    fun addSongToPlaylist(playlistId: Long, songId: Long) {
-        viewModelScope.launch {
-            repository.addSongToPlaylist(playlistId, songId)
-        }
-    }
-
-    fun createPlaylistAndAddSong(name: String, songId: Long) {
-        viewModelScope.launch {
-            val playlistId = repository.createPlaylist(name)
-            repository.addSongToPlaylist(playlistId, songId)
         }
     }
 }
